@@ -16,16 +16,8 @@ import '../../views/tenant/tenant_profile_screen.dart';
 import '../../views/tenant/tenant_shell.dart';
 import 'app_routes.dart';
 
-/// Global navigator key — pushed full-screen routes (create chalaan,
-/// collection detail) use this so they cover the shell's bottom nav
-/// instead of opening inside a branch's own nested navigator.
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// App-wide [GoRouter] configuration.
-///
-/// Each role's bottom-nav tabs are a [StatefulShellRoute.indexedStack] so
-/// switching tabs preserves each branch's own navigation/scroll state
-/// instead of rebuilding it from scratch.
 final GoRouter appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splash,
@@ -42,7 +34,8 @@ final GoRouter appRouter = GoRouter(
 
     // --- Tenant shell ----------------------------------------------------
     StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) => TenantShell(navigationShell: navigationShell),
+      builder: (context, state, navigationShell) =>
+          TenantShell(navigationShell: navigationShell),
       branches: [
         StatefulShellBranch(
           routes: [
