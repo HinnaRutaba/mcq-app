@@ -5,8 +5,6 @@ import '../../config/routes/app_routes.dart';
 import '../../config/theme/app_colors.dart';
 import '../../widgets/widgets.dart';
 
-/// First screen shown on app start. Briefly shows the brand mark, then
-/// hands off to [AppRoutes.login].
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -72,7 +70,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  valueColor: AlwaysStoppedAnimation(Colors.white.withValues(alpha: 0.9)),
+                  valueColor: AlwaysStoppedAnimation(
+                    Colors.white.withValues(alpha: 0.9),
+                  ),
                 ),
               ),
             ],

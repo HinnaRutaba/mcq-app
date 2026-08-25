@@ -100,7 +100,7 @@ class AppTheme {
   static ThemeData get dark {
     final colorScheme = const ColorScheme.dark(
       primary: AppColors.primaryLight,
-      onPrimary: AppColors.darkBackground,
+      onPrimary: AppColors.darkTextPrimary,
       secondary: AppColors.secondary,
       onSecondary: AppColors.darkBackground,
       error: AppColors.error,
