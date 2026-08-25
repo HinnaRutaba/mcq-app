@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_routes.dart';
-import '../../config/theme/app_colors.dart';
 import '../../controllers/tenant_home_controller.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/get_helpers.dart';
@@ -12,6 +11,7 @@ import '../../widgets/widgets.dart';
 import 'widgets/chalaan_detail_sheet.dart';
 import 'widgets/chalaan_tile.dart';
 import 'widgets/payment_method_sheet.dart';
+import 'widgets/recent_payment_tile.dart';
 
 class TenantHomeScreen extends StatelessWidget {
   const TenantHomeScreen({super.key});
@@ -21,136 +21,187 @@ class TenantHomeScreen extends StatelessWidget {
     final controller = getOrPut(() => TenantHomeController());
 
     return Scaffold(
-      body: SafeArea(
-        child: Obx(() {
-          final nextDue = controller.nextDue;
-          final recent = controller.recentActivity;
+      body: Obx(() {
+        final upcoming = controller.unpaid;
+        final recent = controller.recentActivity;
+        final nextDue = controller.nextDue;
 
-          return RefreshIndicator(
-            onRefresh: () async => controller.reload(),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-              children: [
-                Row(
+        return RefreshIndicator(
+          onRefresh: () async => controller.reload(),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              AppHeroHeader(
+                subtitle: 'Welcome back',
+                title: DemoIdentity.tenantName,
+                trailing: const AppCircleIconButton(
+                  icon: Icons.notifications_none_rounded,
+                  badge: true,
+                ),
+                bottom: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const AppText.body('Welcome back'),
-                          const SizedBox(height: 2),
-                          AppText.headlineMedium(DemoIdentity.tenantName),
-                        ],
-                      ),
+                    AppText.label('Total Due', color: Colors.white.withValues(alpha: 0.75)),
+                    const SizedBox(height: 4),
+                    AppText(
+                      Formatters.currency(controller.totalDue),
+                      variant: AppTextVariant.displaySmall,
+                      color: Colors.white,
                     ),
-                    Container(
-                      height: 44,
-                      width: 44,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
+                    if (controller.overdueCount > 0) ...[
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: AppText.label(
+                          '${controller.overdueCount} overdue — pay now to avoid extra charges',
+                          color: Colors.white,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.person_rounded,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppStatTile(
-                        label: 'Total Due',
-                        value: Formatters.currency(controller.totalDue),
-                        icon: Icons.account_balance_wallet_outlined,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppStatTile(
-                        label: 'Overdue',
-                        value: '${controller.overdueCount}',
-                        icon: Icons.error_outline_rounded,
-                        valueColor: controller.overdueCount > 0 ? AppColors.error : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppStatTile(
-                        label: 'Paid',
-                        value: '${controller.paidCount}',
-                        icon: Icons.check_circle_outline_rounded,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const AppText.titleMedium('Payment Overview'),
-                      const SizedBox(height: 4),
-                      const AppText.caption('Paid vs due, last 6 months'),
-                      const SizedBox(height: 16),
-                      AppBarChart(data: controller.monthlyChartData),
                     ],
-                  ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                if (nextDue != null) ...[
-                  const AppText.titleMedium('Upcoming'),
-                  const SizedBox(height: 12),
-                  ChalaanTile(
-                    chalaan: nextDue,
-                    onTap: () => ChalaanDetailSheet.show(
-                      context,
-                      nextDue,
-                      onPay: () => PaymentMethodSheet.show(
-                        context,
-                        chalaan: nextDue,
-                        onSettled: (_) => controller.reload(),
-                      ),
-                    ),
-                    onPay: () => PaymentMethodSheet.show(
-                      context,
-                      chalaan: nextDue,
-                      onSettled: (_) => controller.reload(),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-                Row(
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Expanded(child: AppText.titleMedium('Recent Activity')),
-                    TextButton(
-                      onPressed: () => context.go(AppRoutes.tenantPayments),
-                      child: const AppText.label('See all'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        AppQuickAction(
+                          icon: Icons.bolt_rounded,
+                          label: 'Pay Now',
+                          onTap: nextDue == null
+                              ? null
+                              : () => PaymentMethodSheet.show(
+                                    context,
+                                    chalaan: nextDue,
+                                    onSettled: (_) => controller.reload(),
+                                  ),
+                        ),
+                        AppQuickAction(
+                          icon: Icons.receipt_long_rounded,
+                          label: 'Payments',
+                          onTap: () => context.go(AppRoutes.tenantPayments),
+                        ),
+                        AppQuickAction(
+                          icon: Icons.bar_chart_rounded,
+                          label: 'Overview',
+                          onTap: () => _ChartSheet.show(context, controller),
+                        ),
+                        AppQuickAction(
+                          icon: Icons.person_outline_rounded,
+                          label: 'Profile',
+                          onTap: () => context.go(AppRoutes.tenantProfile),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 28),
+                    AppText.titleMedium('Upcoming Payments (${upcoming.length})'),
+                    const SizedBox(height: 12),
+                    if (upcoming.isEmpty)
+                      const AppEmptyState(
+                        icon: Icons.task_alt_rounded,
+                        title: 'Nothing due',
+                        message: 'You\'re all caught up — no pending chalaans.',
+                      )
+                    else
+                      for (final chalaan in upcoming) ...[
+                        ChalaanTile(
+                          chalaan: chalaan,
+                          onTap: () => ChalaanDetailSheet.show(
+                            context,
+                            chalaan,
+                            onPay: () => PaymentMethodSheet.show(
+                              context,
+                              chalaan: chalaan,
+                              onSettled: (_) => controller.reload(),
+                            ),
+                          ),
+                          onPay: () => PaymentMethodSheet.show(
+                            context,
+                            chalaan: chalaan,
+                            onSettled: (_) => controller.reload(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: AppText.titleMedium('Past Payments')),
+                        TextButton(
+                          onPressed: () => context.go(AppRoutes.tenantPayments),
+                          child: const AppText.label('See all'),
+                        ),
+                      ],
+                    ),
+                    if (recent.isEmpty)
+                      const AppEmptyState(
+                        icon: Icons.history_rounded,
+                        title: 'No history yet',
+                        message: 'Your settled payments will show up here.',
+                      )
+                    else
+                      AppCard(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < recent.length; i++) ...[
+                              RecentPaymentTile(
+                                chalaan: recent[i],
+                                onTap: () => ChalaanDetailSheet.show(context, recent[i]),
+                              ),
+                              if (i != recent.length - 1) const Divider(height: 1),
+                            ],
+                          ],
+                        ),
+                      ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                if (recent.isEmpty)
-                  const AppEmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'No activity yet',
-                    message: 'Your payment history will show up here.',
-                  )
-                else
-                  for (final chalaan in recent) ...[
-                    ChalaanTile(
-                      chalaan: chalaan,
-                      onTap: () => ChalaanDetailSheet.show(context, chalaan),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-              ],
-            ),
-          );
-        }),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+/// "Overview" quick action opens the 6-month chart in a bottom sheet —
+/// kept out of the main flow so it doesn't compete with Upcoming/Past.
+class _ChartSheet {
+  static Future<void> show(BuildContext context, TenantHomeController controller) {
+    return showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SafeArea(
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AppText.titleMedium('Payment Overview'),
+              const SizedBox(height: 4),
+              const AppText.caption('Paid vs due, last 6 months'),
+              const SizedBox(height: 16),
+              AppBarChart(data: controller.monthlyChartData),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
     );
   }

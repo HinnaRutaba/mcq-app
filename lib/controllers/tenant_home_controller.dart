@@ -26,11 +26,13 @@ class TenantHomeController extends GetxController {
     chalaans.assignAll(_chalaanRepository.getByTenant(DemoIdentity.tenantId));
   }
 
-  List<Chalaan> get _unpaid =>
+  /// Every not-yet-paid chalaan (upcoming + overdue), soonest due first —
+  /// the "Upcoming Payments" section on Home shows this in full.
+  List<Chalaan> get unpaid =>
       chalaans.where((c) => !c.isSettled && c.status != ChalaanStatus.pendingVerification).toList()
         ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
-  Chalaan? get nextDue => _unpaid.isEmpty ? null : _unpaid.first;
+  Chalaan? get nextDue => unpaid.isEmpty ? null : unpaid.first;
 
   List<Chalaan> get recentActivity {
     final settled = chalaans
@@ -40,7 +42,7 @@ class TenantHomeController extends GetxController {
     return settled.take(5).toList();
   }
 
-  double get totalDue => _unpaid.fold(0.0, (sum, c) => sum + c.amount);
+  double get totalDue => unpaid.fold(0.0, (sum, c) => sum + c.amount);
 
   int get overdueCount => chalaans.where((c) => c.status == ChalaanStatus.overdue).length;
 

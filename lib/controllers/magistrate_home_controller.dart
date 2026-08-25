@@ -33,12 +33,25 @@ class MagistrateHomeController extends GetxController {
 
   int get overdueCount => pending.where((c) => c.status == ChalaanStatus.overdue).length;
 
-  List<Chalaan> get priorityCollections {
-    final sorted = pending.toList()..sort((a, b) => a.dueDate.compareTo(b.dueDate));
-    return sorted.take(5).toList();
+  /// Tenants who haven't paid a fine yet — highest priority: unlike a
+  /// missed rent chalaan, an unpaid fine is often tied to a seal.
+  List<Chalaan> get unpaidFines {
+    final fines = pending.where((c) => c.isFine).toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    return fines;
+  }
+
+  /// Regular (non-fine) chalaans coming due — the day-to-day collection
+  /// round, lower priority than an unpaid fine.
+  List<Chalaan> get pendingCollections {
+    final collections = pending.where((c) => !c.isFine).toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    return collections;
   }
 
   int get sealedCount => _sealController.sealedCount;
 
+  /// Seals whose fine has since been paid — ready for the magistrate to go
+  /// remove in person.
   List<SealRecord> get readyToUnseal => _sealController.readyToUnseal;
 }

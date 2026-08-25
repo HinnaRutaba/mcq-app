@@ -32,16 +32,21 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: TenantHomeScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Payment Overview'), findsOneWidget);
-    expect(find.text('Upcoming'), findsOneWidget);
+    // Seed data has exactly two outstanding chalaans for the demo tenant
+    // (CHL-101 upcoming, CHL-102 overdue).
+    expect(find.text('Upcoming Payments (2)'), findsOneWidget);
+    expect(find.text('Past Payments'), findsOneWidget);
   });
 
   testWidgets('Magistrate Home screen loads with seeded collections', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: MagistrateHomeScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text("Today's Priority Collections"), findsOneWidget);
-    // Seed data has exactly one seal ready to unseal (SEAL-302).
-    expect(find.textContaining('ready to unseal'), findsOneWidget);
+    // Seed data has exactly one unpaid fine (FIN-201).
+    expect(find.text('Unpaid Fines (1)'), findsOneWidget);
+    expect(find.text('Pending Collections'), findsOneWidget);
+    // "Ready to Unseal" appears twice: the section header and the seal's
+    // own status badge (SealStatus.readyToUnseal.label).
+    expect(find.text('Ready to Unseal'), findsNWidgets(2));
   });
 }
