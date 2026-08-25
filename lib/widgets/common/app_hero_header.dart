@@ -35,7 +35,7 @@ class AppHeroHeader extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isDark
-              ? [AppColors.darkSurfaceVariant, AppColors.primaryDark]
+              ? [AppColors.darkSurfaceVariant, AppColors.darkBackground]
               : [AppColors.primary, AppColors.primaryDark],
         ),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),

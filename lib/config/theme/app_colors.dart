@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Central color palette for the app — "deep navy & emerald".
+/// Central color palette for the app — Tailwind "sky" blue (primary /
+/// primaryLight / primaryDark / dark-mode surfaces / light background),
+/// paired with a teal accent.
 ///
 /// Keep every raw color value here — screens and widgets should never
 /// hardcode a `Color(0x...)`, they should reference `AppColors` (directly
@@ -11,12 +13,12 @@ class AppColors {
   // ---------------------------------------------------------------------
   // Brand
   // ---------------------------------------------------------------------
-  static const Color primary = Color(0xFF0B2447);
-  static const Color primaryLight = Color(0xFF3B5C8C);
-  static const Color primaryDark = Color(0xFF071830);
+  static const Color primary = Color(0xFF0D5375);
+  static const Color primaryLight = Color(0xFF0C496B);
+  static const Color primaryDark = Color(0xFF072842);
 
-  static const Color secondary = Color(0xFF10B981);
-  static const Color secondaryDark = Color(0xFF059669);
+  static const Color secondary = Color(0xFF0891B2);
+  static const Color secondaryDark = Color(0xFF0E7490);
 
   // ---------------------------------------------------------------------
   // Semantic
@@ -29,7 +31,7 @@ class AppColors {
   // ---------------------------------------------------------------------
   // Light theme neutrals
   // ---------------------------------------------------------------------
-  static const Color lightBackground = Color(0xFFF7F9FC);
+  static const Color lightBackground = Color(0xFFF0F9FF);
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightSurfaceVariant = Color(0xFFEEF2F7);
   static const Color lightBorder = Color(0xFFDCE3EC);
@@ -41,9 +43,9 @@ class AppColors {
   // ---------------------------------------------------------------------
   // Dark theme neutrals
   // ---------------------------------------------------------------------
-  static const Color darkBackground = Color(0xFF071426);
-  static const Color darkSurface = Color(0xFF0F2038);
-  static const Color darkSurfaceVariant = Color(0xFF14294A);
+  static const Color darkBackground = Color(0xFF030D1B);
+  static const Color darkSurface = Color(0xFF04192E);
+  static const Color darkSurfaceVariant = Color(0xFF082E47);
   static const Color darkBorder = Color(0xFF1F3A5F);
   static const Color darkDivider = Color(0xFF1B3252);
   static const Color darkTextPrimary = Color(0xFFE7EEF7);

@@ -6,16 +6,16 @@ after sign-in.
 
 ## Tech stack
 
-| Concern | Choice |
-|---|---|
-| Language / SDK | Dart, Flutter (`sdk: ^3.12.2`) |
-| Architecture | MVC — `models/` (data), `controllers/` (state + logic), `views/` (screens/widgets) |
+| Concern          | Choice                                                                                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Language / SDK   | Dart, Flutter (`sdk: ^3.12.2`)                                                                                                                                                     |
+| Architecture     | MVC — `models/` (data), `controllers/` (state + logic), `views/` (screens/widgets)                                                                                                 |
 | State management | [get](https://pub.dev/packages/get) (GetX) — used for state/DI only (`GetxController`, `Obx`, `Get.put`/`Get.find`); routing goes through `go_router` instead of GetX's own router |
-| Navigation | [go_router](https://pub.dev/packages/go_router) — `StatefulShellRoute.indexedStack` per role, so each role's bottom-nav tabs keep their own navigation/scroll state |
-| Fonts | [google_fonts](https://pub.dev/packages/google_fonts) (Inter) |
-| Formatting | [intl](https://pub.dev/packages/intl) — currency (PKR) and date formatting, centralized in `core/utils/formatters.dart` |
-| External links | [url_launcher](https://pub.dev/packages/url_launcher) — "Open in Maps" on the Magistrate side |
-| Data layer | Mock in-memory repositories behind abstract interfaces (see below) — no backend yet |
+| Navigation       | [go_router](https://pub.dev/packages/go_router) — `StatefulShellRoute.indexedStack` per role, so each role's bottom-nav tabs keep their own navigation/scroll state                |
+| Fonts            | [google_fonts](https://pub.dev/packages/google_fonts) (Inter)                                                                                                                      |
+| Formatting       | [intl](https://pub.dev/packages/intl) — currency (PKR) and date formatting, centralized in `core/utils/formatters.dart`                                                            |
+| External links   | [url_launcher](https://pub.dev/packages/url_launcher) — "Open in Maps" on the Magistrate side                                                                                      |
+| Data layer       | Mock in-memory repositories behind abstract interfaces (see below) — no backend yet                                                                                                |
 
 Run it with the standard Flutter commands: `flutter pub get`, then
 `flutter run`. `flutter analyze` and `flutter test` should stay clean.
