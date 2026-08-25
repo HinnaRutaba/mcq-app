@@ -7,15 +7,19 @@ import '../../controllers/auth_controller.dart';
 import '../../models/user_role.dart';
 import '../../widgets/widgets.dart';
 
-
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
-  Future<void> _handleLogin(BuildContext context, AuthController controller) async {
+  Future<void> _handleLogin(
+    BuildContext context,
+    AuthController controller,
+  ) async {
     final role = await controller.login();
     if (role == null || !context.mounted) return;
     context.go(
-      role == UserRole.magistrate ? AppRoutes.magistrateDashboard : AppRoutes.tenantDashboard,
+      role == UserRole.magistrate
+          ? AppRoutes.magistrateHome
+          : AppRoutes.tenantHome,
     );
   }
 
@@ -40,7 +44,9 @@ class LoginScreen extends StatelessWidget {
                       height: 56,
                       width: 56,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Icon(
@@ -76,7 +82,8 @@ class LoginScreen extends StatelessWidget {
                         textInputAction: TextInputAction.done,
                         prefixIcon: Icons.lock_outline_rounded,
                         validator: controller.validatePassword,
-                        onFieldSubmitted: (_) => _handleLogin(context, controller),
+                        onFieldSubmitted: (_) =>
+                            _handleLogin(context, controller),
                         autofillHints: const [AutofillHints.password],
                       ),
                     ),

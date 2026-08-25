@@ -3,11 +3,6 @@ import 'package:get/get.dart';
 
 import '../models/user_role.dart';
 
-/// Drives the shared login screen and holds the currently signed-in role.
-///
-/// Kept alive for the lifetime of the app (see registration in
-/// `lib/app/app.dart`) so dashboards can later read [role] to know which
-/// user is signed in.
 class AuthController extends GetxController {
   final formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
@@ -23,7 +18,8 @@ class AuthController extends GetxController {
     role.value = (checked ?? false) ? UserRole.magistrate : UserRole.tenant;
   }
 
-  void toggleObscurePassword() => obscurePassword.value = !obscurePassword.value;
+  void toggleObscurePassword() =>
+      obscurePassword.value = !obscurePassword.value;
 
   String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return 'Email is required';
@@ -38,10 +34,6 @@ class AuthController extends GetxController {
     return null;
   }
 
-  /// Validates the form and simulates a sign-in call.
-  ///
-  /// Returns the [UserRole] to route to on success, or `null` if the form
-  /// was invalid / the call failed. Navigation itself is left to the view.
   Future<UserRole?> login() async {
     if (!(formKey.currentState?.validate() ?? false)) return null;
 
