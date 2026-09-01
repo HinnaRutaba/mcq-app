@@ -39,8 +39,7 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (_requiresAuth(err.requestOptions) &&
-        err.response?.statusCode == 401) {
+    if (_requiresAuth(err.requestOptions) && err.response?.statusCode == 401) {
       await _storage.clearSession();
       onUnauthorized?.call();
     }

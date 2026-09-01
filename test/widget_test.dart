@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:mcq_app/app/app.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/views/magistrate/collections_screen.dart';
-import 'package:mcq_app/views/magistrate/magistrate_home_screen.dart';
 import 'package:mcq_app/views/magistrate/sealed_screen.dart';
 
 import 'support/api_stub.dart';
@@ -43,17 +42,8 @@ void main() {
   // The screens below are placeholders until they are wired to the MCQ
   // Magistrate API. These tests hold the shape that survives that wiring —
   // each screen builds, and names itself — so a screen cannot quietly go
-  // blank on the way to being connected.
-  testWidgets('Home screen builds while it awaits the field beat', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: MagistrateHomeScreen()));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Not wired up yet'), findsOneWidget);
-  });
-
+  // blank on the way to being connected. Home has been wired and left this
+  // list; it is covered by `dashboard_screen_test.dart`.
   testWidgets('Collections screen builds while it awaits the defaulters list', (
     WidgetTester tester,
   ) async {

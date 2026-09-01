@@ -8,6 +8,10 @@ import 'package:get/get.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
+import 'package:mcq_app/controllers/dashboard_controller.dart';
+import 'package:mcq_app/core/network/api_exception.dart';
+import 'package:mcq_app/data/repositories/dashboard_repository.dart';
+import 'package:mcq_app/data/repositories/defaulters_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 import 'package:mcq_app/views/magistrate/collection_detail_screen.dart';
@@ -18,6 +22,7 @@ import 'package:mcq_app/views/magistrate/magistrate_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/sealed_screen.dart';
 
 import 'support/api_stub.dart';
+import 'support/dashboard_fixtures.dart';
 
 /// Renders every screen to a PNG under `test/preview/` so a change can be
 /// looked at, not merely analysed. Run it deliberately:
@@ -55,13 +60,32 @@ void main() {
       Get.find<AuthController>().errorMessage.value = null;
       return const ChangePasswordScreen();
     },
-    'home': () => const MagistrateHomeScreen(),
+    'home': () {
+      _seedDashboard();
+      return const MagistrateHomeScreen();
+    },
+    // The state a bazaar with no signal produces, which the happy path never
+    // shows and which is where a dashboard usually falls apart.
+    'home_offline': () {
+      _seedDashboard(
+        failure: const ApiException(
+          message: 'No connection. Check your signal and try again.',
+          failure: ApiFailure.network,
+        ),
+      );
+      return const MagistrateHomeScreen();
+    },
     'collections': () => const CollectionsScreen(),
     'sealed': () => const SealedScreen(),
     'profile': () => const MagistrateProfileScreen(),
     'detail': () => const CollectionDetailScreen(recordId: '77'),
     'fine': () => const CreateChalaanScreen(),
   };
+
+  // A dashboard is taller than a form. Rendering it at the default height
+  // would crop the half worth reviewing — the activity figures — out of the
+  // picture, which is how a layout problem goes unseen.
+  const tall = <String, double>{'home': 6200, 'home_offline': 2100};
 
   for (final entry in screens.entries) {
     for (final brightness in <String, ThemeData>{
@@ -72,7 +96,7 @@ void main() {
         WidgetTester tester,
       ) async {
         tester.view
-          ..physicalSize = const Size(1080, 2100)
+          ..physicalSize = Size(1080, tall[entry.key] ?? 2100)
           ..devicePixelRatio = 3;
         addTearDown(tester.view.reset);
 
@@ -92,6 +116,31 @@ void main() {
       });
     }
   }
+}
+
+/// Puts a signed-in officer and a dashboard over the fixtures in place of the
+/// real ones, so home renders the payload the staging server actually returns
+/// instead of reaching for the network.
+void _seedDashboard({Object? failure}) {
+  Get.find<AuthController>().officer.value = officerFixture;
+
+  // Swap the repository, not the controller. `Get.put` is put-*if-absent*, so
+  // putting a controller over the `lazyPut` registration made by
+  // `setupDependencies` is silently a no-op and the screen rebuilds the real
+  // one. Deleting the repository does remove it — it is not `fenix` — and the
+  // controller, which is, drops its instance and keeps its factory, so the
+  // screen's `Get.find` builds a fresh one over whatever is registered now.
+  Get.delete<DashboardRepository>(force: true);
+  Get.put<DashboardRepository>(
+    FakeDashboardRepository(failure: failure),
+    permanent: true,
+  );
+  Get.delete<DefaultersRepository>(force: true);
+  Get.put<DefaultersRepository>(
+    FakeDefaultersRepository(failure: failure),
+    permanent: true,
+  );
+  Get.delete<DashboardController>(force: true);
 }
 
 /// The app's theme asks `google_fonts` for Inter, which cannot be fetched in a

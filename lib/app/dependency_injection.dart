@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/dashboard_controller.dart';
 import '../controllers/theme_controller.dart';
 import '../core/network/api_service.dart';
 import '../core/permissions/permission_service.dart';
@@ -71,4 +72,10 @@ void setupDependencies() {
   // screen's sign-out.
   Get.put(AuthController(), permanent: true);
   Get.put(ThemeController(), permanent: true);
+
+  // Lazily, unlike the rest: this one fetches in `onInit`, and building it
+  // here would put two authenticated calls on the wire before anyone has
+  // signed in. It is created when the home screen first asks for it, and
+  // `fenix` rebuilds it if the branch is ever disposed.
+  Get.lazyPut<DashboardController>(DashboardController.new, fenix: true);
 }

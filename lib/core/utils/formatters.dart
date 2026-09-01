@@ -17,6 +17,18 @@ class Formatters {
 
   static String currency(num amount) => _currency.format(amount);
 
+  /// The API sends money as a decimal string ("2213409.10"), and it stays a
+  /// string everywhere but here — never total two of them in Dart. This parses
+  /// one only to print it, and hands back the raw text if it will not parse,
+  /// so a figure is never silently dropped.
+  static String? money(String? amount) {
+    if (amount == null) return null;
+    final trimmed = amount.trim();
+    if (trimmed.isEmpty) return null;
+    final value = num.tryParse(trimmed);
+    return value == null ? trimmed : currency(value);
+  }
+
   static String date(DateTime date) => _date.format(date);
 
   static String dateTime(DateTime date) => _dateTime.format(date);
