@@ -65,6 +65,13 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
   /// Secondary ink — the "no particular state" tone.
   final Color neutral;
 
+  /// The palette with the brand tone taken from the officer's chosen scheme.
+  /// Only [brand] moves — a scheme changes the app's own colour, never what
+  /// red means.
+  static AppStatusColors lightFor(Color brand) => light.copyWith(brand: brand);
+
+  static AppStatusColors darkFor(Color brand) => dark.copyWith(brand: brand);
+
   static const AppStatusColors light = AppStatusColors(
     danger: AppColors.danger,
     onDanger: Colors.white,

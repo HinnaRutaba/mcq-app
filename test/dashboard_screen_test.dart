@@ -58,26 +58,18 @@ void main() {
   tearDown(Get.reset);
 
   group('the signed-in officer', () {
-    testWidgets('is named, with their designation and username', (
+    testWidgets('is greeted in the header, and nothing more', (
       WidgetTester tester,
     ) async {
       await pumpHome(tester);
 
-      // Twice over: the header greets them, the card identifies the account.
-      expect(find.text('Habibullah Tareen'), findsNWidgets(2));
-      expect(find.text('Municipal Magistrate'), findsNWidgets(2));
-      expect(find.text('magistrate'), findsOneWidget);
-      expect(find.text('magistrate@mcq.test'), findsOneWidget);
-      expect(find.text('MAGISTRATE'), findsOneWidget);
-    });
+      expect(find.text('Habibullah Tareen'), findsOneWidget);
+      expect(find.text('Municipal Magistrate'), findsOneWidget);
 
-    testWidgets('a null field is left out rather than shown empty', (
-      WidgetTester tester,
-    ) async {
-      await pumpHome(tester);
-
-      // `employee_no` and `branch_id` come back null for this officer.
-      expect(find.text('—'), findsNothing);
+      // The account details are the profile page's job now. Home is for the
+      // work waiting, not for telling officers their own username.
+      expect(find.text('magistrate@mcq.test'), findsNothing);
+      expect(find.text('MAGISTRATE'), findsNothing);
     });
   });
 

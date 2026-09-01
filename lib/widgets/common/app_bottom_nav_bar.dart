@@ -59,7 +59,9 @@ class AppBottomNavItem extends StatelessWidget {
                   curve: Curves.easeOutCubic,
                   padding: EdgeInsets.symmetric(horizontal: selected ? 14 : 8, vertical: 8),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.primary : Colors.transparent,
+                    color: selected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Icon(
@@ -92,7 +94,9 @@ class AppBottomNavItem extends StatelessWidget {
             const SizedBox(height: 4),
             AppText.caption(
               entry.label,
-              color: selected ? AppColors.primary : mutedColor,
+              color: selected
+                  ? Theme.of(context).colorScheme.primary
+                  : mutedColor,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             ),
           ],

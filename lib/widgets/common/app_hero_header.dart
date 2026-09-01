@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../config/theme/app_colors.dart';
+import '../../config/theme/app_brand.dart';
 import '../text/app_text.dart';
 
 /// The single header every screen should use instead of the plain default
@@ -25,7 +25,7 @@ class AppHeroHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final brand = context.brand;
 
     return Container(
       width: double.infinity,
@@ -34,9 +34,7 @@ class AppHeroHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isDark
-              ? [AppColors.darkSurfaceVariant, AppColors.darkBackground]
-              : [AppColors.primary, AppColors.primaryDark],
+          colors: <Color>[brand.headerFrom, brand.headerTo],
         ),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
       ),

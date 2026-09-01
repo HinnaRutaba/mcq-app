@@ -17,8 +17,8 @@ class McqApp extends StatelessWidget {
       () => MaterialApp.router(
         title: 'MCQ',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
+        theme: AppTheme.light(themeController.colorScheme.value),
+        darkTheme: AppTheme.dark(themeController.colorScheme.value),
         themeMode: themeController.themeMode.value,
         routerConfig: appRouter,
       ),

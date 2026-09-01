@@ -8,7 +8,9 @@ import 'package:get/get.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
+import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
+import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
@@ -77,7 +79,20 @@ void main() {
     },
     'collections': () => const CollectionsScreen(),
     'sealed': () => const SealedScreen(),
-    'profile': () => const MagistrateProfileScreen(),
+    'profile': () {
+      Get.find<AuthController>().officer.value = officerFixture;
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      return const MagistrateProfileScreen();
+    },
+    // Proof the choice reaches the whole interface and not just the picker:
+    // the header, the chips, the tick and the button all follow.
+    'profile_indigo': () {
+      Get.find<AuthController>().officer.value = officerFixture;
+      Get.find<ThemeController>().setColorScheme(AppColorScheme.indigo);
+      return const MagistrateProfileScreen();
+    },
     'detail': () => const CollectionDetailScreen(recordId: '77'),
     'fine': () => const CreateChalaanScreen(),
   };
@@ -85,33 +100,40 @@ void main() {
   // A dashboard is taller than a form. Rendering it at the default height
   // would crop the half worth reviewing — the activity figures — out of the
   // picture, which is how a layout problem goes unseen.
-  const tall = <String, double>{'home': 6200, 'home_offline': 2100};
+  const tall = <String, double>{
+    'home': 6200,
+    'home_offline': 2100,
+    'profile': 3900,
+    'profile_indigo': 3900,
+  };
 
   for (final entry in screens.entries) {
-    for (final brightness in <String, ThemeData>{
-      'light': _withRealFont(AppTheme.light),
-      'dark': _withRealFont(AppTheme.dark),
-    }.entries) {
-      testWidgets('${entry.key} (${brightness.key})', (
-        WidgetTester tester,
-      ) async {
+    for (final mode in <String>['light', 'dark']) {
+      testWidgets('${entry.key} ($mode)', (WidgetTester tester) async {
         tester.view
           ..physicalSize = Size(1080, tall[entry.key] ?? 2100)
           ..devicePixelRatio = 3;
         addTearDown(tester.view.reset);
 
+        // Built before the theme, because an entry may choose a colour scheme
+        // and the whole point of that entry is that the theme follows it.
+        final screen = entry.value();
+        final scheme = Get.find<ThemeController>().colorScheme.value;
+
         await tester.pumpWidget(
           MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: brightness.value,
-            home: entry.value(),
+            theme: _withRealFont(
+              mode == 'dark' ? AppTheme.dark(scheme) : AppTheme.light(scheme),
+            ),
+            home: screen,
           ),
         );
         await tester.pumpAndSettle();
 
         await expectLater(
           find.byType(MaterialApp),
-          matchesGoldenFile('preview/${entry.key}_${brightness.key}.png'),
+          matchesGoldenFile('preview/${entry.key}_$mode.png'),
         );
       });
     }

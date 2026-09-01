@@ -11,7 +11,6 @@ import '../../widgets/widgets.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
 import 'widgets/defaulter_breakdown.dart';
-import 'widgets/officer_card.dart';
 
 class MagistrateHomeScreen extends StatelessWidget {
   const MagistrateHomeScreen({super.key});
@@ -142,10 +141,6 @@ Widget _body(DashboardController controller) {
             icon: Icons.wifi_off_rounded,
           ),
           const SizedBox(height: 16),
-        ],
-        if (controller.officer != null) ...[
-          OfficerCard(officer: controller.officer!),
-          const SizedBox(height: 24),
         ],
         if (beat != null) ...[
           const _SectionTitle('Waiting for you'),

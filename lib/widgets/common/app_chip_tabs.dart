@@ -11,12 +11,17 @@ class AppChipTabs<T> extends StatelessWidget {
     required this.itemLabel,
     required this.selected,
     required this.onChanged,
+    this.itemIcon,
   });
 
   final List<T> items;
   final String Function(T item) itemLabel;
   final T selected;
   final ValueChanged<T> onChanged;
+
+  /// An optional leading glyph per chip. The label always stays — the icon is
+  /// a second reading of the choice, never the only one.
+  final IconData? Function(T item)? itemIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -44,9 +49,21 @@ class AppChipTabs<T> extends StatelessWidget {
                   color: isSelected ? scheme.primary : Theme.of(context).dividerColor,
                 ),
               ),
-              child: AppText.label(
-                itemLabel(item),
-                color: isSelected ? scheme.onPrimary : null,
+              child: Builder(
+                builder: (BuildContext context) {
+                  final Color? ink = isSelected ? scheme.onPrimary : null;
+                  final IconData? icon = itemIcon?.call(item);
+                  final label = AppText.label(itemLabel(item), color: ink);
+                  if (icon == null) return label;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(icon, size: 16, color: ink),
+                      const SizedBox(width: 7),
+                      label,
+                    ],
+                  );
+                },
               ),
             ),
           );

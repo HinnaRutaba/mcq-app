@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_routes.dart';
-import '../../config/theme/app_colors.dart';
+import '../../config/theme/app_brand.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/widgets.dart';
 
@@ -50,8 +50,8 @@ class _SplashScreenState extends State<SplashScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: isDark
-                ? [AppColors.darkBackground, AppColors.primaryDark]
-                : [AppColors.primary, AppColors.primaryDark],
+                ? <Color>[context.brand.headerTo, context.brand.headerFrom]
+                : <Color>[context.brand.headerFrom, context.brand.headerTo],
           ),
         ),
         child: Center(

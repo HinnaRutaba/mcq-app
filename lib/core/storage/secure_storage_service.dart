@@ -40,6 +40,8 @@ class SecureStorageService {
   static const String _tokenExpiresAtKey = 'mcq.auth.token_expires_at';
   static const String _usernameKey = 'mcq.auth.username';
   static const String _deviceNameKey = 'mcq.device.name';
+  static const String _colorSchemeKey = 'mcq.ui.color_scheme';
+  static const String _themeModeKey = 'mcq.ui.theme_mode';
 
   final FlutterSecureStorage _storage;
 
@@ -106,6 +108,18 @@ class SecureStorageService {
 
   Future<void> saveDeviceName(String deviceName) =>
       _write(_deviceNameKey, deviceName);
+
+  /// How the app should look on this handset. Not a secret — it lives here
+  /// because this is the app's only store, and a colour choice does not
+  /// justify a second one. Kept by [clearAll]: signing out is not a reason to
+  /// throw away an accessibility choice.
+  Future<String?> readColorScheme() => _read(_colorSchemeKey);
+
+  Future<void> saveColorScheme(String name) => _write(_colorSchemeKey, name);
+
+  Future<String?> readThemeMode() => _read(_themeModeKey);
+
+  Future<void> saveThemeMode(String name) => _write(_themeModeKey, name);
 
   /// Drops the token and its expiry, leaving the remembered username and
   /// device name. Called on sign-out, on a 401, and after a password change —

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'app_brand.dart';
 import 'app_colors.dart';
 import 'app_status_colors.dart';
 import 'app_text_theme.dart';
 
-/// Light and dark [ThemeData] for the app.
+/// Light and dark [ThemeData] for the app, for a chosen [AppColorScheme].
 ///
 /// All generic widgets in `lib/widgets` pull their look (colors, shapes,
 /// input decoration, etc.) from this theme instead of hardcoding values,
@@ -15,26 +16,34 @@ import 'app_text_theme.dart';
 /// separated by *surface* rather than all being white with a border), and
 /// [AppStatusColors] as a `ThemeExtension` — the status palette every
 /// badge, pill and banner reads through `context.status` / [AppTone].
+///
+/// The brand colours travel too, as [AppBrandColors], so the one thing a
+/// scheme changes is in one place. Surfaces, text and the status palette are
+/// shared by every scheme: what the officer picks is the app's own colour, not
+/// a new meaning for red.
 class AppTheme {
   AppTheme._();
 
   static const double _radius = 14;
 
-  static ThemeData get light {
-    const colorScheme = ColorScheme.light(
-      primary: AppColors.primary,
-      onPrimary: Colors.white,
-      primaryContainer: AppColors.primarySoft,
-      onPrimaryContainer: AppColors.primaryDark,
-      // "Secondary" is the warm gold accent — dark ink on it, always.
-      secondary: AppColors.accent,
-      onSecondary: AppColors.onAccent,
-      secondaryContainer: Color(0xFFF7EBCC),
-      onSecondaryContainer: AppColors.onAccent,
+  static ThemeData light([
+    AppColorScheme scheme = AppColorScheme.balochistanGreen,
+  ]) {
+    final brand = scheme.light;
+    final colorScheme = ColorScheme.light(
+      primary: brand.primary,
+      onPrimary: brand.onPrimary,
+      primaryContainer: brand.containerOn(AppColors.lightSurface),
+      onPrimaryContainer: brand.primary,
+      // "Secondary" is the warm accent — the ink on it follows its luminance.
+      secondary: brand.accent,
+      onSecondary: brand.onAccent,
+      secondaryContainer: brand.accentContainerOn(AppColors.lightSurface),
+      onSecondaryContainer: brand.onAccent,
       tertiary: AppColors.tertiary,
       onTertiary: Colors.white,
       tertiaryContainer: AppColors.tertiarySoft,
-      onTertiaryContainer: Color(0xFF0B2E2C),
+      onTertiaryContainer: const Color(0xFF0B2E2C),
       error: AppColors.danger,
       onError: Colors.white,
       surface: AppColors.lightSurface,
@@ -53,7 +62,10 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: colorScheme,
-      extensions: const <ThemeExtension<dynamic>>[AppStatusColors.light],
+      extensions: <ThemeExtension<dynamic>>[
+        AppStatusColors.lightFor(brand.primary),
+        brand,
+      ],
       scaffoldBackgroundColor: AppColors.lightBackground,
       textTheme: AppTextTheme.light,
       fontFamily: AppTextTheme.light.bodyMedium?.fontFamily,
@@ -92,7 +104,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(color: brand.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
@@ -109,7 +121,7 @@ class AppTheme {
         ),
         fillColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.primary
+              ? brand.primary
               : Colors.transparent,
         ),
         side: const BorderSide(color: AppColors.lightBorder, width: 1.5),
@@ -122,18 +134,21 @@ class AppTheme {
     );
   }
 
-  static ThemeData get dark {
-    const colorScheme = ColorScheme.dark(
-      // The deep forest green is unreadable on near-black, so dark mode
-      // runs on the lighter brand step with dark ink on top of it.
-      primary: AppColors.primaryOnDark,
-      onPrimary: AppColors.darkBackground,
-      primaryContainer: AppColors.primarySoftDark,
-      onPrimaryContainer: AppColors.darkTextPrimary,
-      secondary: AppColors.accentOnDark,
-      onSecondary: AppColors.onAccent,
-      secondaryContainer: Color(0xFF2A2109),
-      onSecondaryContainer: AppColors.accentOnDark,
+  static ThemeData dark([
+    AppColorScheme scheme = AppColorScheme.balochistanGreen,
+  ]) {
+    final brand = scheme.dark;
+    final colorScheme = ColorScheme.dark(
+      // A deep brand colour is unreadable on near-black, so dark mode runs on
+      // the scheme's own lighter step with dark ink on top of it.
+      primary: brand.primary,
+      onPrimary: brand.onPrimary,
+      primaryContainer: brand.containerOn(AppColors.darkSurface),
+      onPrimaryContainer: brand.primary,
+      secondary: brand.accent,
+      onSecondary: brand.onAccent,
+      secondaryContainer: brand.accentContainerOn(AppColors.darkSurface),
+      onSecondaryContainer: brand.accent,
       tertiary: AppColors.tertiaryOnDark,
       onTertiary: AppColors.darkBackground,
       tertiaryContainer: AppColors.tertiarySoftDark,
@@ -156,7 +171,10 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: colorScheme,
-      extensions: const <ThemeExtension<dynamic>>[AppStatusColors.dark],
+      extensions: <ThemeExtension<dynamic>>[
+        AppStatusColors.darkFor(brand.primary),
+        brand,
+      ],
       scaffoldBackgroundColor: AppColors.darkBackground,
       textTheme: AppTextTheme.dark,
       fontFamily: AppTextTheme.dark.bodyMedium?.fontFamily,
@@ -195,8 +213,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
-          borderSide:
-              const BorderSide(color: AppColors.primaryOnDark, width: 1.5),
+          borderSide: BorderSide(color: brand.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
@@ -214,7 +231,7 @@ class AppTheme {
         ),
         fillColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
-              ? AppColors.primaryOnDark
+              ? brand.primary
               : Colors.transparent,
         ),
         side: const BorderSide(color: AppColors.darkBorder, width: 1.5),
