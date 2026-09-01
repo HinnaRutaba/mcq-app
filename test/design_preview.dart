@@ -7,12 +7,17 @@ import 'package:get/get.dart';
 
 import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
+import 'package:mcq_app/controllers/auth_controller.dart';
+import 'package:mcq_app/views/auth/change_password_screen.dart';
+import 'package:mcq_app/views/auth/login_screen.dart';
 import 'package:mcq_app/views/magistrate/collection_detail_screen.dart';
 import 'package:mcq_app/views/magistrate/collections_screen.dart';
 import 'package:mcq_app/views/magistrate/create_chalaan_screen.dart';
 import 'package:mcq_app/views/magistrate/magistrate_home_screen.dart';
 import 'package:mcq_app/views/magistrate/magistrate_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/sealed_screen.dart';
+
+import 'support/api_stub.dart';
 
 /// Renders every screen to a PNG under `test/preview/` so a change can be
 /// looked at, not merely analysed. Run it deliberately:
@@ -26,19 +31,36 @@ import 'package:mcq_app/views/magistrate/sealed_screen.dart';
 void main() {
   setUpAll(() async {
     Get.reset();
+    installInMemoryKeychain();
     setupDependencies();
     await _loadRealFonts();
   });
 
   tearDownAll(Get.reset);
 
-  final screens = <String, Widget>{
-    'home': const MagistrateHomeScreen(),
-    'collections': const CollectionsScreen(),
-    'sealed': const SealedScreen(),
-    'profile': const MagistrateProfileScreen(),
-    'detail': const CollectionDetailScreen(recordId: '77'),
-    'fine': const CreateChalaanScreen(),
+  // Builders rather than widgets, so an entry can set up the state it means to
+  // show — the sign-in screen is worth seeing with a failure on it, since that
+  // is the state an officer meets at a counter when the password is wrong.
+  final screens = <String, Widget Function()>{
+    'login': () {
+      Get.find<AuthController>().errorMessage.value = null;
+      return const LoginScreen();
+    },
+    'login_error': () {
+      Get.find<AuthController>().errorMessage.value =
+          'These credentials do not match our records.';
+      return const LoginScreen();
+    },
+    'change_password': () {
+      Get.find<AuthController>().errorMessage.value = null;
+      return const ChangePasswordScreen();
+    },
+    'home': () => const MagistrateHomeScreen(),
+    'collections': () => const CollectionsScreen(),
+    'sealed': () => const SealedScreen(),
+    'profile': () => const MagistrateProfileScreen(),
+    'detail': () => const CollectionDetailScreen(recordId: '77'),
+    'fine': () => const CreateChalaanScreen(),
   };
 
   for (final entry in screens.entries) {
@@ -58,7 +80,7 @@ void main() {
           MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: brightness.value,
-            home: entry.value,
+            home: entry.value(),
           ),
         );
         await tester.pumpAndSettle();
@@ -80,13 +102,26 @@ void main() {
 ThemeData _withRealFont(ThemeData theme) => theme.copyWith(
   textTheme: theme.textTheme.apply(fontFamily: 'Roboto'),
   primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Roboto'),
-  // `apply` does not reach the styles hanging off component themes.
+  // `apply` does not reach the styles hanging off component themes, and each
+  // one that is missed shows up as a row of black rectangles — form hints and
+  // validation messages especially, which is most of what there is to review on
+  // a screen like the fine form.
   appBarTheme: theme.appBarTheme.copyWith(
-    titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
-      fontFamily: 'Roboto',
-    ),
+    titleTextStyle: _real(theme.appBarTheme.titleTextStyle),
+  ),
+  inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+    hintStyle: _real(theme.inputDecorationTheme.hintStyle),
+    labelStyle: _real(theme.inputDecorationTheme.labelStyle),
+    floatingLabelStyle: _real(theme.inputDecorationTheme.floatingLabelStyle),
+    errorStyle: _real(theme.inputDecorationTheme.errorStyle),
+    helperStyle: _real(theme.inputDecorationTheme.helperStyle),
+    prefixStyle: _real(theme.inputDecorationTheme.prefixStyle),
+    suffixStyle: _real(theme.inputDecorationTheme.suffixStyle),
+    counterStyle: _real(theme.inputDecorationTheme.counterStyle),
   ),
 );
+
+TextStyle? _real(TextStyle? style) => style?.copyWith(fontFamily: 'Roboto');
 
 /// Loads a real font out of the Flutter SDK, plus the Material icon font.
 ///

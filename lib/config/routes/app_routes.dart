@@ -8,6 +8,11 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
 
+  /// The password change an officer cannot skip, when the server says
+  /// `must_change_password`. Reached from sign-in, and only from there — it
+  /// needs the current password, which is never persisted.
+  static const String changePassword = '/change-password';
+
   // --- Magistrate shell branches ---------------------------------------
   static const String magistrateHome = '/magistrate/home';
   static const String magistrateCollections = '/magistrate/collections';

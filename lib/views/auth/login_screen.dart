@@ -9,18 +9,26 @@ import '../../widgets/widgets.dart';
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
-  Future<void> _handleLogin(
-    BuildContext context,
-    AuthController controller,
-  ) async {
-    final success = await controller.login();
-    if (!success || !context.mounted) return;
-    context.go(AppRoutes.magistrateHome);
+  Future<void> _submit(BuildContext context, AuthController controller) async {
+    if (controller.isLoading.value) return;
+
+    final outcome = await controller.signIn();
+    if (!context.mounted) return;
+
+    switch (outcome) {
+      case SignInOutcome.success:
+        context.go(AppRoutes.magistrateHome);
+      case SignInOutcome.mustChangePassword:
+        context.go(AppRoutes.changePassword);
+      case SignInOutcome.invalidForm:
+      case SignInOutcome.failed:
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AuthController());
+    final controller = Get.find<AuthController>();
 
     return Scaffold(
       body: SafeArea(
@@ -57,8 +65,18 @@ class LoginScreen extends StatelessWidget {
                       'Sign in to manage collections, fines and sealed shops.',
                     ),
                     const SizedBox(height: 32),
+                    Obx(() {
+                      final message = controller.errorMessage.value;
+                      if (message == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: AppAlert(message: message),
+                      );
+                    }),
                     AppTextField(
                       label: 'Username',
+                      // Sign in with the username, not the email — the server
+                      // will not match an email address.
                       hint: 'Enter your username',
                       controller: controller.usernameController,
                       keyboardType: TextInputType.text,
@@ -77,8 +95,7 @@ class LoginScreen extends StatelessWidget {
                         textInputAction: TextInputAction.done,
                         prefixIcon: Icons.lock_outline_rounded,
                         validator: controller.validatePassword,
-                        onFieldSubmitted: (_) =>
-                            _handleLogin(context, controller),
+                        onFieldSubmitted: (_) => _submit(context, controller),
                         autofillHints: const [AutofillHints.password],
                       ),
                     ),
@@ -87,7 +104,7 @@ class LoginScreen extends StatelessWidget {
                       () => AppButton(
                         label: 'Sign In',
                         isLoading: controller.isLoading.value,
-                        onPressed: () => _handleLogin(context, controller),
+                        onPressed: () => _submit(context, controller),
                       ),
                     ),
                   ],

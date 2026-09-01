@@ -23,11 +23,21 @@ class ApiService {
     required SecureStorageService storage,
     Dio? client,
     VoidCallback? onUnauthorized,
+    ApiLogLevel logLevel = ApiLogLevel.full,
   }) : dio = client ?? Dio(defaultOptions()) {
     dio.interceptors.add(
       AuthInterceptor(storage: storage, onUnauthorized: onUnauthorized),
     );
-    dio.interceptors.add(ApiLogInterceptor());
+    // Debug only, and not merely silenced in release — not installed at all.
+    // The logs are unredacted: bearer tokens, passwords and shopkeepers' CNICs
+    // go to the console verbatim, which is useful at a desk and unacceptable on
+    // a handset in the field. `kDebugMode` is a const, so this whole call is
+    // compiled out of a release build.
+    if (kDebugMode) {
+      // Drop to [ApiLogLevel.summary] where full bodies would drown the output
+      // — a test run, mostly.
+      dio.interceptors.add(ApiLogInterceptor(level: logLevel));
+    }
   }
 
   final Dio dio;

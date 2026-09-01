@@ -7,11 +7,7 @@ import 'auth_user.dart';
 /// officer, because the handset already holds the token — so [token] is null
 /// there and [hasToken] is how you tell the two apart.
 class DeviceSession {
-  const DeviceSession({
-    required this.user,
-    this.token,
-    this.tokenExpiresAt,
-  });
+  const DeviceSession({required this.user, this.token, this.tokenExpiresAt});
 
   final AuthUser user;
 

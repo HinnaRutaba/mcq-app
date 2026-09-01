@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../controllers/auth_controller.dart';
 import '../controllers/theme_controller.dart';
 import '../core/network/api_service.dart';
 import '../core/permissions/permission_service.dart';
@@ -65,5 +66,9 @@ void setupDependencies() {
   Get.put<ChallanRepository>(ApiChallanRepository(api: api), permanent: true);
   Get.put<EvidenceRepository>(ApiEvidenceRepository(api: api), permanent: true);
 
+  // The session owner. Permanent because three places read it: the splash
+  // screen restoring a stored token, the sign-in form, and the profile
+  // screen's sign-out.
+  Get.put(AuthController(), permanent: true);
   Get.put(ThemeController(), permanent: true);
 }

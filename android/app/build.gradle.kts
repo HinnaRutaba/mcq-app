@@ -15,7 +15,12 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.lrm.mcq"
-    compileSdk = flutter.compileSdkVersion
+    // flutter.compileSdkVersion is 36 on Flutter 3.44, but flutter_secure_storage
+    // and permission_handler_android both declare a minimum compileSdk of 37 —
+    // without this the build fails on an AAR metadata check. Compile-only:
+    // targetSdk below stays where it is, since that is what opts the app into
+    // new runtime behaviour.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

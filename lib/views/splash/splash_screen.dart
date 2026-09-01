@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_routes.dart';
 import '../../config/theme/app_colors.dart';
+import '../../controllers/auth_controller.dart';
 import '../../widgets/widgets.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -16,13 +18,25 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToLogin();
+    _route();
   }
 
-  Future<void> _navigateToLogin() async {
-    await Future.delayed(const Duration(milliseconds: 1800));
+  /// Decides where the officer lands, before anything else is rendered.
+  ///
+  /// An officer who is already signed in goes straight to the dashboard rather
+  /// than being made to type a password they have already given. The session
+  /// check runs alongside the splash's minimum display time, so a fast network
+  /// does not make the logo flash and a slow one does not add to the wait.
+  Future<void> _route() async {
+    final minimumDisplay = Future<void>.delayed(
+      const Duration(milliseconds: 1200),
+    );
+
+    final signedIn = await Get.find<AuthController>().restoreSession();
+    await minimumDisplay;
+
     if (!mounted) return;
-    context.go(AppRoutes.login);
+    context.go(signedIn ? AppRoutes.magistrateHome : AppRoutes.login);
   }
 
   @override

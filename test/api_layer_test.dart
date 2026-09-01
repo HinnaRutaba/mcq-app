@@ -1,10 +1,6 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
-import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mcq_app/core/network/api_config.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
@@ -23,26 +19,21 @@ import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/units_repository.dart';
 import 'package:mcq_app/models/models.dart';
 
+import 'support/api_stub.dart';
+
 /// Every payload below is copied from the published API document, which
 /// captured them from live calls. If the app can read these, it can read the
 /// server.
 void main() {
-  late _StubAdapter adapter;
+  late ApiStub adapter;
   late ApiService api;
   late SecureStorageService storage;
-  late Map<String, String> keychain;
 
   setUp(() {
-    keychain = <String, String>{};
-    FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
-      keychain,
-    );
-    storage = SecureStorageService();
-    adapter = _StubAdapter();
-    api = ApiService(
-      storage: storage,
-      client: Dio(ApiService.defaultOptions())..httpClientAdapter = adapter,
-    );
+    final stubbed = StubbedApi();
+    adapter = stubbed.stub;
+    storage = stubbed.storage;
+    api = stubbed.service;
   });
 
   group('envelope', () {
@@ -1307,46 +1298,3 @@ const Map<String, dynamic> _challansResponse = <String, dynamic>{
     'total': 193,
   },
 };
-
-/// Answers from memory instead of the network, and keeps the request that was
-/// sent so a test can assert on the wire format.
-class _StubAdapter implements HttpClientAdapter {
-  RequestOptions? lastOptions;
-
-  Map<String, dynamic> _body = <String, dynamic>{};
-  int _statusCode = 200;
-  DioExceptionType? _failWith;
-
-  void reply(Map<String, dynamic> body, {int statusCode = 200}) {
-    _body = body;
-    _statusCode = statusCode;
-    _failWith = null;
-  }
-
-  void fail(DioExceptionType type) => _failWith = type;
-
-  @override
-  Future<ResponseBody> fetch(
-    RequestOptions options,
-    Stream<Uint8List>? requestStream,
-    Future<void>? cancelFuture,
-  ) async {
-    lastOptions = options;
-
-    final failWith = _failWith;
-    if (failWith != null) {
-      throw DioException(requestOptions: options, type: failWith);
-    }
-
-    return ResponseBody.fromString(
-      jsonEncode(_body),
-      _statusCode,
-      headers: <String, List<String>>{
-        Headers.contentTypeHeader: <String>[Headers.jsonContentType],
-      },
-    );
-  }
-
-  @override
-  void close({bool force = false}) {}
-}

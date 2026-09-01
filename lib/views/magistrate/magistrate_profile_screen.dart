@@ -73,9 +73,11 @@ class MagistrateProfileScreen extends StatelessWidget {
                 AppButton(
                   label: 'Log Out',
                   variant: AppButtonVariant.outline,
-                  onPressed: () {
-                    Get.find<AuthController>().reset();
-                    context.go(AppRoutes.login);
+                  onPressed: () async {
+                    // Revokes this device's token server-side; other devices
+                    // the officer holds stay signed in.
+                    await Get.find<AuthController>().signOut();
+                    if (context.mounted) context.go(AppRoutes.login);
                   },
                 ),
               ],

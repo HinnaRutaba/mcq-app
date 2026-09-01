@@ -7,6 +7,7 @@ library;
 export 'buttons/app_button.dart';
 export 'cards/app_card.dart';
 export 'charts/app_bar_chart.dart';
+export 'common/app_alert.dart';
 export 'common/app_bottom_nav_bar.dart';
 export 'common/app_checkbox.dart';
 export 'common/app_chip_tabs.dart';

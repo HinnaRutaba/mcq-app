@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../views/auth/change_password_screen.dart';
 import '../../views/auth/login_screen.dart';
 import '../../views/magistrate/collection_detail_screen.dart';
 import '../../views/magistrate/collections_screen.dart';
@@ -26,6 +27,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.login,
       builder: (context, state) => const LoginScreen(),
+    ),
+    // Outside the shell on purpose: there is no bottom nav to wander off to
+    // while the change is outstanding.
+    GoRoute(
+      path: AppRoutes.changePassword,
+      builder: (context, state) => const ChangePasswordScreen(),
     ),
 
     // --- Magistrate shell --------------------------------------------------
