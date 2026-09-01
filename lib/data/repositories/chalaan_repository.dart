@@ -10,18 +10,15 @@ import '../mock/mock_seed.dart';
 /// controller or view code needs to change.
 abstract class ChalaanRepository {
   List<Chalaan> getAll();
+
+  /// Every chalaan ever issued to one shopkeeper — the "Chalaan History"
+  /// on the Collection Detail screen.
   List<Chalaan> getByTenant(String tenantId);
+
   Chalaan getById(String id);
 
-  /// Simulates an instant online payment (Bank/Easypaisa/JazzCash).
-  Future<Chalaan> payOnline(String chalaanId, PaymentMethod method);
-
-  /// Records a manual bank transfer the tenant made outside the app; goes
-  /// to [ChalaanStatus.pendingVerification] until a magistrate confirms it.
-  Future<Chalaan> submitManualPayment(String chalaanId, String referenceNumber);
-
-  /// A magistrate collecting payment in person (cash) — settles instantly,
-  /// no verification step needed since the magistrate is the verifier.
+  /// The magistrate collecting payment in person (cash) — settles
+  /// instantly, since the magistrate is the one recording it.
   Future<Chalaan> markCollected(String chalaanId);
 
   /// Issues a new chalaan or fine against a property.
@@ -46,30 +43,6 @@ class MockChalaanRepository implements ChalaanRepository {
 
   @override
   Chalaan getById(String id) => _chalaans.firstWhere((c) => c.id == id);
-
-  @override
-  Future<Chalaan> payOnline(String chalaanId, PaymentMethod method) async {
-    await Future.delayed(const Duration(milliseconds: 1200));
-    final chalaan = getById(chalaanId)
-      ..status = ChalaanStatus.paid
-      ..paidDate = DateTime.now()
-      ..method = method;
-    return chalaan;
-  }
-
-  @override
-  Future<Chalaan> submitManualPayment(
-    String chalaanId,
-    String referenceNumber,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 600));
-    final chalaan = getById(chalaanId)
-      ..status = ChalaanStatus.pendingVerification
-      ..paidDate = DateTime.now()
-      ..method = PaymentMethod.manual
-      ..referenceNumber = referenceNumber;
-    return chalaan;
-  }
 
   @override
   Future<Chalaan> markCollected(String chalaanId) async {

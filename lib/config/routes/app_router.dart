@@ -10,10 +10,6 @@ import '../../views/magistrate/magistrate_profile_screen.dart';
 import '../../views/magistrate/magistrate_shell.dart';
 import '../../views/magistrate/sealed_screen.dart';
 import '../../views/splash/splash_screen.dart';
-import '../../views/tenant/tenant_home_screen.dart';
-import '../../views/tenant/tenant_payments_screen.dart';
-import '../../views/tenant/tenant_profile_screen.dart';
-import '../../views/tenant/tenant_shell.dart';
 import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -30,38 +26,6 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.login,
       builder: (context, state) => const LoginScreen(),
-    ),
-
-    // --- Tenant shell ----------------------------------------------------
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) =>
-          TenantShell(navigationShell: navigationShell),
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: AppRoutes.tenantHome,
-              builder: (context, state) => const TenantHomeScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: AppRoutes.tenantPayments,
-              builder: (context, state) => const TenantPaymentsScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: AppRoutes.tenantProfile,
-              builder: (context, state) => const TenantProfileScreen(),
-            ),
-          ],
-        ),
-      ],
     ),
 
     // --- Magistrate shell --------------------------------------------------

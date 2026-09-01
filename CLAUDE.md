@@ -9,9 +9,8 @@ This app has an existing widget library — treat it as the source of truth for 
 - **[lib/widgets/](lib/widgets/)** — shared, generic components used across the whole app
   (buttons, cards, charts, common, inputs, text), exported through
   [lib/widgets/widgets.dart](lib/widgets/widgets.dart).
-- **[lib/views/tenant/widgets/](lib/views/tenant/widgets/)** and
-  **[lib/views/magistrate/widgets/](lib/views/magistrate/widgets/)** — widgets specific to
-  those feature areas (e.g. `chalaan_tile.dart`, `collection_tile.dart`).
+- **[lib/views/magistrate/widgets/](lib/views/magistrate/widgets/)** — widgets specific to
+  that feature area (e.g. `chalaan_tile.dart`, `collection_tile.dart`).
 
 **Rule:** before building or editing any screen, check whether a suitable widget already
 exists in one of the folders above and reuse it. Do not write new inline/duplicate widget
@@ -26,15 +25,15 @@ This app follows an MVC-style layering built on GetX (`get`). Keep new code insi
 matching layer — don't put business logic in views or UI code in controllers/models.
 
 - **Models** — [lib/models/](lib/models/): plain data classes only (`property.dart`,
-  `chalaan.dart`, `seal_record.dart`, `payment_method.dart`, `user_role.dart`). No Flutter
-  UI, no business logic.
+  `chalaan.dart`, `seal_record.dart`, `payment_method.dart`). No Flutter UI, no business
+  logic.
 - **Views** — [lib/views/](lib/views/): screens/widgets grouped by feature
-  (`auth/`, `splash/`, `tenant/`, `magistrate/`), each with its own `widgets/` subfolder for
+  (`auth/`, `splash/`, `magistrate/`), each with its own `widgets/` subfolder for
   screen-specific pieces (see Widget reuse policy above). Views read state from a
   controller (via `GetX`/`Obx`/`Get.find`) and call controller methods — they must not
   contain business logic or talk to repositories/data directly.
 - **Controllers** — [lib/controllers/](lib/controllers/): `GetxController` subclasses
-  (e.g. `auth_controller.dart`, `tenant_home_controller.dart`,
+  (e.g. `auth_controller.dart`, `magistrate_home_controller.dart`,
   `collections_controller.dart`) that hold observable (`.obs`) state and business logic,
   and mediate between views and data.
 - **Data layer** — [lib/data/](lib/data/): `repositories/` define the data access

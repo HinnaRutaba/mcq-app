@@ -3,16 +3,14 @@ import '../../models/payment_method.dart';
 import '../../models/property.dart';
 import '../../models/seal_record.dart';
 
-/// Demo identities used until real auth/user data lands.
+/// The demo magistrate signed in until real auth/user data lands.
 ///
-/// The login screen doesn't collect a real account yet, so whichever role
-/// is picked signs in as this fixed demo user — enough to drive "my
-/// chalaans" / "my jurisdiction" filtering in the mock repositories.
+/// The login screen doesn't collect a real account yet, so every sign-in
+/// lands on this fixed user — enough to drive "my jurisdiction" framing in
+/// the screens and mock repositories.
 class DemoIdentity {
   DemoIdentity._();
 
-  static const tenantId = 'T-001';
-  static const tenantName = 'Ali Traders';
   static const magistrateId = 'M-001';
   static const magistrateName = 'Ahmed Raza';
   static const magistrateBadge = 'MG-204';
@@ -89,7 +87,7 @@ class MockSeed {
     DateTime daysFromNow(int d) => now.add(Duration(days: d));
 
     return [
-      // --- Demo tenant (Ali Traders / P-001) -----------------------------
+      // --- Ali Traders / P-001 -------------------------------------------
       Chalaan(
         id: 'CHL-101',
         type: ChalaanType.chalaan,
@@ -153,7 +151,7 @@ class MockSeed {
       Chalaan(
         id: 'CHL-105',
         type: ChalaanType.chalaan,
-        status: ChalaanStatus.pendingVerification,
+        status: ChalaanStatus.paid,
         tenantId: 'T-001',
         tenantName: 'Ali Traders',
         propertyId: 'P-001',
@@ -163,12 +161,12 @@ class MockSeed {
         issueDate: daysAgo(15),
         dueDate: daysAgo(1),
         paidDate: daysAgo(1),
-        method: PaymentMethod.manual,
+        method: PaymentMethod.cash,
         referenceNumber: 'TXN-88213374',
         description: 'Signage fee',
       ),
 
-      // --- Other tenants (magistrate's collections) ----------------------
+      // --- Other shopkeepers ---------------------------------------------
       Chalaan(
         id: 'CHL-111',
         type: ChalaanType.chalaan,

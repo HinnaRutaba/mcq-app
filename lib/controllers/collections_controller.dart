@@ -13,8 +13,8 @@ extension CollectionsFilterLabel on CollectionsFilter {
       };
 }
 
-/// Drives the Magistrate Collections screen: search + filter over every
-/// tenant's outstanding chalaans/fines, plus the "mark collected" action.
+/// Drives the Collections screen: search + filter over every outstanding
+/// chalaan/fine in the jurisdiction, plus the "mark collected" action.
 class CollectionsController extends GetxController {
   CollectionsController({ChalaanRepository? chalaanRepository})
       : _chalaanRepository = chalaanRepository ?? Get.find<ChalaanRepository>();

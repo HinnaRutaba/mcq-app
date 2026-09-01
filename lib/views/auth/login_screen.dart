@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
-import '../../models/user_role.dart';
 import '../../widgets/widgets.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -14,13 +13,9 @@ class LoginScreen extends StatelessWidget {
     BuildContext context,
     AuthController controller,
   ) async {
-    final role = await controller.login();
-    if (role == null || !context.mounted) return;
-    context.go(
-      role == UserRole.magistrate
-          ? AppRoutes.magistrateHome
-          : AppRoutes.tenantHome,
-    );
+    final success = await controller.login();
+    if (!success || !context.mounted) return;
+    context.go(AppRoutes.magistrateHome);
   }
 
   @override
@@ -59,18 +54,18 @@ class LoginScreen extends StatelessWidget {
                     const AppText.headlineLarge('Welcome back'),
                     const SizedBox(height: 8),
                     const AppText.body(
-                      'Sign in to manage your properties and payments.',
+                      'Sign in to manage collections, fines and sealed shops.',
                     ),
                     const SizedBox(height: 32),
                     AppTextField(
-                      label: 'Email',
-                      hint: 'you@example.com',
-                      controller: controller.emailController,
-                      keyboardType: TextInputType.emailAddress,
+                      label: 'Username',
+                      hint: 'Enter your username',
+                      controller: controller.usernameController,
+                      keyboardType: TextInputType.text,
                       textInputAction: TextInputAction.next,
-                      prefixIcon: Icons.mail_outline_rounded,
-                      validator: controller.validateEmail,
-                      autofillHints: const [AutofillHints.email],
+                      prefixIcon: Icons.person_outline_rounded,
+                      validator: controller.validateUsername,
+                      autofillHints: const [AutofillHints.username],
                     ),
                     const SizedBox(height: 20),
                     Obx(
@@ -85,14 +80,6 @@ class LoginScreen extends StatelessWidget {
                         onFieldSubmitted: (_) =>
                             _handleLogin(context, controller),
                         autofillHints: const [AutofillHints.password],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Obx(
-                      () => AppCheckbox(
-                        value: controller.isMagistrate,
-                        onChanged: controller.setIsMagistrate,
-                        label: 'Sign in as Magistrate',
                       ),
                     ),
                     const SizedBox(height: 28),

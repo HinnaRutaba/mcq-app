@@ -33,7 +33,7 @@ class MagistrateHomeController extends GetxController {
 
   int get overdueCount => pending.where((c) => c.status == ChalaanStatus.overdue).length;
 
-  /// Tenants who haven't paid a fine yet — highest priority: unlike a
+  /// Shopkeepers who haven't paid a fine yet — highest priority: unlike a
   /// missed rent chalaan, an unpaid fine is often tied to a seal.
   List<Chalaan> get unpaidFines {
     final fines = pending.where((c) => c.isFine).toList()

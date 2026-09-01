@@ -25,7 +25,7 @@ class AppBottomNavEntry {
 /// The bold navy color is reserved for this pill — the bar itself stays a
 /// neutral surface color so it doesn't compete with [AppHeroHeader]'s solid
 /// navy block at the top of the screen. Shared by the plain
-/// [AppBottomNavBar] (Tenant) and a role shell's own nav row (Magistrate).
+/// [AppBottomNavBar] and the Magistrate shell's own notched nav row.
 class AppBottomNavItem extends StatelessWidget {
   const AppBottomNavItem({
     super.key,
@@ -102,8 +102,9 @@ class AppBottomNavItem extends StatelessWidget {
   }
 }
 
-/// The plain (no-FAB) bottom nav bar — used by the Tenant shell. A neutral
-/// surface-colored bar with a top border for separation from the page.
+/// The plain (no-FAB) bottom nav bar: a neutral surface-colored bar with a
+/// top border for separation from the page. The Magistrate shell builds its
+/// own notched row out of [AppBottomNavItem] instead, to fit the center FAB.
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({
     super.key,

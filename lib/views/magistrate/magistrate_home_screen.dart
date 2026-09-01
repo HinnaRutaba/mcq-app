@@ -104,7 +104,7 @@ class MagistrateHomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     const AppText.caption(
-                      'Tenants who haven\'t settled a fine yet',
+                      'Shopkeepers who haven\'t settled a fine yet',
                     ),
                     const SizedBox(height: 12),
                     if (unpaidFines.isEmpty)

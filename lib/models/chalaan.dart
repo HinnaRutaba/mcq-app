@@ -8,18 +8,18 @@ extension ChalaanTypeLabel on ChalaanType {
   String get label => this == ChalaanType.fine ? 'Fine' : 'Chalaan';
 }
 
-enum ChalaanStatus { upcoming, overdue, pendingVerification, paid }
+enum ChalaanStatus { upcoming, overdue, paid }
 
 extension ChalaanStatusLabel on ChalaanStatus {
   String get label => switch (this) {
         ChalaanStatus.upcoming => 'Upcoming',
         ChalaanStatus.overdue => 'Overdue',
-        ChalaanStatus.pendingVerification => 'Pending Verification',
         ChalaanStatus.paid => 'Paid',
       };
 }
 
-/// A single chalaan or fine tied to a tenant + property.
+/// A single chalaan or fine issued against a property and the
+/// shopkeeper occupying it.
 ///
 /// This is a plain in-memory model backing the mock repositories in
 /// `lib/data/repositories` — the shape is expected to change once the real

@@ -13,8 +13,6 @@ class StatusStyle {
         return AppStatusTone.success;
       case ChalaanStatus.overdue:
         return AppStatusTone.danger;
-      case ChalaanStatus.pendingVerification:
-        return AppStatusTone.warning;
       case ChalaanStatus.upcoming:
         return AppStatusTone.info;
     }

@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
-
-/// Ways a tenant can settle a chalaan.
+/// How a chalaan was settled.
 ///
-/// [bank], [easypaisa] and [jazzcash] are simulated online flows for now —
-/// there is no real gateway wired in yet. [manual] records a bank transfer
-/// the tenant made outside the app, pending the magistrate's verification.
+/// [cash] is the only method the app itself records — a magistrate
+/// collecting in person. The rest describe payments that arrived through
+/// an outside channel (a bank counter, a wallet transfer) and are kept so
+/// historical records still read correctly.
 enum PaymentMethod {
   bank,
   easypaisa,
@@ -13,22 +12,10 @@ enum PaymentMethod {
   cash;
 
   String get label => switch (this) {
-        PaymentMethod.bank => 'Bank (Online)',
+        PaymentMethod.bank => 'Bank Transfer',
         PaymentMethod.easypaisa => 'Easypaisa',
         PaymentMethod.jazzcash => 'JazzCash',
-        PaymentMethod.manual => 'Pay Manually via Bank Transfer',
+        PaymentMethod.manual => 'Manual Bank Transfer',
         PaymentMethod.cash => 'Cash (Collected in person)',
       };
-
-  IconData get icon => switch (this) {
-        PaymentMethod.bank => Icons.account_balance_rounded,
-        PaymentMethod.easypaisa => Icons.smartphone_rounded,
-        PaymentMethod.jazzcash => Icons.phone_android_rounded,
-        PaymentMethod.manual => Icons.receipt_long_rounded,
-        PaymentMethod.cash => Icons.payments_rounded,
-      };
-
-  /// Whether this method is handled entirely within the app (simulated),
-  /// vs. [manual] which requires the magistrate to verify a reference.
-  bool get isInstant => this != PaymentMethod.manual;
 }

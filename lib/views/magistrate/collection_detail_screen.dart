@@ -11,9 +11,9 @@ import '../../core/utils/get_helpers.dart';
 import '../../data/repositories/chalaan_repository.dart';
 import '../../models/chalaan.dart';
 import '../../widgets/widgets.dart';
-import '../tenant/widgets/chalaan_tile.dart';
+import 'widgets/chalaan_tile.dart';
 
-/// Full tenant + chalaan history for one property, with the magistrate's
+/// Full shopkeeper + chalaan history for one property, with the magistrate's
 /// "Mark Collected" and "Seal Shop" actions.
 class CollectionDetailScreen extends StatelessWidget {
   const CollectionDetailScreen({super.key, required this.chalaanId});

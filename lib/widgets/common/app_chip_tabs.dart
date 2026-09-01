@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../text/app_text.dart';
 
-/// A generic single-select row of filter chips (Tenant Payments status
-/// filter, Magistrate Collections filter, Sealed status filter, …).
+/// A generic single-select row of filter chips (Collections filter, Sealed
+/// status filter, the Profile screen's theme picker, …).
 class AppChipTabs<T> extends StatelessWidget {
   const AppChipTabs({
     super.key,

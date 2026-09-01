@@ -25,7 +25,7 @@ class CollectionsScreen extends StatelessWidget {
               child: Column(
                 children: [
                   AppSearchField(
-                    hint: 'Search tenant, shop, address…',
+                    hint: 'Search shopkeeper, shop, address…',
                     onChanged: controller.setQuery,
                   ),
                   const SizedBox(height: 12),

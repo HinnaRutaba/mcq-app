@@ -1,8 +1,7 @@
 # mcq_app
 
-A fintech app for two roles — **Tenant** and **Magistrate** — sharing one
-login screen and a single design system, with role-specific dashboards
-after sign-in.
+A field app for **Magistrates**: issue chalaans and fines, collect payments
+across a jurisdiction, and seal / unseal shops — all on one design system.
 
 ## Tech stack
 
@@ -11,10 +10,10 @@ after sign-in.
 | Language / SDK   | Dart, Flutter (`sdk: ^3.12.2`)                                                                                                                                                     |
 | Architecture     | MVC — `models/` (data), `controllers/` (state + logic), `views/` (screens/widgets)                                                                                                 |
 | State management | [get](https://pub.dev/packages/get) (GetX) — used for state/DI only (`GetxController`, `Obx`, `Get.put`/`Get.find`); routing goes through `go_router` instead of GetX's own router |
-| Navigation       | [go_router](https://pub.dev/packages/go_router) — `StatefulShellRoute.indexedStack` per role, so each role's bottom-nav tabs keep their own navigation/scroll state                |
+| Navigation       | [go_router](https://pub.dev/packages/go_router) — `StatefulShellRoute.indexedStack`, so each bottom-nav tab keeps its own navigation/scroll state                                  |
 | Fonts            | [google_fonts](https://pub.dev/packages/google_fonts) (Inter)                                                                                                                      |
 | Formatting       | [intl](https://pub.dev/packages/intl) — currency (PKR) and date formatting, centralized in `core/utils/formatters.dart`                                                            |
-| External links   | [url_launcher](https://pub.dev/packages/url_launcher) — "Open in Maps" on the Magistrate side                                                                                      |
+| External links   | [url_launcher](https://pub.dev/packages/url_launcher) — "Open in Maps" on a collection tile                                                                                        |
 | Data layer       | Mock in-memory repositories behind abstract interfaces (see below) — no backend yet                                                                                                |
 
 Run it with the standard Flutter commands: `flutter pub get`, then
@@ -34,10 +33,10 @@ lib/
 │   └── routes/                  # AppRoutes (path constants), AppRouter (GoRouter config)
 │
 ├── models/                      # plain data classes: Chalaan, Property, SealRecord,
-│                                 # PaymentMethod, UserRole — no Flutter/GetX imports
+│                                 # PaymentMethod — no Flutter/GetX imports
 │
 ├── data/
-│   ├── mock/                    # mock_seed.dart — seed data + demo tenant/magistrate identity
+│   ├── mock/                    # mock_seed.dart — seed data + the demo magistrate identity
 │   └── repositories/            # abstract repository + Mock*Repository impl per entity
 │                                 # (ChalaanRepository, PropertyRepository, SealRepository) —
 │                                 # swap the Mock impl for a real API later; views/controllers
@@ -53,8 +52,7 @@ lib/
 │
 ├── views/                       # screens, one folder per flow
 │   ├── splash/
-│   ├── auth/                    # shared login screen (role picked via checkbox)
-│   ├── tenant/                  # shell (bottom nav) + Home/Payments/Profile + widgets/
+│   ├── auth/                    # login screen
 │   └── magistrate/              # shell (bottom nav + FAB) + Home/Collections/Sealed/
 │                                 # Profile/Create/Detail screens + widgets/
 │
@@ -82,5 +80,5 @@ lib/
   once a real API exists.
 - **Domain-specific composition lives next to its screen.** A widget that
   renders a `Chalaan` or `SealRecord` (e.g. `ChalaanTile`, `SealTile`) is
-  not "generic," so it lives in `views/<role>/widgets/`, not in the
+  not "generic," so it lives in `views/magistrate/widgets/`, not in the
   top-level `widgets/` folder.

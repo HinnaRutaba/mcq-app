@@ -8,11 +8,6 @@ class AppRoutes {
   static const String splash = '/';
   static const String login = '/login';
 
-  // --- Tenant shell branches ------------------------------------------
-  static const String tenantHome = '/tenant/home';
-  static const String tenantPayments = '/tenant/payments';
-  static const String tenantProfile = '/tenant/profile';
-
   // --- Magistrate shell branches ---------------------------------------
   static const String magistrateHome = '/magistrate/home';
   static const String magistrateCollections = '/magistrate/collections';

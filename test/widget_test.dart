@@ -4,8 +4,8 @@ import 'package:get/get.dart';
 
 import 'package:mcq_app/app/app.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
+import 'package:mcq_app/views/magistrate/collections_screen.dart';
 import 'package:mcq_app/views/magistrate/magistrate_home_screen.dart';
-import 'package:mcq_app/views/tenant/tenant_home_screen.dart';
 
 void main() {
   setUp(() {
@@ -28,16 +28,6 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 1800));
   });
 
-  testWidgets('Tenant Home screen loads with seeded chalaans', (WidgetTester tester) async {
-    await tester.pumpWidget(const MaterialApp(home: TenantHomeScreen()));
-    await tester.pumpAndSettle();
-
-    // Seed data has exactly two outstanding chalaans for the demo tenant
-    // (CHL-101 upcoming, CHL-102 overdue).
-    expect(find.text('Upcoming Payments (2)'), findsOneWidget);
-    expect(find.text('Past Payments'), findsOneWidget);
-  });
-
   testWidgets('Magistrate Home screen loads with seeded collections', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: MagistrateHomeScreen()));
     await tester.pumpAndSettle();
@@ -48,5 +38,14 @@ void main() {
     // "Ready to Unseal" appears twice: the section header and the seal's
     // own status badge (SealStatus.readyToUnseal.label).
     expect(find.text('Ready to Unseal'), findsNWidgets(2));
+  });
+
+  testWidgets('Collections screen lists outstanding chalaans', (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CollectionsScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Collections'), findsOneWidget);
+    // Every unsettled chalaan/fine in the seed shows the shopkeeper's name.
+    expect(find.text('Bilal General Store'), findsWidgets);
   });
 }

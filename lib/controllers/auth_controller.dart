@@ -1,30 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../models/user_role.dart';
-
+/// Drives the (magistrate-only) login screen.
 class AuthController extends GetxController {
   final formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
+  final usernameController = TextEditingController();
   final passwordController = TextEditingController();
 
-  final Rx<UserRole> role = UserRole.tenant.obs;
   final RxBool obscurePassword = true.obs;
   final RxBool isLoading = false.obs;
-
-  bool get isMagistrate => role.value == UserRole.magistrate;
-
-  void setIsMagistrate(bool? checked) {
-    role.value = (checked ?? false) ? UserRole.magistrate : UserRole.tenant;
-  }
 
   void toggleObscurePassword() =>
       obscurePassword.value = !obscurePassword.value;
 
-  String? validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Email is required';
-    final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
-    if (!emailRegex.hasMatch(value.trim())) return 'Enter a valid email';
+  String? validateUsername(String? value) {
+    final username = value?.trim() ?? '';
+    if (username.isEmpty) return 'Username is required';
+    if (username.length < 3) return 'Username must be at least 3 characters';
+    if (!RegExp(r'^[a-zA-Z0-9._-]+$').hasMatch(username)) {
+      return 'Use letters, numbers, dot, underscore or hyphen only';
+    }
     return null;
   }
 
@@ -34,29 +29,30 @@ class AuthController extends GetxController {
     return null;
   }
 
-  Future<UserRole?> login() async {
-    if (!(formKey.currentState?.validate() ?? false)) return null;
+  /// Validates and signs in. Returns `true` once the (currently simulated)
+  /// authentication succeeds, `false` if the form was invalid.
+  Future<bool> login() async {
+    if (!(formKey.currentState?.validate() ?? false)) return false;
 
     isLoading.value = true;
     try {
       // TODO: replace with the real authentication call.
       await Future.delayed(const Duration(milliseconds: 900));
-      return role.value;
+      return true;
     } finally {
       isLoading.value = false;
     }
   }
 
   void reset() {
-    emailController.clear();
+    usernameController.clear();
     passwordController.clear();
-    role.value = UserRole.tenant;
     obscurePassword.value = true;
   }
 
   @override
   void onClose() {
-    emailController.dispose();
+    usernameController.dispose();
     passwordController.dispose();
     super.onClose();
   }
