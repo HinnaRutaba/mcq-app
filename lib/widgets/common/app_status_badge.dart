@@ -3,41 +3,26 @@ import 'package:flutter/material.dart';
 import '../../config/theme/app_colors.dart';
 import '../text/app_text.dart';
 
-/// The semantic "job" a status color communicates — never assigned by
-/// screen or reused for an unrelated series, only for actual state.
-enum AppStatusTone { neutral, info, success, warning, danger }
-
 /// The single status-pill widget every screen should use to show a state
 /// (chalaan status, seal status, etc). Status is always paired with a text
 /// [label] — never color alone.
+///
+/// Colors come from [AppTone], i.e. the theme's status palette, so this pill
+/// is the same red as every other red in the app and re-steps itself for
+/// dark mode.
 class AppStatusBadge extends StatelessWidget {
-  const AppStatusBadge({super.key, required this.label, this.tone = AppStatusTone.neutral});
+  const AppStatusBadge({super.key, required this.label, this.tone = AppTone.neutral});
 
   final String label;
-  final AppStatusTone tone;
-
-  Color _color(BuildContext context) {
-    switch (tone) {
-      case AppStatusTone.success:
-        return AppColors.success;
-      case AppStatusTone.warning:
-        return AppColors.warning;
-      case AppStatusTone.danger:
-        return AppColors.error;
-      case AppStatusTone.info:
-        return AppColors.info;
-      case AppStatusTone.neutral:
-        return Theme.of(context).textTheme.bodyMedium?.color ?? Colors.grey;
-    }
-  }
+  final AppTone tone;
 
   @override
   Widget build(BuildContext context) {
-    final color = _color(context);
+    final color = tone.on(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: tone.container(context),
         borderRadius: BorderRadius.circular(999),
       ),
       child: AppText.caption(label, color: color, fontWeight: FontWeight.w700),

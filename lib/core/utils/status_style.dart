@@ -1,31 +1,31 @@
 import '../../models/chalaan.dart';
 import '../../models/seal_record.dart';
-import '../../widgets/common/app_status_badge.dart';
+import '../../config/theme/app_colors.dart';
 
-/// Maps domain status enums to an [AppStatusTone] — kept here (not on the
-/// generic [AppStatusBadge] widget) so the widget itself stays domain-free.
+/// Maps domain status enums to an [AppTone] — kept here (not on the
+/// generic `AppStatusBadge` widget) so the widget itself stays domain-free.
 class StatusStyle {
   StatusStyle._();
 
-  static AppStatusTone chalaanTone(ChalaanStatus status) {
+  static AppTone chalaanTone(ChalaanStatus status) {
     switch (status) {
       case ChalaanStatus.paid:
-        return AppStatusTone.success;
+        return AppTone.success;
       case ChalaanStatus.overdue:
-        return AppStatusTone.danger;
+        return AppTone.danger;
       case ChalaanStatus.upcoming:
-        return AppStatusTone.info;
+        return AppTone.info;
     }
   }
 
-  static AppStatusTone sealTone(SealStatus status) {
+  static AppTone sealTone(SealStatus status) {
     switch (status) {
       case SealStatus.sealed:
-        return AppStatusTone.danger;
+        return AppTone.danger;
       case SealStatus.readyToUnseal:
-        return AppStatusTone.warning;
+        return AppTone.warning;
       case SealStatus.removed:
-        return AppStatusTone.neutral;
+        return AppTone.neutral;
     }
   }
 }

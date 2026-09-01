@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../config/theme/app_colors.dart';
 import '../text/app_text.dart';
 
 /// Visual styles [AppButton] supports.
@@ -48,8 +47,9 @@ class AppButton extends StatelessWidget {
         border = BorderSide.none;
         break;
       case AppButtonVariant.secondary:
-        background = AppColors.secondary;
-        foreground = Colors.white;
+        // The accent is gold: dark ink on it, always (white fails contrast).
+        background = scheme.secondary;
+        foreground = scheme.onSecondary;
         border = BorderSide.none;
         break;
       case AppButtonVariant.outline:
@@ -63,8 +63,8 @@ class AppButton extends StatelessWidget {
         border = BorderSide.none;
         break;
       case AppButtonVariant.danger:
-        background = AppColors.error;
-        foreground = Colors.white;
+        background = scheme.error;
+        foreground = scheme.onError;
         border = BorderSide.none;
         break;
     }

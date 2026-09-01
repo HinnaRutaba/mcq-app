@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../config/theme/app_colors.dart';
+import '../../config/theme/app_status_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../text/app_text.dart';
 
@@ -39,9 +39,9 @@ class _AppBarChartState extends State<AppBarChart> {
   Widget build(BuildContext context) {
     if (widget.data.isEmpty) return const SizedBox.shrink();
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paidColor = isDark ? AppColors.secondaryDark : AppColors.secondary;
-    const dueColor = AppColors.info;
+    final status = context.status;
+    final paidColor = status.success;
+    final dueColor = status.info;
     final axisColor = Theme.of(context).dividerColor;
 
     final maxValue = widget.data.fold<double>(

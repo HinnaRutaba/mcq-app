@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_routes.dart';
-import '../../config/theme/app_colors.dart';
 import '../../controllers/seal_controller.dart';
 import '../../widgets/widgets.dart';
 
@@ -27,8 +26,8 @@ class MagistrateShell extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.createChalaan),
         tooltip: 'Create Chalaan/Fine',
-        backgroundColor: AppColors.secondary,
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        foregroundColor: Theme.of(context).colorScheme.onSecondary,
         child: const Icon(Icons.add_rounded),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
