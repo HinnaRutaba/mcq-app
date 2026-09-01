@@ -2,7 +2,7 @@ name: mcq_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -42,26 +42,26 @@ dependencies:
   intl: ^0.20.2
 
   # --- API layer -------------------------------------------------------
-  dio: ^5.9.2                      # interceptors are how 401/403/409/422 are handled once
-  flutter_secure_storage: ^9.2.4   # the token lives in the keychain, never in prefs
-  s s: ^2.5.5       # non-secret state: locale, device name, read cache, queue
-  uuid: ^4.5.3                     # client_action_uuid — the idempotency key
+  dio: ^5.9.2 # interceptors are how 401/403/409/422 are handled once
+  flutter_secure_storage: ^9.2.4 # the token lives in the keychain, never in prefs
+  shared_preferences: ^2.5.5 # non-secret state: locale, device name, read cache, queue
+  uuid: ^4.5.3 # client_action_uuid — the idempotency key
 
   # --- Field capture ---------------------------------------------------
   image_picker: ^1.2.3
-  flutter_image_compress: ^2.5.0   # target under 1 MB before uploading over bazaar data
-  path_provider: ^2.1.5            # a scratch directory for the compressed copy
+  flutter_image_compress: ^2.5.0 # target under 1 MB before uploading over bazaar data
+  path_provider: ^2.1.5 # a scratch directory for the compressed copy
   geolocator: ^14.0.2
-  device_info_plus: ^12.4.0        # prefill device_name with the handset model
-  connectivity_plus: ^7.0.0        # drives the offline queue and the stale-cache banner
-  flutter_local_notifications: ^19.5.0  # visit reminders from next_visit_date (no server push)
+  device_info_plus: ^12.4.0 # prefill device_name with the handset model
+  connectivity_plus: ^7.0.0 # drives the offline queue and the stale-cache banner
+  flutter_local_notifications: ^19.5.0 # visit reminders from next_visit_date (no server push)
   timezone: ^0.10.1
 
   # --- The map, the share sheet and the witness signature --------------
-  flutter_map: ^8.2.2              # OpenStreetMap tiles — no API key to lose
-  latlong2: ^0.9.1                 # the LatLng flutter_map speaks
-  share_plus: ^12.0.0              # sending a payment link over WhatsApp
-  signature: ^6.4.0                # a witness signature is a much stronger record
+  flutter_map: ^8.2.2 # OpenStreetMap tiles — no API key to lose
+  latlong2: ^0.9.1 # the LatLng flutter_map speaks
+  share_plus: ^12.0.0 # sending a payment link over WhatsApp
+  signature: ^6.4.0 # a witness signature is a much stronger record
 
   # --- Design layer ----------------------------------------------------
   # The chart library. Bars for "my work" by action type, a donut for the
@@ -94,7 +94,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

@@ -32,8 +32,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// A screen that renders without an exception is the whole assertion.
 class _NoFix extends LocationService {
   @override
-  Future<GpsFix?> currentFix({Duration timeout = const Duration(seconds: 12)}) async =>
-      null;
+  Future<GpsFix?> currentFix({
+    Duration timeout = const Duration(seconds: 12),
+  }) async => null;
 }
 
 class _OfflineConnectivity extends ConnectivityService {
@@ -97,42 +98,42 @@ void main() {
   tearDown(Get.reset);
 
   testWidgets('the forced password-change screen renders', (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: ChangePasswordScreen()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: ChangePasswordScreen()));
     await tester.pump();
 
     expect(tester.takeException(), isNull);
     expect(find.byType(TextFormField), findsNWidgets(3));
   });
 
-  testWidgets('the seal form renders and refuses to submit without a photograph',
-      (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: SealFormScreen(
-          mode: SealMode.seal,
-          caseId: 7,
-          args: CaseWriteArgs(
-            shopLabel: 'P-1',
-            allotteeName: 'Abdul Rehman',
+  testWidgets(
+    'the seal form renders and refuses to submit without a photograph',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SealFormScreen(
+            mode: SealMode.seal,
             caseId: 7,
+            args: CaseWriteArgs(
+              shopLabel: 'P-1',
+              allotteeName: 'Abdul Rehman',
+              caseId: 7,
+            ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(tester.takeException(), isNull);
+      expect(tester.takeException(), isNull);
 
-    // The confirmation text names the shop and the allottee before anything
-    // is sent, and the button is dead until the shutter is photographed.
-    expect(find.textContaining('P-1'), findsWidgets);
-    expect(find.textContaining('Abdul Rehman'), findsWidgets);
+      // The confirmation text names the shop and the allottee before anything
+      // is sent, and the button is dead until the shutter is photographed.
+      expect(find.textContaining('P-1'), findsWidgets);
+      expect(find.textContaining('Abdul Rehman'), findsWidgets);
 
-    final controller = Get.find<SealFormController>(tag: 'seal-seal-7');
-    expect(controller.isValid, isFalse);
-    controller.reason.value = 'Arrears of five months';
-    expect(controller.isValid, isFalse, reason: 'still no photograph');
-  });
+      final controller = Get.find<SealFormController>(tag: 'seal-seal-7');
+      expect(controller.isValid, isFalse);
+      controller.reason.value = 'Arrears of five months';
+      expect(controller.isValid, isFalse, reason: 'still no photograph');
+    },
+  );
 }
