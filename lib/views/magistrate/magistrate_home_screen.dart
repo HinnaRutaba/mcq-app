@@ -13,16 +13,6 @@ import 'widgets/beat_queue_tile.dart';
 import 'widgets/defaulter_breakdown.dart';
 import 'widgets/officer_card.dart';
 
-/// Home: who is signed in, the bazaars they are posted to, the work waiting,
-/// and what they have done lately.
-///
-/// Both halves come from [DashboardController] over `DashboardRepository`
-/// (`GET /enforcement/field/beat` and `/enforcement/field/activity`); the
-/// officer comes from the token, through `AuthController`.
-///
-/// `scope.areaNames` sits in the header on purpose. Every figure below it
-/// covers those bazaars only, and a reader who cannot see which ones will take
-/// them for city-wide totals.
 class MagistrateHomeScreen extends StatelessWidget {
   const MagistrateHomeScreen({super.key});
 
@@ -57,7 +47,10 @@ class _Header extends StatelessWidget {
     return AppHeroHeader(
       subtitle: officer?.designation ?? 'Signed in',
       title: officer?.name ?? 'Home',
-      trailing: AppCircleIconButton(icon: Icons.notifications_none_rounded, badge: true),
+      trailing: AppCircleIconButton(
+        icon: Icons.notifications_none_rounded,
+        badge: true,
+      ),
       bottom: scope == null ? null : _ScopeStrip(scope: scope!),
     );
   }
@@ -105,7 +98,11 @@ class _ScopeStrip extends StatelessWidget {
                 ),
                 if (scope.zoneNames.isNotEmpty) ...[
                   const SizedBox(height: 2),
-                  AppText.caption(scope.zoneNames.join(' · '), color: muted, maxLines: 1),
+                  AppText.caption(
+                    scope.zoneNames.join(' · '),
+                    color: muted,
+                    maxLines: 1,
+                  ),
                 ],
               ],
             ),
@@ -116,11 +113,6 @@ class _ScopeStrip extends StatelessWidget {
   }
 }
 
-/// The body, as a function rather than a widget, on purpose.
-///
-/// `Obx` tracks only the observables read while its own builder runs. Reading
-/// them one level down, inside a child widget's `build`, leaves it watching
-/// nothing and it throws — so the reads have to happen here, in the closure.
 Widget _body(DashboardController controller) {
   // Nothing on screen yet: the officer gets one spinner, not a half-drawn
   // page that shuffles as each call lands.
@@ -144,7 +136,11 @@ Widget _body(DashboardController controller) {
         // A failure over figures that are already up is a note, not a wall —
         // the numbers below it are the last good ones.
         if (error != null) ...[
-          AppAlert(message: error, tone: AppTone.warning, icon: Icons.wifi_off_rounded),
+          AppAlert(
+            message: error,
+            tone: AppTone.warning,
+            icon: Icons.wifi_off_rounded,
+          ),
           const SizedBox(height: 16),
         ],
         if (controller.officer != null) ...[
@@ -267,11 +263,6 @@ class _ActivitySection extends StatelessWidget {
   }
 }
 
-/// A money figure with its own heading and the notes that qualify it.
-///
-/// Money gets a card rather than a stat tile because none of these figures
-/// stand on their own — each one needs a line saying what it counts, and a
-/// caption squeezed into a tile label truncates.
 class _MoneyCard extends StatelessWidget {
   const _MoneyCard({
     required this.icon,
@@ -315,12 +306,6 @@ class _MoneyCard extends StatelessWidget {
   }
 }
 
-/// Money collected across the officer's bazaars.
-///
-/// Worded as the server words it. A magistrate's visit is one reason a
-/// shopkeeper pays, but this is everything that came in across those bazaars —
-/// calling it a personal recovery total would be a claim the figure does not
-/// support, and the officer is the one who would have to defend it.
 class _CollectedCard extends StatelessWidget {
   const _CollectedCard({required this.activity, required this.scope});
 
@@ -372,8 +357,6 @@ class _QueueGrid extends StatelessWidget {
   }
 }
 
-/// Two columns at a fixed row height, so a tile carrying money and one that is
-/// only a count line up instead of ragging.
 class _Grid extends StatelessWidget {
   const _Grid({required this.children, required this.extent});
 
