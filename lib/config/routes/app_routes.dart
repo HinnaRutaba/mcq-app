@@ -18,6 +18,6 @@ class AppRoutes {
   static const String createChalaan = '/magistrate/chalaan/new';
   static const String collectionDetail = '/magistrate/collections/:id';
 
-  static String collectionDetailPath(String chalaanId) =>
-      '/magistrate/collections/$chalaanId';
+  static String collectionDetailPath(String recordId) =>
+      '/magistrate/collections/$recordId';
 }

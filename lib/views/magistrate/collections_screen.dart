@@ -1,74 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../config/routes/app_routes.dart';
-import '../../controllers/collections_controller.dart';
-import '../../core/utils/get_helpers.dart';
 import '../../widgets/widgets.dart';
-import 'widgets/collection_tile.dart';
 
+/// The collection round — emptied while the app moves onto the MCQ Magistrate
+/// API.
+///
+/// Two lists feed this screen, both on `DefaultersRepository`: `defaulters()`
+/// for everyone behind on rent, worst first, and `round()` for the same people
+/// grouped by bazaar with broken promises first — a walking order rather than a
+/// list. Everything needed to decide sits on the card already, so a row never
+/// costs a second call.
+///
+/// Amounts arrive as strings and stay strings. Never total two of them in Dart.
 class CollectionsScreen extends StatelessWidget {
   const CollectionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controller = getOrPut(() => CollectionsController());
-
-    return Scaffold(
+    return const Scaffold(
       body: Column(
         children: [
-          const AppHeroHeader(title: 'Collections'),
+          AppHeroHeader(title: 'Collections'),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Column(
-                children: [
-                  AppSearchField(
-                    hint: 'Search shopkeeper, shop, address…',
-                    onChanged: controller.setQuery,
-                  ),
-                  const SizedBox(height: 12),
-                  Obx(
-                    () => AppChipTabs<CollectionsFilter>(
-                      items: CollectionsFilter.values,
-                      itemLabel: (f) => f.label,
-                      selected: controller.filter.value,
-                      onChanged: controller.setFilter,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: Obx(() {
-                      final chalaans = controller.filtered;
-                      if (chalaans.isEmpty) {
-                        return const AppEmptyState(
-                          icon: Icons.search_off_rounded,
-                          title: 'No collections found',
-                          message: 'Try a different search or filter.',
-                        );
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: () async => controller.reload(),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.only(bottom: 90),
-                          itemCount: chalaans.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final chalaan = chalaans[index];
-                            return CollectionTile(
-                              chalaan: chalaan,
-                              onTap: () =>
-                                  context.push(AppRoutes.collectionDetailPath(chalaan.id)),
-                            );
-                          },
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
+            child: AppEmptyState(
+              icon: Icons.receipt_long_outlined,
+              title: 'Not wired up yet',
+              message:
+                  'Defaulters and today’s round come from the field '
+                  'defaulters endpoints.',
             ),
           ),
         ],

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_routes.dart';
-import '../../controllers/seal_controller.dart';
 import '../../widgets/widgets.dart';
 
 /// Magistrate app shell: Home / Collections / Sealed / Profile on a neutral
@@ -19,8 +17,6 @@ class MagistrateShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sealController = Get.find<SealController>();
-
     return Scaffold(
       body: navigationShell,
       floatingActionButton: FloatingActionButton(
@@ -62,17 +58,16 @@ class MagistrateShell extends StatelessWidget {
             ),
             const SizedBox(width: 48),
             Expanded(
-              child: Obx(
-                () => AppBottomNavItem(
-                  entry: AppBottomNavEntry(
-                    icon: Icons.lock_outline_rounded,
-                    activeIcon: Icons.lock_rounded,
-                    label: 'Sealed',
-                    badgeCount: sealController.readyToUnsealCount,
-                  ),
-                  selected: navigationShell.currentIndex == 2,
-                  onTap: () => _goBranch(2),
+              // No badge until the unseal queue is wired: the count is
+              // `FieldSealRepository.seals(readyOnly: true).length`.
+              child: AppBottomNavItem(
+                entry: const AppBottomNavEntry(
+                  icon: Icons.lock_outline_rounded,
+                  activeIcon: Icons.lock_rounded,
+                  label: 'Sealed',
                 ),
+                selected: navigationShell.currentIndex == 2,
+                onTap: () => _goBranch(2),
               ),
             ),
             Expanded(

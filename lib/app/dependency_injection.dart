@@ -1,23 +1,69 @@
 import 'package:get/get.dart';
 
-import '../controllers/seal_controller.dart';
 import '../controllers/theme_controller.dart';
-import '../data/repositories/chalaan_repository.dart';
-import '../data/repositories/property_repository.dart';
-import '../data/repositories/seal_repository.dart';
+import '../core/network/api_service.dart';
+import '../core/permissions/permission_service.dart';
+import '../core/storage/secure_storage_service.dart';
+import '../data/repositories/auth_repository.dart';
+import '../data/repositories/challan_repository.dart';
+import '../data/repositories/dashboard_repository.dart';
+import '../data/repositories/defaulters_repository.dart';
+import '../data/repositories/enforcement_case_repository.dart';
+import '../data/repositories/evidence_repository.dart';
+import '../data/repositories/field_seal_repository.dart';
+import '../data/repositories/fine_repository.dart';
+import '../data/repositories/reporting_repository.dart';
+import '../data/repositories/units_repository.dart';
 
 /// Registers app-wide singletons before [runApp].
 ///
-/// Repositories are registered against their abstract type — swap
-/// `MockChalaanRepository()` etc. for a real implementation here and no
-/// controller or view needs to change. [SealController] is registered here
-/// (rather than per-screen like the other controllers) because its "ready
-/// to unseal" state is shared by the Magistrate shell's badge, the Home
-/// banner, and the Sealed screen alike.
+/// Repositories are registered against their abstract type, so a controller
+/// asking for [AuthRepository] never learns whether it is talking to the API or
+/// to a stand-in.
+///
+/// Order matters: [SecureStorageService] holds the bearer token, [ApiService]
+/// reads it on every call, and every repository is built on top of that.
 void setupDependencies() {
-  Get.put<ChalaanRepository>(MockChalaanRepository(), permanent: true);
-  Get.put<PropertyRepository>(MockPropertyRepository(), permanent: true);
-  Get.put<SealRepository>(MockSealRepository(), permanent: true);
-  Get.put(SealController(), permanent: true);
+  final storage = SecureStorageService();
+  Get.put<SecureStorageService>(storage, permanent: true);
+
+  // A 401 has already cleared the keychain by the time `onUnauthorized` fires;
+  // wire it to the router when the app starts routing on session state, so a
+  // dead token lands the officer on the sign-in screen instead of an empty one.
+  final api = ApiService(storage: storage);
+  Get.put<ApiService>(api, permanent: true);
+
+  Get.put<PermissionService>(const PermissionService(), permanent: true);
+
+  // MCQ Magistrate API, in the order an officer meets the screens.
+  Get.put<AuthRepository>(
+    ApiAuthRepository(api: api, storage: storage),
+    permanent: true,
+  );
+  Get.put<DashboardRepository>(
+    ApiDashboardRepository(api: api),
+    permanent: true,
+  );
+  Get.put<DefaultersRepository>(
+    ApiDefaultersRepository(api: api),
+    permanent: true,
+  );
+  Get.put<UnitsRepository>(ApiUnitsRepository(api: api), permanent: true);
+  Get.put<ReportingRepository>(
+    ApiReportingRepository(api: api),
+    permanent: true,
+  );
+  Get.put<EnforcementCaseRepository>(
+    ApiEnforcementCaseRepository(api: api),
+    permanent: true,
+  );
+  Get.put<FineRepository>(ApiFineRepository(api: api), permanent: true);
+  Get.put<FieldSealRepository>(
+    ApiFieldSealRepository(api: api),
+    permanent: true,
+  );
+  Get.put<ChallanRepository>(ApiChallanRepository(api: api), permanent: true);
+  Get.put<EvidenceRepository>(ApiEvidenceRepository(api: api), permanent: true);
+
   Get.put(ThemeController(), permanent: true);
 }

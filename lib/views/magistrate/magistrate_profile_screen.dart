@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../config/routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/theme_controller.dart';
-import '../../data/mock/mock_seed.dart';
 import '../../widgets/widgets.dart';
 
 class MagistrateProfileScreen extends StatelessWidget {
@@ -43,15 +42,16 @@ class MagistrateProfileScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(
+                      // Name, designation and posted bazaars come from
+                      // `AuthRepository.currentSession()` and the beat's
+                      // `scope.areaNames` once this screen is wired.
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            AppText.titleMedium('Inspector ${DemoIdentity.magistrateName}'),
-                            const SizedBox(height: 2),
-                            AppText.caption(
-                              'Badge ${DemoIdentity.magistrateBadge} · ${DemoIdentity.magistrateJurisdiction}',
-                            ),
+                            AppText.titleMedium('Signed-in officer'),
+                            SizedBox(height: 2),
+                            AppText.caption('Not wired up yet'),
                           ],
                         ),
                       ),

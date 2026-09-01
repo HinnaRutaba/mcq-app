@@ -39,6 +39,9 @@ dependencies:
   google_fonts: ^8.2.1
   url_launcher: ^6.3.2
   intl: ^0.20.2
+  dio: ^5.11.0
+  flutter_secure_storage: ^11.0.0
+  permission_handler: ^13.0.1
 
 dev_dependencies:
   flutter_test:
@@ -50,6 +53,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_secure_storage_platform_interface: ^2.0.3
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

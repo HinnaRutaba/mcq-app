@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Rendered design previews (test/design_preview.dart) — regenerate them with
+# `flutter test test/design_preview.dart --update-goldens`; they are review
+# artifacts, not checked-in goldens.
+test/preview/

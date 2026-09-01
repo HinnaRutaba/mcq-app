@@ -1,4 +1,30 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Every screen is server-backed. Flutter adds INTERNET only to the debug
+         and profile manifests, so a release build needs it declared here. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Photographing a shopfront, a seal or a signature as evidence for a
+         fine, a visit or a seal (POST /enforcement/evidence). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"/>
+
+    <!-- Follow-ups falling due, and cases assigned by the taxation branch. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Stamping a field write with where the officer was standing
+         (latitude / longitude / location_accuracy_m). When-in-use only: the
+         app never tracks an officer in the background. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <!-- Declaring CAMERA would otherwise let the Play Store filter the app off
+         handsets without one; the app degrades instead. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.location" android:required="false"/>
+
     <application
         android:label="mcq_app"
         android:name="${applicationName}"

@@ -78,7 +78,7 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.collectionDetail,
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) =>
-          CollectionDetailScreen(chalaanId: state.pathParameters['id']!),
+          CollectionDetailScreen(recordId: state.pathParameters['id']!),
     ),
   ],
 );

@@ -6,6 +6,7 @@ import 'package:mcq_app/app/app.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/views/magistrate/collections_screen.dart';
 import 'package:mcq_app/views/magistrate/magistrate_home_screen.dart';
+import 'package:mcq_app/views/magistrate/sealed_screen.dart';
 
 void main() {
   setUp(() {
@@ -28,24 +29,37 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 1800));
   });
 
-  testWidgets('Magistrate Home screen loads with seeded collections', (WidgetTester tester) async {
+  // The screens below are placeholders until they are wired to the MCQ
+  // Magistrate API. These tests hold the shape that survives that wiring —
+  // each screen builds, and names itself — so a screen cannot quietly go
+  // blank on the way to being connected.
+  testWidgets('Home screen builds while it awaits the field beat', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const MaterialApp(home: MagistrateHomeScreen()));
     await tester.pumpAndSettle();
 
-    // Seed data has exactly one unpaid fine (FIN-201).
-    expect(find.text('Unpaid Fines (1)'), findsOneWidget);
-    expect(find.text('Pending Collections'), findsOneWidget);
-    // "Ready to Unseal" appears twice: the section header and the seal's
-    // own status badge (SealStatus.readyToUnseal.label).
-    expect(find.text('Ready to Unseal'), findsNWidgets(2));
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Not wired up yet'), findsOneWidget);
   });
 
-  testWidgets('Collections screen lists outstanding chalaans', (WidgetTester tester) async {
+  testWidgets('Collections screen builds while it awaits the defaulters list', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const MaterialApp(home: CollectionsScreen()));
     await tester.pumpAndSettle();
 
     expect(find.text('Collections'), findsOneWidget);
-    // Every unsettled chalaan/fine in the seed shows the shopkeeper's name.
-    expect(find.text('Bilal General Store'), findsWidgets);
+    expect(find.text('Not wired up yet'), findsOneWidget);
+  });
+
+  testWidgets('Sealed screen builds while it awaits the seal list', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: SealedScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sealed Shops'), findsOneWidget);
+    expect(find.text('Not wired up yet'), findsOneWidget);
   });
 }

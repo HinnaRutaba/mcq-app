@@ -26,6 +26,12 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>The camera is used to photograph a shopfront, a seal or a signature as evidence attached to a fine, a visit or a seal record.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Your photo library is used to attach an already-taken photograph as evidence to a fine, a visit or a seal record.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is recorded on a visit, a fine or a seal so the record shows where it was made. It is only read while you are using the app.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
