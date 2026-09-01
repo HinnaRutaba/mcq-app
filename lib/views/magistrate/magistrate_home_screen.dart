@@ -145,47 +145,81 @@ List<Widget> _bodySlivers(DashboardController controller) {
   final beat = controller.beat.value;
   final activity = controller.activity.value;
 
-  return <Widget>[
-    SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-      sliver: SliverList.list(
+  // Built with a running step count so the whole page arrives in reading
+  // order — and a grid hands its own count out tile by tile, so six queues
+  // ripple in rather than landing as one slab.
+  //
+  // Keyed, because this screen rebuilds on every observable change and an
+  // unkeyed element would be rebuilt, restarting the entrance every time a
+  // figure lands.
+  final sections = <Widget>[];
+  var step = 0;
+
+  if (error != null) {
+    // A failure over figures that are already up is a note, not a wall — the
+    // numbers below it are the last good ones.
+    sections.add(
+      AppEntrance(
+        key: const ValueKey<String>('alert'),
+        index: step++,
+        child: AppAlert(
+          message: error,
+          tone: AppTone.warning,
+          icon: Icons.wifi_off_rounded,
+        ),
+      ),
+    );
+  }
+
+  if (beat != null) {
+    sections.add(
+      _Section(
+        key: const ValueKey<String>('queues'),
+        title: 'Waiting for you',
+        titleIndex: step++,
+        child: _QueueGrid(queues: beat.queues, firstIndex: step),
+      ),
+    );
+    step += beat.queues.length;
+  }
+
+  if (controller.hasDefaulterBreakdown) {
+    sections.add(
+      _Section(
+        key: const ValueKey<String>('arrears'),
+        title: 'Where the arrears are',
+        titleIndex: step++,
+        child: AppEntrance(
+          index: step++,
+          child: DefaulterBreakdown(
+            groups: controller.bazaarsByArrears,
+            brokenPromises: controller.brokenPromises,
+            neverPaid: controller.neverPaid,
+            sealed: controller.sealedInRound,
+            // The server's own total, not one added up here.
+            totalOutstanding: beat?.queue('defaulters')?.amount,
+          ),
+        ),
+      ),
+    );
+  }
+
+  sections.add(
+    _Section(
+      key: const ValueKey<String>('work'),
+      title: 'Your work',
+      titleIndex: step++,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // A failure over figures that are already up is a note, not a wall —
-          // the numbers below it are the last good ones.
-          if (error != null) ...[
-            AppAlert(
-              message: error,
-              tone: AppTone.warning,
-              icon: Icons.wifi_off_rounded,
+          AppEntrance(
+            index: step++,
+            child: AppChipTabs<int>(
+              items: DashboardController.activityWindows,
+              itemLabel: (int days) => 'Last $days',
+              selected: controller.activityDays.value,
+              onChanged: controller.setActivityWindow,
             ),
-            const SizedBox(height: 16),
-          ],
-          if (beat != null) ...[
-            const _SectionTitle('Waiting for you'),
-            const SizedBox(height: 8),
-            _QueueGrid(queues: beat.queues),
-            const SizedBox(height: 18),
-          ],
-          if (controller.hasDefaulterBreakdown) ...[
-            const _SectionTitle('Where the arrears are'),
-            const SizedBox(height: 10),
-            DefaulterBreakdown(
-              groups: controller.bazaarsByArrears,
-              brokenPromises: controller.brokenPromises,
-              neverPaid: controller.neverPaid,
-              sealed: controller.sealedInRound,
-              // The server's own total, not one added up here.
-              totalOutstanding: beat?.queue('defaulters')?.amount,
-            ),
-            const SizedBox(height: 24),
-          ],
-          const _SectionTitle('Your work'),
-          const SizedBox(height: 12),
-          AppChipTabs<int>(
-            items: DashboardController.activityWindows,
-            itemLabel: (int days) => 'Last $days',
-            selected: controller.activityDays.value,
-            onChanged: controller.setActivityWindow,
           ),
           const SizedBox(height: 14),
           if (controller.isReloadingActivity.value)
@@ -194,7 +228,11 @@ List<Widget> _bodySlivers(DashboardController controller) {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (activity != null)
-            _ActivitySection(activity: activity, scope: beat?.scope)
+            _ActivitySection(
+              activity: activity,
+              scope: beat?.scope,
+              firstIndex: step,
+            )
           else
             const AppEmptyState(
               icon: Icons.insights_outlined,
@@ -202,12 +240,33 @@ List<Widget> _bodySlivers(DashboardController controller) {
               message:
                   'Visits, fines and seals appear here as you record them.',
             ),
-          if (beat?.generatedAt != null) ...[
-            const SizedBox(height: 24),
-            AppText.caption(
-              'Figures as of ${Formatters.dateTime(beat!.generatedAt!.toLocal())}',
-              textAlign: TextAlign.center,
-            ),
+        ],
+      ),
+    ),
+  );
+  step += 6;
+
+  if (beat?.generatedAt != null) {
+    sections.add(
+      AppEntrance(
+        key: const ValueKey<String>('generated'),
+        index: step++,
+        child: AppText.caption(
+          'Figures as of ${Formatters.dateTime(beat!.generatedAt!.toLocal())}',
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  return <Widget>[
+    SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      sliver: SliverList.list(
+        children: <Widget>[
+          for (int i = 0; i < sections.length; i++) ...[
+            if (i > 0) const SizedBox(height: 22),
+            sections[i],
           ],
         ],
       ),
@@ -215,11 +274,48 @@ List<Widget> _bodySlivers(DashboardController controller) {
   ];
 }
 
+/// A titled block of the page.
+class _Section extends StatelessWidget {
+  const _Section({
+    super.key,
+    required this.title,
+    required this.titleIndex,
+    required this.child,
+  });
+
+  final String title;
+
+  /// Where the heading sits in the page's arrival order. The child brings its
+  /// own, because only it knows whether it is one block or a grid of them.
+  final int titleIndex;
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppEntrance(index: titleIndex, child: AppText.titleMedium(title)),
+        const SizedBox(height: 10),
+        child,
+      ],
+    );
+  }
+}
+
 class _ActivitySection extends StatelessWidget {
-  const _ActivitySection({required this.activity, required this.scope});
+  const _ActivitySection({
+    required this.activity,
+    required this.scope,
+    required this.firstIndex,
+  });
 
   final FieldActivity activity;
   final FieldScope? scope;
+
+  /// Where this block's first tile falls in the page's arrival order.
+  final int firstIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +325,7 @@ class _ActivitySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _Grid(
+          firstIndex: firstIndex,
           extent: AppStatTile.extent,
           children: [
             AppStatTile(
@@ -348,9 +445,12 @@ class _CollectedCard extends StatelessWidget {
 }
 
 class _QueueGrid extends StatelessWidget {
-  const _QueueGrid({required this.queues});
+  const _QueueGrid({required this.queues, required this.firstIndex});
 
   final List<FieldQueue> queues;
+
+  /// Where this grid's first tile falls in the page's arrival order.
+  final int firstIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -364,6 +464,7 @@ class _QueueGrid extends StatelessWidget {
 
     return _Grid(
       columns: 3,
+      firstIndex: firstIndex,
       extent: BeatQueueTile.extent,
       children: <Widget>[
         for (final FieldQueue queue in queues) BeatQueueTile(queue: queue),
@@ -375,9 +476,18 @@ class _QueueGrid extends StatelessWidget {
 /// A fixed-height grid, so a tile carrying money and one that is only a count
 /// line up instead of ragging.
 class _Grid extends StatelessWidget {
-  const _Grid({required this.children, required this.extent, this.columns = 2});
+  const _Grid({
+    required this.children,
+    required this.extent,
+    this.columns = 2,
+    this.firstIndex,
+  });
 
   final List<Widget> children;
+
+  /// Set to stagger the tiles in, one after the next, from this position in
+  /// the page's arrival order. Null leaves them still.
+  final int? firstIndex;
   final double extent;
   final int columns;
 
@@ -394,7 +504,9 @@ class _Grid extends StatelessWidget {
         crossAxisSpacing: 10,
         mainAxisExtent: extent,
       ),
-      itemBuilder: (BuildContext context, int index) => children[index],
+      itemBuilder: (BuildContext context, int index) => firstIndex == null
+          ? children[index]
+          : AppEntrance(index: firstIndex! + index, child: children[index]),
     );
   }
 }

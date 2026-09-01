@@ -138,16 +138,26 @@ class _Bar extends StatelessWidget {
                   ),
                 ),
                 // Square at the baseline, rounded at the data end, so the bar
-                // reads as growing from an axis rather than floating.
-                Container(
-                  height: _height,
-                  width: width,
-                  decoration: BoxDecoration(
-                    color: fill,
-                    borderRadius: const BorderRadiusDirectional.horizontal(
-                      end: Radius.circular(4),
-                    ),
-                  ),
+                // reads as growing from an axis rather than floating — and it
+                // does grow: from nothing to its figure when the list arrives.
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(begin: 0, end: width),
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 650),
+                  curve: Curves.easeOutCubic,
+                  builder: (BuildContext context, double grown, Widget? _) =>
+                      Container(
+                        height: _height,
+                        width: grown,
+                        decoration: BoxDecoration(
+                          color: fill,
+                          borderRadius:
+                              const BorderRadiusDirectional.horizontal(
+                                end: Radius.circular(4),
+                              ),
+                        ),
+                      ),
                 ),
               ],
             );

@@ -66,6 +66,12 @@ void main() {
       _seedDashboard();
       return const MagistrateHomeScreen();
     },
+    // Caught part-way in: the last queue tiles still arriving, and the
+    // share bar still drawing itself across.
+    'home_arriving': () {
+      _seedDashboard();
+      return const MagistrateHomeScreen();
+    },
     // The header once it has collapsed: the name pinned on a plain bar, with
     // the designation and the beat strip gone.
     'home_collapsed': () {
@@ -108,6 +114,7 @@ void main() {
   // picture, which is how a layout problem goes unseen.
   const tall = <String, double>{
     'home': 7000,
+    'home_arriving': 2900,
     'home_collapsed': 1400,
     'home_offline': 2100,
     'profile': 3900,
@@ -116,6 +123,10 @@ void main() {
 
   /// Entries to drag before capturing, and by how much.
   const scrolled = <String, double>{'home_collapsed': 420};
+
+  /// Entries caught part-way through their entrance instead of at rest. A
+  /// still of a settled page proves nothing about how it arrives.
+  const midFlight = <String, int>{'home_arriving': 330};
 
   for (final entry in screens.entries) {
     for (final mode in <String>['light', 'dark']) {
@@ -139,7 +150,20 @@ void main() {
             home: screen,
           ),
         );
-        await tester.pumpAndSettle();
+        final catchAt = midFlight[entry.key];
+        if (catchAt == null) {
+          await tester.pumpAndSettle();
+        } else {
+          // Frame by frame, the way a handset actually runs it. A single big
+          // jump fires the stagger's timers *during* the advance, so the
+          // controllers they start have not rendered anything by the time the
+          // frame is built — the first attempts at this captured a page far
+          // emptier than a real device ever shows.
+          await tester.pump();
+          for (var elapsed = 0; elapsed < catchAt; elapsed += 16) {
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+        }
 
         // A screen that wants to be seen mid-scroll says so, and the preview
         // drags it there — a collapsing header is a state, not a still.
@@ -150,12 +174,23 @@ void main() {
             Offset(0, -scrollBy),
           );
           await tester.pumpAndSettle();
+          // Sections that scrolled into view start their entrance on a plain
+          // `Timer`, which `pumpAndSettle` does not advance — without this the
+          // capture is of a half-faded page, and the run leaves it pending.
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pumpAndSettle();
         }
 
         await expectLater(
           find.byType(MaterialApp),
           matchesGoldenFile('preview/${entry.key}_$mode.png'),
         );
+
+        // Let whatever was still moving finish, so the run ends with no timer
+        // or animation left pending.
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
+        await tester.pumpAndSettle();
       });
     }
   }

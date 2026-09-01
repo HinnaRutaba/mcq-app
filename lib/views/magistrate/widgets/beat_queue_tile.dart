@@ -10,7 +10,7 @@ class BeatQueueTile extends StatelessWidget {
 
   final FieldQueue queue;
   final VoidCallback? onTap;
-  static const double extent = 90;
+  static const double extent = 100;
 
   @override
   Widget build(BuildContext context) {

@@ -46,6 +46,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// Settles the frame *and* the entrance animations.
+  ///
+  /// `flutter_animate` schedules its stagger with a plain `Timer`, which
+  /// `pumpAndSettle` does not advance on its own — a section that scrolls into
+  /// view mid-test would otherwise leave a pending timer and fail the run.
+  Future<void> settle(WidgetTester tester) async {
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+  }
+
   setUp(() {
     Get.reset();
     api = StubbedApi();
@@ -96,7 +107,13 @@ void main() {
 
       expect(find.text('Defaulters'), findsOneWidget);
       expect(find.text('55'), findsOneWidget);
-      expect(find.text('Rs 2,213,409'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(BeatQueueTile),
+          matching: find.text('Rs 2,213,409'),
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Follow-ups due'), findsOneWidget);
       expect(find.text('Awaiting unseal'), findsOneWidget);
       expect(find.text('Sealed shops'), findsOneWidget);
@@ -129,7 +146,7 @@ void main() {
       expect(find.text('Your beat'), findsOneWidget);
 
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       // Pinned: still there, and shorter than it was.
       expect(find.byType(AppSliverHeroHeader), findsOneWidget);
@@ -178,9 +195,9 @@ void main() {
       final expanded = headerHeight();
 
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
-      await tester.pumpAndSettle();
+      await settle(tester);
       await tester.drag(find.byType(CustomScrollView), const Offset(0, 400));
-      await tester.pumpAndSettle();
+      await settle(tester);
 
       expect(headerHeight(), expanded);
       expect(find.text('Your beat'), findsOneWidget);
@@ -249,6 +266,8 @@ void main() {
       await pumpHome(tester);
 
       expect(find.text('Share of the arrears'), findsOneWidget);
+      expect(find.byType(AppCompositionBar), findsOneWidget);
+
       // The denominator is the server's own figure from the defaulters queue,
       // never the three market amounts added up in Dart.
       expect(
@@ -258,7 +277,6 @@ void main() {
       expect(find.text('45%'), findsOneWidget);
       expect(find.text('40%'), findsOneWidget);
       expect(find.text('15%'), findsOneWidget);
-      expect(find.byType(AppCompositionBar), findsOneWidget);
     });
 
     testWidgets('a bazaar keeps one colour across both charts', (
@@ -268,17 +286,20 @@ void main() {
 
       final expected = AppSeriesColors.of(Brightness.light).take(3).toList();
 
-      // The share bar's segments, in the order the controller ranked them.
-      final segments = tester
-          .widgetList<ColoredBox>(
+      // The bar's segments are painted rather than built, so its legend
+      // swatches are what a test can read — and they are what the officer
+      // matches against the list anyway.
+      final swatches = tester
+          .widgetList<Container>(
             find.descendant(
               of: find.byType(AppCompositionBar),
-              matching: find.byType(ColoredBox),
+              matching: find.byType(Container),
             ),
           )
-          .map((ColoredBox box) => box.color)
+          .map((Container c) => (c.decoration as BoxDecoration?)?.color)
+          .whereType<Color>()
           .toList();
-      expect(segments.take(3), expected);
+      expect(swatches.take(3), expected);
 
       // And the same three in the ranked list below, or the colour is
       // decoration rather than a way to follow one bazaar down the screen.
