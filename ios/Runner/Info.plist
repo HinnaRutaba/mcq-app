@@ -2,12 +2,35 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Photographs of what you record — a visit, a seal, a fine — are the evidence attached to the action.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Needed only if you attach an existing photograph to an action.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>A GPS fix is recorded with each action so the file shows where the officer was standing.</string>
+	<!-- iOS refuses canOpenURL for any scheme not listed here, so without
+	     these the call button on every defaulter card silently does
+	     nothing. tel and sms are the reminder that costs an officer
+	     nothing; whatsapp is where most recovery conversations in Pakistan
+	     actually happen. -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+		<string>sms</string>
+		<string>https</string>
+		<string>whatsapp</string>
+	</array>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ur</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Mcq App</string>
+	<string>MCQ Magistrate</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

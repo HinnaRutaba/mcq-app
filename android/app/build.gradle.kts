@@ -21,6 +21,9 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications (visit reminders) uses java.time, which
+        // API 24 handsets do not have. Desugaring back-ports it.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -28,7 +31,8 @@ android {
         applicationId = "com.lrm.mcq"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // These are cheap handsets: API 24 is the floor MCQ asked for.
+        minSdk = maxOf(24, flutter.minSdkVersion)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -54,6 +58,10 @@ android {
             }
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 kotlin {

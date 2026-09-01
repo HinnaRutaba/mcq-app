@@ -109,7 +109,7 @@ class MagistrateHomeScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     if (unpaidFines.isEmpty)
                       const AppEmptyState(
-                        icon: Icons.task_alt_rounded,
+                        illustration: AppIllustrationKind.allClear,
                         title: 'No unpaid fines',
                         message: 'Every issued fine has been settled.',
                       )
@@ -144,7 +144,7 @@ class MagistrateHomeScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     if (pendingCollections.isEmpty)
                       const AppEmptyState(
-                        icon: Icons.task_alt_rounded,
+                        illustration: AppIllustrationKind.allClear,
                         title: 'All caught up',
                         message: 'No outstanding collections right now.',
                       )
@@ -179,7 +179,7 @@ class MagistrateHomeScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     if (readyToUnseal.isEmpty)
                       const AppEmptyState(
-                        icon: Icons.lock_outline_rounded,
+                        illustration: AppIllustrationKind.shopSealed,
                         title: 'Nothing to unseal',
                         message:
                             'Sealed shops will appear here once their fine is paid.',

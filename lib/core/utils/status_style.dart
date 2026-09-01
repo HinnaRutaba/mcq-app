@@ -20,6 +20,24 @@ class StatusStyle {
     }
   }
 
+  /// The `tone` the API sends alongside an enum's value and label:
+  /// neutral | info | success | warning | danger. Mapped straight through —
+  /// the server decides what a state means, not the app.
+  static AppStatusTone apiTone(String? tone) {
+    switch (tone) {
+      case 'success':
+        return AppStatusTone.success;
+      case 'warning':
+        return AppStatusTone.warning;
+      case 'danger':
+        return AppStatusTone.danger;
+      case 'info':
+        return AppStatusTone.info;
+      default:
+        return AppStatusTone.neutral;
+    }
+  }
+
   static AppStatusTone sealTone(SealStatus status) {
     switch (status) {
       case SealStatus.sealed:

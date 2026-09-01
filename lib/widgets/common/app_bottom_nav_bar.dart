@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../config/theme/app_colors.dart';
-import '../text/app_text.dart';
+import '../motion/app_pressable.dart';
 
-/// One destination in a bottom nav bar.
+/// One destination in the bottom navigation bar.
 class AppBottomNavEntry {
   const AppBottomNavEntry({
     required this.icon,
@@ -13,97 +12,30 @@ class AppBottomNavEntry {
   });
 
   final IconData icon;
+
+  /// The filled twin of [icon]. The *shape* changes on selection, not only
+  /// the colour — this has to read in greyscale and in sunlight.
   final IconData activeIcon;
+
   final String label;
+
+  /// What has not reached the server yet is never hidden from the officer.
   final int badgeCount;
 }
 
-/// A single nav destination: a plain icon that grows into a filled navy
-/// pill when selected, with the label always visible underneath (colored
-/// navy when active, muted otherwise).
+/// The app's bottom navigation.
 ///
-/// The bold navy color is reserved for this pill — the bar itself stays a
-/// neutral surface color so it doesn't compete with [AppHeroHeader]'s solid
-/// navy block at the top of the screen. Shared by the plain
-/// [AppBottomNavBar] (Tenant) and a role shell's own nav row (Magistrate).
-class AppBottomNavItem extends StatelessWidget {
-  const AppBottomNavItem({
-    super.key,
-    required this.entry,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final AppBottomNavEntry entry;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final mutedColor = Theme.of(context).textTheme.bodySmall?.color;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOutCubic,
-                  padding: EdgeInsets.symmetric(horizontal: selected ? 14 : 8, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.primary : Colors.transparent,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Icon(
-                    selected ? entry.activeIcon : entry.icon,
-                    color: selected ? Colors.white : mutedColor,
-                    size: 21,
-                  ),
-                ),
-                if (entry.badgeCount > 0)
-                  Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.error,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: scheme.surface, width: 1.5),
-                      ),
-                      constraints: const BoxConstraints(minWidth: 16),
-                      child: Text(
-                        '${entry.badgeCount}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            AppText.caption(
-              entry.label,
-              color: selected ? AppColors.primary : mutedColor,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The plain (no-FAB) bottom nav bar — used by the Tenant shell. A neutral
-/// surface-colored bar with a top border for separation from the page.
+/// A real Material 3 [NavigationBar]: it brings the selection indicator
+/// that slides between destinations, the correct 48dp targets, the
+/// semantics a screen reader needs ("tab 2 of 5, selected"), and the
+/// platform's own handling of the system gesture inset — none of which a
+/// hand-rolled `Row` of `InkWell`s had.
+///
+/// **Never icon-only.** Every entry carries an icon *and* a word, and the
+/// theme pins `labelBehavior` to `alwaysShow` so no future edit can quietly
+/// switch to labels-on-selection-only. This officer may not be a daily
+/// smartphone user, and an unlabelled glyph is a guess he has to make while
+/// somebody argues at his elbow.
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({
     super.key,
@@ -118,26 +50,58 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
+        border: Border(top: BorderSide(color: theme.dividerColor)),
       ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            for (var i = 0; i < entries.length; i++)
-              Expanded(
-                child: AppBottomNavItem(
-                  entry: entries[i],
-                  selected: i == currentIndex,
-                  onTap: () => onTap(i),
-                ),
+      child: NavigationBar(
+        selectedIndex: currentIndex.clamp(0, entries.length - 1),
+        onDestinationSelected: (index) {
+          // The bar answers the thumb even when the branch it opens takes a
+          // moment to paint.
+          AppHaptics.select();
+          onTap(index);
+        },
+        destinations: [
+          for (final entry in entries)
+            NavigationDestination(
+              icon: _WithBadge(
+                count: entry.badgeCount,
+                child: Icon(entry.icon),
               ),
-          ],
-        ),
+              selectedIcon: _WithBadge(
+                count: entry.badgeCount,
+                child: Icon(entry.activeIcon),
+              ),
+              label: entry.label,
+              tooltip: entry.label,
+            ),
+        ],
       ),
+    );
+  }
+}
+
+/// The unsynced count, on the destination it belongs to.
+///
+/// Material's own [Badge], so it inherits the theme's badge colours and
+/// announces itself to a screen reader instead of being a decorative dot.
+class _WithBadge extends StatelessWidget {
+  const _WithBadge({required this.count, required this.child});
+
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return child;
+    return Badge(
+      // Past ninety-nine the exact figure stops being information and
+      // starts being a wide badge over the icon.
+      label: Text(count > 99 ? '99+' : '$count'),
+      child: child,
     );
   }
 }

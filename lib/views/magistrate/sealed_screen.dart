@@ -35,7 +35,7 @@ class SealedScreen extends StatelessWidget {
                       final seals = controller.filtered;
                       if (seals.isEmpty) {
                         return const AppEmptyState(
-                          icon: Icons.lock_open_rounded,
+                          illustration: AppIllustrationKind.shopSealed,
                           title: 'Nothing here',
                           message: 'Sealed properties will show up here.',
                         );

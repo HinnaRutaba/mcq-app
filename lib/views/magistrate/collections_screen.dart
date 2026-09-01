@@ -43,7 +43,7 @@ class CollectionsScreen extends StatelessWidget {
                       final chalaans = controller.filtered;
                       if (chalaans.isEmpty) {
                         return const AppEmptyState(
-                          icon: Icons.search_off_rounded,
+                          illustration: AppIllustrationKind.noResults,
                           title: 'No collections found',
                           message: 'Try a different search or filter.',
                         );

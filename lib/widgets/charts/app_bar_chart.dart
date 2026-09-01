@@ -1,256 +1,354 @@
 import 'dart:math' as math;
 
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-import '../../config/theme/app_colors.dart';
-import '../../core/utils/formatters.dart';
+import '../../config/theme/app_status_colors.dart';
+import '../../config/theme/app_text_theme.dart';
+import '../../l10n/app_localizations.dart';
+import '../../models/common/money.dart';
 import '../text/app_text.dart';
+import 'app_chart_frame.dart';
 
-/// One month's worth of data for [AppBarChart].
+/// One period's figures for [AppPaidDueChart] — a month, a week.
 class ChartPoint {
-  const ChartPoint({required this.label, required this.paid, required this.due});
+  const ChartPoint({
+    required this.label,
+    required this.paid,
+    required this.due,
+    this.paidAmount,
+    this.dueAmount,
+  });
 
   final String label;
+
+  /// Plotted heights only. **Never rendered as money** — the amounts the
+  /// officer reads come from [paidAmount] and [dueAmount], which are the
+  /// server's own strings. A bar can be a rounded double; a figure quoted
+  /// to a shopkeeper cannot.
   final double paid;
   final double due;
+
+  final Money? paidAmount;
+  final Money? dueAmount;
 }
 
-/// A small "paid vs due" grouped bar chart for the dashboards.
+/// "Paid against due", by period.
 ///
-/// Colors are the validated status pair (paid = success green, due = info
-/// blue) rather than arbitrary categorical hues, since these are genuinely
-/// payment *states*. Values are never color-only: there's a text legend and
-/// tapping a group reveals its exact figures — the mobile equivalent of a
-/// hover tooltip.
-class AppBarChart extends StatefulWidget {
-  const AppBarChart({super.key, required this.data, this.height = 150});
-
-  final List<ChartPoint> data;
-  final double height;
-
-  @override
-  State<AppBarChart> createState() => _AppBarChartState();
-}
-
-class _AppBarChartState extends State<AppBarChart> {
-  int? _selected;
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.data.isEmpty) return const SizedBox.shrink();
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final paidColor = isDark ? AppColors.secondaryDark : AppColors.secondary;
-    const dueColor = AppColors.info;
-    final axisColor = Theme.of(context).dividerColor;
-
-    final maxValue = widget.data.fold<double>(
-      0,
-      (m, d) => math.max(m, math.max(d.paid, d.due)),
-    );
-    final safeMax = maxValue <= 0 ? 1.0 : maxValue;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _LegendDot(color: paidColor, label: 'Paid'),
-            const SizedBox(width: 16),
-            _LegendDot(color: dueColor, label: 'Due'),
-          ],
-        ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: widget.height,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final groupWidth = constraints.maxWidth / widget.data.length;
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapUp: (details) {
-                  final index = (details.localPosition.dx / groupWidth)
-                      .floor()
-                      .clamp(0, widget.data.length - 1);
-                  setState(() => _selected = _selected == index ? null : index);
-                },
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    CustomPaint(
-                      size: Size(constraints.maxWidth, widget.height),
-                      painter: _BarChartPainter(
-                        data: widget.data,
-                        maxValue: safeMax,
-                        paidColor: paidColor,
-                        dueColor: dueColor,
-                        axisColor: axisColor,
-                        selected: _selected,
-                      ),
-                    ),
-                    if (_selected != null)
-                      Positioned(
-                        left: (_selected! * groupWidth)
-                            .clamp(0, math.max(0, constraints.maxWidth - 150)),
-                        top: 0,
-                        child: _ChartTooltip(point: widget.data[_selected!]),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BarChartPainter extends CustomPainter {
-  _BarChartPainter({
+/// Two **states**, not two categories, so this uses the reserved status
+/// colours rather than a categorical palette — settled emerald against
+/// information blue — and each ships with an icon and a word in the legend.
+class AppPaidDueChart extends StatelessWidget {
+  const AppPaidDueChart({
+    super.key,
     required this.data,
-    required this.maxValue,
-    required this.paidColor,
-    required this.dueColor,
-    required this.axisColor,
-    required this.selected,
+    this.title,
+    this.subtitle,
+    this.height = 190,
   });
 
   final List<ChartPoint> data;
-  final double maxValue;
-  final Color paidColor;
-  final Color dueColor;
-  final Color axisColor;
-  final int? selected;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const labelHeight = 20.0;
-    final chartHeight = size.height - labelHeight;
-    final groupWidth = size.width / data.length;
-    const barGap = 3.0;
-    final barWidth = math.max(4.0, (groupWidth - barGap - 16) / 2);
-
-    canvas.drawLine(
-      Offset(0, chartHeight),
-      Offset(size.width, chartHeight),
-      Paint()
-        ..color = axisColor
-        ..strokeWidth = 1,
-    );
-
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
-    for (var i = 0; i < data.length; i++) {
-      final point = data[i];
-      final groupLeft = i * groupWidth + (groupWidth - (barWidth * 2 + barGap)) / 2;
-      final isDimmed = selected != null && selected != i;
-      final opacity = isDimmed ? 0.35 : 1.0;
-
-      final paidHeight = (point.paid / maxValue) * (chartHeight - 8);
-      final dueHeight = (point.due / maxValue) * (chartHeight - 8);
-
-      _drawBar(
-        canvas,
-        Rect.fromLTWH(groupLeft, chartHeight - paidHeight, barWidth, paidHeight),
-        paidColor.withValues(alpha: opacity),
-      );
-      _drawBar(
-        canvas,
-        Rect.fromLTWH(
-          groupLeft + barWidth + barGap,
-          chartHeight - dueHeight,
-          barWidth,
-          dueHeight,
-        ),
-        dueColor.withValues(alpha: opacity),
-      );
-
-      textPainter.text = TextSpan(
-        text: point.label,
-        style: TextStyle(fontSize: 11, color: axisColor),
-      );
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(i * groupWidth + (groupWidth - textPainter.width) / 2, chartHeight + 4),
-      );
-    }
-  }
-
-  void _drawBar(Canvas canvas, Rect rect, Color color) {
-    if (rect.height <= 0) return;
-    final rrect = RRect.fromRectAndCorners(
-      rect,
-      topLeft: const Radius.circular(4),
-      topRight: const Radius.circular(4),
-    );
-    canvas.drawRRect(rrect, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _BarChartPainter oldDelegate) {
-    return oldDelegate.data != data ||
-        oldDelegate.selected != selected ||
-        oldDelegate.maxValue != maxValue;
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  const _LegendDot({required this.color, required this.label});
-
-  final Color color;
-  final String label;
+  final String? title;
+  final String? subtitle;
+  final double height;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    if (data.isEmpty) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final status = context.status;
+    final paidColour = status.success;
+    final dueColour = status.info;
+
+    final maxValue = data.fold<double>(
+      0,
+      (m, d) => math.max(m, math.max(d.paid, d.due)),
+    );
+    // Scale to the data, with a tenth of headroom so the tallest bar is not
+    // welded to the top of the frame.
+    final top = maxValue <= 0 ? 1.0 : maxValue * 1.12;
+
+    return AppChartFrame(
+      title: title,
+      subtitle: subtitle,
+      height: height,
+      entries: [
+        ChartLegendEntry(
+          label: t('chart.paid'),
+          colour: paidColour,
+          icon: Icons.check_circle_rounded,
+          value: _total(data.map((d) => d.paidAmount)),
         ),
-        const SizedBox(width: 6),
-        AppText.caption(label),
+        ChartLegendEntry(
+          label: t('chart.due'),
+          colour: dueColour,
+          icon: Icons.schedule_rounded,
+          value: _total(data.map((d) => d.dueAmount)),
+        ),
+      ],
+      chart: BarChart(
+        BarChartData(
+          maxY: top,
+          minY: 0,
+          alignment: BarChartAlignment.spaceAround,
+          barGroups: [
+            for (var i = 0; i < data.length; i++)
+              BarChartGroupData(
+                x: i,
+                // A 2px surface gap between adjacent bars, so the pair
+                // reads as two marks rather than as one two-tone mark.
+                barsSpace: 2,
+                barRods: [
+                  _rod(data[i].paid, paidColour),
+                  _rod(data[i].due, dueColour),
+                ],
+              ),
+          ],
+          // Recessive gridlines: horizontal only, and no frame.
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: top / 3,
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: status.chartGrid,
+              strokeWidth: 1,
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          titlesData: FlTitlesData(
+            topTitles: const AxisTitles(),
+            rightTitles: const AxisTitles(),
+            leftTitles: const AxisTitles(),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) {
+                  final index = value.round();
+                  if (index < 0 || index >= data.length) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: AppText.caption(
+                      data[index].label,
+                      color: status.chartLabel,
+                      maxLines: 1,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => theme.colorScheme.inverseSurface,
+              tooltipBorderRadius: BorderRadius.circular(10),
+              tooltipPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                final point = data[groupIndex];
+                final paid = rodIndex == 0;
+                final amount = paid ? point.paidAmount : point.dueAmount;
+                return BarTooltipItem(
+                  '${point.label}\n'
+                  '${paid ? t('chart.paid') : t('chart.due')}: '
+                  '${amount?.withSymbol() ?? (paid ? point.paid : point.due).round().toString()}',
+                  (theme.textTheme.bodySmall ?? const TextStyle()).copyWith(
+                    color: theme.colorScheme.onInverseSurface,
+                    fontFeatures: kTabularFigures,
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static BarChartRodData _rod(double value, Color colour) => BarChartRodData(
+        toY: value,
+        color: colour,
+        // Thin marks, and a 4px rounded top anchored to the baseline: the
+        // bar's *end* is rounded, its foot is square, so nothing floats.
+        width: 13,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+      );
+
+  /// The legend figure. Sums are the server's job; where the caller has not
+  /// supplied one, the legend simply names the series.
+  static String _total(Iterable<Money?> amounts) {
+    final present = amounts.whereType<Money>().toList();
+    if (present.length == 1) return present.first.withSymbol();
+    return '';
+  }
+}
+
+/// A horizontal bar chart of one ordered series — "my work, by action".
+///
+/// Horizontal because the categories are words, not dates: "Reminder to
+/// revisit" rotated forty-five degrees under a vertical bar is a label
+/// nobody reads. Bars run from a shared baseline on the leading edge and
+/// carry their figure at the end, so no value has to be estimated against
+/// a gridline.
+///
+/// The colour is an **ordinal ramp**, not a categorical palette. Enforcement
+/// actions are an escalation — a visit, a verbal warning, a final warning, a
+/// notice, a seal — so the darker step *means* the harder action. A
+/// categorical palette would say only that they are different, and it would
+/// put hues on screen that mean "overdue" and "settled" everywhere else in
+/// the app.
+class AppOrdinalBarChart extends StatelessWidget {
+  const AppOrdinalBarChart({
+    super.key,
+    required this.entries,
+    this.title,
+    this.subtitle,
+    this.animate = true,
+  });
+
+  /// Ordered hardest-last: the ramp is applied in this order.
+  final List<ChartBarEntry> entries;
+
+  final String? title;
+  final String? subtitle;
+  final bool animate;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entries.isEmpty) return const SizedBox.shrink();
+
+    final status = context.status;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final busiest =
+        entries.fold<int>(0, (m, e) => e.value > m ? e.value : m);
+    final total = entries.fold<int>(0, (sum, e) => sum + e.value);
+
+    return AppChartFrame(
+      title: title,
+      subtitle: subtitle,
+      // The plot sizes itself to the number of rows rather than being
+      // squeezed into a fixed frame.
+      height: entries.length * 44,
+      showLegend: false,
+      entries: [
+        for (var i = 0; i < entries.length; i++)
+          ChartLegendEntry(
+            label: entries[i].label,
+            colour: status.escalationStep(i, entries.length),
+            value: '${entries[i].value}',
+            icon: entries[i].icon,
+            share: total == 0 ? null : entries[i].value / total,
+          ),
+      ],
+      chart: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < entries.length; i++)
+            Expanded(
+              child: _Bar(
+                entry: entries[i],
+                colour: status.escalationStep(i, entries.length),
+                fraction: busiest == 0 ? 0 : entries[i].value / busiest,
+                track: status.chartGrid,
+                muted: muted,
+                animate: animate,
+                delay: Duration(milliseconds: 60 * i),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One labelled row of [AppOrdinalBarChart].
+class ChartBarEntry {
+  const ChartBarEntry({
+    required this.label,
+    required this.value,
+    this.icon,
+    this.onTap,
+  });
+
+  final String label;
+  final int value;
+  final IconData? icon;
+  final VoidCallback? onTap;
+}
+
+class _Bar extends StatelessWidget {
+  const _Bar({
+    required this.entry,
+    required this.colour,
+    required this.fraction,
+    required this.track,
+    required this.muted,
+    required this.animate,
+    required this.delay,
+  });
+
+  final ChartBarEntry entry;
+  final Color colour;
+  final double fraction;
+  final Color track;
+  final Color muted;
+  final bool animate;
+  final Duration delay;
+
+  @override
+  Widget build(BuildContext context) {
+    final row = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            if (entry.icon != null) ...[
+              Icon(entry.icon, size: 16, color: muted),
+              const SizedBox(width: 7),
+            ],
+            Expanded(
+              child: AppText.bodySmall(entry.label, maxLines: 1),
+            ),
+            const SizedBox(width: 10),
+            // The figure, direct-labelled. Never estimated off a gridline.
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: AppText.titleSmall('${entry.value}'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: animate ? 0 : fraction, end: fraction),
+            duration: animate
+                ? const Duration(milliseconds: 700)
+                : Duration.zero,
+            curve: Curves.easeOutCubic,
+            builder: (context, value, _) => Stack(
+              children: [
+                Container(height: 9, color: track),
+                FractionallySizedBox(
+                  widthFactor: value.clamp(0.0, 1.0),
+                  child: Container(height: 9, color: colour),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
-  }
-}
 
-class _ChartTooltip extends StatelessWidget {
-  const _ChartTooltip({required this.point});
-
-  final ChartPoint point;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppText.label(point.label),
-          const SizedBox(height: 2),
-          AppText.caption('Paid ${Formatters.currency(point.paid)}'),
-          AppText.caption('Due ${Formatters.currency(point.due)}'),
-        ],
-      ),
+    if (entry.onTap == null) return row;
+    return InkWell(
+      onTap: entry.onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: row,
     );
   }
 }

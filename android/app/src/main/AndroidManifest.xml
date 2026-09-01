@@ -1,6 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The app talks to the MCQ API over the network. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Every field write takes a photograph with a GPS fix. Fine location
+         because "somewhere in this bazaar" is not evidence of presence. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <!-- Local visit reminders from next_visit_date; there is no server push. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- A camera is not required to install: an officer may be handed a
+         handset without one, and the read-only screens still work. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
-        android:label="mcq_app"
+        android:label="MCQ Magistrate"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -40,6 +57,33 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Android 11 hides other apps unless they are declared here, and
+             `canLaunchUrl` returns false for anything undeclared. Without
+             these three the call button on every defaulter card silently
+             does nothing — which is the single feature the brief says will
+             save an officer an hour a day. -->
+
+        <!-- The call button on a defaulter row. -->
+        <intent>
+            <action android:name="android.intent.action.DIAL"/>
+            <data android:scheme="tel"/>
+        </intent>
+        <!-- A reminder by text message. -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO"/>
+            <data android:scheme="smsto"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="sms"/>
+        </intent>
+        <!-- Handing a payment link over WhatsApp, and opening the public
+             payment page in a browser. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <category android:name="android.intent.category.BROWSABLE"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

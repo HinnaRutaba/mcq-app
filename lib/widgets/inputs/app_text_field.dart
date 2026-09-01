@@ -27,6 +27,8 @@ class AppTextField extends StatefulWidget {
     this.maxLines = 1,
     this.inputFormatters,
     this.autofillHints,
+    this.autofocus = false,
+    this.helper,
   });
 
   final String? label;
@@ -44,6 +46,10 @@ class AppTextField extends StatefulWidget {
   final int maxLines;
   final List<TextInputFormatter>? inputFormatters;
   final Iterable<String>? autofillHints;
+  final bool autofocus;
+
+  /// A line under the field saying what is expected of it, in plain words.
+  final String? helper;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -73,9 +79,11 @@ class _AppTextFieldState extends State<AppTextField> {
           maxLines: widget.obscureText ? 1 : widget.maxLines,
           inputFormatters: widget.inputFormatters,
           autofillHints: widget.autofillHints,
+          autofocus: widget.autofocus,
           style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: widget.hint,
+            helperText: widget.helper,
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, size: 20)
                 : null,

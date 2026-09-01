@@ -41,7 +41,10 @@ class TenantHomeScreen extends StatelessWidget {
                 bottom: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppText.label('Total Due', color: Colors.white.withValues(alpha: 0.75)),
+                    AppText.label(
+                      'Total Due',
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
                     const SizedBox(height: 4),
                     AppText(
                       Formatters.currency(controller.totalDue),
@@ -51,7 +54,10 @@ class TenantHomeScreen extends StatelessWidget {
                     if (controller.overdueCount > 0) ...[
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.16),
                           borderRadius: BorderRadius.circular(999),
@@ -79,10 +85,10 @@ class TenantHomeScreen extends StatelessWidget {
                           onTap: nextDue == null
                               ? null
                               : () => PaymentMethodSheet.show(
-                                    context,
-                                    chalaan: nextDue,
-                                    onSettled: (_) => controller.reload(),
-                                  ),
+                                  context,
+                                  chalaan: nextDue,
+                                  onSettled: (_) => controller.reload(),
+                                ),
                         ),
                         AppQuickAction(
                           icon: Icons.receipt_long_rounded,
@@ -102,13 +108,21 @@ class TenantHomeScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 28),
-                    AppText.titleMedium('Upcoming Payments (${upcoming.length})'),
-                    const SizedBox(height: 12),
+                    AppSectionHeader(
+                      title: 'Upcoming payments',
+                      subtitle: upcoming.isEmpty
+                          ? null
+                          : '${upcoming.length} waiting',
+                      icon: Icons.event_note_rounded,
+                    ),
                     if (upcoming.isEmpty)
                       const AppEmptyState(
-                        icon: Icons.task_alt_rounded,
+                        // A zero here is good news, and it has to look
+                        // like good news rather than like a blank list.
+                        illustration: AppIllustrationKind.allClear,
                         title: 'Nothing due',
                         message: 'You\'re all caught up — no pending chalaans.',
+                        compact: true,
                       )
                     else
                       for (final chalaan in upcoming) ...[
@@ -132,32 +146,35 @@ class TenantHomeScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                       ],
                     const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        const Expanded(child: AppText.titleMedium('Past Payments')),
-                        TextButton(
-                          onPressed: () => context.go(AppRoutes.tenantPayments),
-                          child: const AppText.label('See all'),
-                        ),
-                      ],
+                    AppSectionHeader(
+                      title: 'Past payments',
+                      icon: Icons.history_rounded,
+                      actionLabel: 'See all',
+                      onAction: () => context.go(AppRoutes.tenantPayments),
                     ),
                     if (recent.isEmpty)
                       const AppEmptyState(
-                        icon: Icons.history_rounded,
+                        illustration: AppIllustrationKind.nothingToChase,
                         title: 'No history yet',
                         message: 'Your settled payments will show up here.',
+                        compact: true,
                       )
                     else
                       AppCard(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         child: Column(
                           children: [
                             for (var i = 0; i < recent.length; i++) ...[
                               RecentPaymentTile(
                                 chalaan: recent[i],
-                                onTap: () => ChalaanDetailSheet.show(context, recent[i]),
+                                onTap: () =>
+                                    ChalaanDetailSheet.show(context, recent[i]),
                               ),
-                              if (i != recent.length - 1) const Divider(height: 1),
+                              if (i != recent.length - 1)
+                                const Divider(height: 1),
                             ],
                           ],
                         ),
@@ -176,31 +193,29 @@ class TenantHomeScreen extends StatelessWidget {
 /// "Overview" quick action opens the 6-month chart in a bottom sheet —
 /// kept out of the main flow so it doesn't compete with Upcoming/Past.
 class _ChartSheet {
-  static Future<void> show(BuildContext context, TenantHomeController controller) {
+  static Future<void> show(
+    BuildContext context,
+    TenantHomeController controller,
+  ) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => SafeArea(
-        child: Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AppText.titleMedium('Payment Overview'),
-              const SizedBox(height: 4),
-              const AppText.caption('Paid vs due, last 6 months'),
-              const SizedBox(height: 16),
-              AppBarChart(data: controller.monthlyChartData),
-              const SizedBox(height: 8),
-            ],
-          ),
+      useSafeArea: true,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Paid against due is a pair of *states*, so it wears the
+            // reserved status colours rather than a categorical palette,
+            // and each one carries an icon and a word in the legend.
+            AppPaidDueChart(
+              title: 'Payment overview',
+              subtitle: 'Paid against due, last 6 months',
+              data: controller.monthlyChartData,
+            ),
+          ],
         ),
       ),
     );
