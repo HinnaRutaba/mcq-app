@@ -7,74 +7,66 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:mcq_app/core/network/connectivity_interceptor.dart';
 
-/// [PlatformNetworkProbe] asks two questions and the order matters: the OS
-/// only ever settles a "no", never a "yes".
+/// [PlatformNetworkProbe] reports what the OS says about the interface, and
+/// never refuses a call on anything less than a definite "no".
 void main() {
   late _FakeConnectivityPlatform platform;
-  late _CountingReachability reachability;
   late PlatformNetworkProbe probe;
 
   setUp(() {
     platform = _FakeConnectivityPlatform();
     ConnectivityPlatform.instance = platform;
-    reachability = _CountingReachability();
-    probe = PlatformNetworkProbe(
-      connectivity: Connectivity(),
-      reachability: reachability,
-    );
+    probe = PlatformNetworkProbe(connectivity: Connectivity());
   });
 
   tearDown(() => platform.dispose());
 
-  test('no interface at all settles it without a lookup', () async {
+  test('no interface at all is offline', () async {
     platform.results = <ConnectivityResult>[ConnectivityResult.none];
 
     expect(await probe.hasRouteOut(), isFalse);
-    expect(
-      reachability.calls,
-      0,
-      reason: 'aeroplane mode needs no DNS round trip to confirm',
-    );
   });
 
   test('an empty answer is also no interface', () async {
     platform.results = <ConnectivityResult>[];
 
     expect(await probe.hasRouteOut(), isFalse);
-    expect(reachability.calls, 0);
   });
 
-  test('an interface is not proof, so the host is still resolved', () async {
-    platform.results = <ConnectivityResult>[ConnectivityResult.wifi];
+  test('any interface at all is online', () async {
+    for (final ConnectivityResult result in <ConnectivityResult>[
+      ConnectivityResult.wifi,
+      ConnectivityResult.mobile,
+      ConnectivityResult.ethernet,
+      ConnectivityResult.vpn,
+    ]) {
+      platform.results = <ConnectivityResult>[result];
+      expect(await probe.hasRouteOut(), isTrue, reason: result.name);
+    }
+  });
+
+  test('one live interface beside a dead one is online', () async {
+    platform.results = <ConnectivityResult>[
+      ConnectivityResult.none,
+      ConnectivityResult.wifi,
+    ];
 
     expect(await probe.hasRouteOut(), isTrue);
-    expect(reachability.calls, 1);
-  });
-
-  test('wifi with no upstream is offline, whatever the radio says', () async {
-    // The case the plugin cannot see on its own, and the reason it is not
-    // trusted alone: joined to a bazaar access point that goes nowhere.
-    platform.results = <ConnectivityResult>[ConnectivityResult.wifi];
-    reachability.online = false;
-
-    expect(await probe.hasRouteOut(), isFalse);
   });
 
   test('a missing plugin is not an answer about the network', () async {
     // Exactly what a build that has not been rebuilt for the new dependency
     // throws. Refusing every call on the strength of that would be worse than
-    // the problem it is meant to solve.
+    // the wait the interceptor saves.
     platform.failure = MissingPluginException('no implementation found');
 
     expect(await probe.hasRouteOut(), isTrue);
-    expect(reachability.calls, 1);
   });
 
-  test('a plugin that errors falls back the same way', () async {
+  test('a plugin that errors lets the call through the same way', () async {
     platform.failure = PlatformException(code: 'unavailable');
 
     expect(await probe.hasRouteOut(), isTrue);
-    expect(reachability.calls, 1);
   });
 
   test('the radio stream is passed through as the change signal', () async {
@@ -108,18 +100,4 @@ class _FakeConnectivityPlatform extends ConnectivityPlatform {
   @override
   Stream<List<ConnectivityResult>> get onConnectivityChanged =>
       _controller.stream;
-}
-
-class _CountingReachability implements NetworkProbe {
-  bool online = true;
-  int calls = 0;
-
-  @override
-  Stream<void>? get changes => null;
-
-  @override
-  Future<bool> hasRouteOut() async {
-    calls++;
-    return online;
-  }
 }
