@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/theme/app_colors.dart';
+import '../../../config/theme/app_series_colors.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/round_group.dart';
 import '../../../widgets/widgets.dart';
@@ -22,6 +23,7 @@ class DefaulterBreakdown extends StatelessWidget {
     required this.brokenPromises,
     required this.neverPaid,
     required this.sealed,
+    this.totalOutstanding,
   });
 
   /// Worst first — the controller has already ordered them.
@@ -30,6 +32,12 @@ class DefaulterBreakdown extends StatelessWidget {
   final int brokenPromises;
   final int neverPaid;
   final int sealed;
+
+  /// The arrears across the whole beat, as the server totalled it — the
+  /// `defaulters` queue's own amount. The share chart needs a denominator and
+  /// this app does not add money together in Dart, so without it that chart
+  /// simply does not draw.
+  final String? totalOutstanding;
 
   @override
   Widget build(BuildContext context) {
@@ -55,34 +63,89 @@ class DefaulterBreakdown extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AppText.titleMedium('Outstanding by bazaar'),
-              const SizedBox(height: 14),
-              AppBarList(
-                // Already sorted; keeping the caller's order means the bars
-                // and any list beside them stay in step.
-                sorted: false,
-                data: <BarDatum>[
-                  for (final RoundGroup group in groups)
-                    BarDatum(
-                      label: _name(group),
-                      value: double.tryParse(group.outstanding.trim()) ?? 0,
-                      valueLabel:
-                          Formatters.money(group.outstanding) ??
-                          group.outstanding,
-                      caption: _caption(group),
+        Builder(
+          builder: (BuildContext context) {
+            // Colour is assigned here, once, from each bazaar's place in the
+            // list the controller ordered — so the share bar and the ranked
+            // list below it agree, and a bazaar is one colour on both.
+            final colours = <String, Color>{
+              for (int i = 0; i < groups.length; i++)
+                _name(groups[i]): AppSeriesColors.at(context, i),
+            };
+            final total = double.tryParse(totalOutstanding?.trim() ?? '');
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (total != null && total > 0) ...[
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const AppText.titleMedium('Share of the arrears'),
+                        const SizedBox(height: 4),
+                        AppText.caption(
+                          'Of ${Formatters.money(totalOutstanding)} owed '
+                          'across your beat.',
+                          color: Theme.of(context).textTheme.bodyMedium?.color
+                              ?.withValues(alpha: 0.6),
+                        ),
+                        const SizedBox(height: 14),
+                        AppCompositionBar(
+                          total: total,
+                          slices: <CompositionSlice>[
+                            for (final RoundGroup group in groups)
+                              CompositionSlice(
+                                label: _name(group),
+                                value: _amount(group),
+                                valueLabel:
+                                    Formatters.money(group.outstanding) ?? '',
+                                color: colours[_name(group)]!,
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
+                  ),
+                  const SizedBox(height: 12),
                 ],
-              ),
-            ],
-          ),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const AppText.titleMedium('Outstanding by bazaar'),
+                      const SizedBox(height: 14),
+                      AppBarList(
+                        // Already sorted; keeping the caller's order means the
+                        // bars and the share bar above stay in step.
+                        sorted: false,
+                        data: <BarDatum>[
+                          for (final RoundGroup group in groups)
+                            BarDatum(
+                              label: _name(group),
+                              value: _amount(group),
+                              valueLabel:
+                                  Formatters.money(group.outstanding) ??
+                                  group.outstanding,
+                              caption: _caption(group),
+                              color: colours[_name(group)],
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
+
+  /// Parsed for bar geometry only — never printed, never added to another.
+  static double _amount(RoundGroup group) =>
+      double.tryParse(group.outstanding.trim()) ?? 0;
 
   static String _name(RoundGroup group) =>
       group.marketName ?? group.areaName ?? 'Unnamed bazaar';

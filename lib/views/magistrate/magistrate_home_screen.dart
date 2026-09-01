@@ -19,19 +19,7 @@ class MagistrateHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.find<DashboardController>();
 
-    return Scaffold(
-      body: Column(
-        children: [
-          Obx(
-            () => _Header(
-              officer: controller.officer,
-              scope: controller.beat.value?.scope,
-            ),
-          ),
-          Expanded(child: Obx(() => _body(controller))),
-        ],
-      ),
-    );
+    return Scaffold(body: Obx(() => _page(controller)));
   }
 }
 
@@ -41,12 +29,16 @@ class _Header extends StatelessWidget {
   final AuthUser? officer;
   final FieldScope? scope;
 
+  static const double _withScope = 196;
+  static const double _nameOnly = 108;
+
   @override
   Widget build(BuildContext context) {
-    return AppHeroHeader(
+    return AppSliverHeroHeader(
+      expandedHeight: scope == null ? _nameOnly : _withScope,
       subtitle: officer?.designation ?? 'Signed in',
       title: officer?.name ?? 'Home',
-      trailing: AppCircleIconButton(
+      trailing: const AppCircleIconButton(
         icon: Icons.notifications_none_rounded,
         badge: true,
       ),
@@ -112,85 +104,115 @@ class _ScopeStrip extends StatelessWidget {
   }
 }
 
-Widget _body(DashboardController controller) {
+Widget _page(DashboardController controller) {
+  return RefreshIndicator(
+    onRefresh: controller.load,
+    child: CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: <Widget>[
+        _Header(
+          officer: controller.officer,
+          scope: controller.beat.value?.scope,
+        ),
+        ..._bodySlivers(controller),
+      ],
+    ),
+  );
+}
+
+List<Widget> _bodySlivers(DashboardController controller) {
   // Nothing on screen yet: the officer gets one spinner, not a half-drawn
   // page that shuffles as each call lands.
   if (controller.isLoading.value && !controller.hasData) {
-    return const Center(child: CircularProgressIndicator());
+    return const <Widget>[
+      SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+    ];
   }
 
   final error = controller.errorMessage.value;
   if (error != null && !controller.hasData) {
-    return _Unreachable(message: error, onRetry: controller.load);
+    return <Widget>[
+      SliverFillRemaining(
+        hasScrollBody: false,
+        child: _Unreachable(message: error, onRetry: controller.load),
+      ),
+    ];
   }
 
   final beat = controller.beat.value;
   final activity = controller.activity.value;
 
-  return RefreshIndicator(
-    onRefresh: controller.load,
-    child: ListView(
+  return <Widget>[
+    SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-      children: [
-        // A failure over figures that are already up is a note, not a wall —
-        // the numbers below it are the last good ones.
-        if (error != null) ...[
-          AppAlert(
-            message: error,
-            tone: AppTone.warning,
-            icon: Icons.wifi_off_rounded,
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (beat != null) ...[
-          const _SectionTitle('Waiting for you'),
+      sliver: SliverList.list(
+        children: [
+          // A failure over figures that are already up is a note, not a wall —
+          // the numbers below it are the last good ones.
+          if (error != null) ...[
+            AppAlert(
+              message: error,
+              tone: AppTone.warning,
+              icon: Icons.wifi_off_rounded,
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (beat != null) ...[
+            const _SectionTitle('Waiting for you'),
+            const SizedBox(height: 8),
+            _QueueGrid(queues: beat.queues),
+            const SizedBox(height: 18),
+          ],
+          if (controller.hasDefaulterBreakdown) ...[
+            const _SectionTitle('Where the arrears are'),
+            const SizedBox(height: 10),
+            DefaulterBreakdown(
+              groups: controller.bazaarsByArrears,
+              brokenPromises: controller.brokenPromises,
+              neverPaid: controller.neverPaid,
+              sealed: controller.sealedInRound,
+              // The server's own total, not one added up here.
+              totalOutstanding: beat?.queue('defaulters')?.amount,
+            ),
+            const SizedBox(height: 24),
+          ],
+          const _SectionTitle('Your work'),
           const SizedBox(height: 12),
-          _QueueGrid(queues: beat.queues),
-          const SizedBox(height: 24),
-        ],
-        if (controller.hasDefaulterBreakdown) ...[
-          const _SectionTitle('Where the arrears are'),
-          const SizedBox(height: 12),
-          DefaulterBreakdown(
-            groups: controller.bazaarsByArrears,
-            brokenPromises: controller.brokenPromises,
-            neverPaid: controller.neverPaid,
-            sealed: controller.sealedInRound,
+          AppChipTabs<int>(
+            items: DashboardController.activityWindows,
+            itemLabel: (int days) => 'Last $days',
+            selected: controller.activityDays.value,
+            onChanged: controller.setActivityWindow,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
+          if (controller.isReloadingActivity.value)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 28),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (activity != null)
+            _ActivitySection(activity: activity, scope: beat?.scope)
+          else
+            const AppEmptyState(
+              icon: Icons.insights_outlined,
+              title: 'No activity yet',
+              message:
+                  'Visits, fines and seals appear here as you record them.',
+            ),
+          if (beat?.generatedAt != null) ...[
+            const SizedBox(height: 24),
+            AppText.caption(
+              'Figures as of ${Formatters.dateTime(beat!.generatedAt!.toLocal())}',
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
-        const _SectionTitle('Your work'),
-        const SizedBox(height: 12),
-        AppChipTabs<int>(
-          items: DashboardController.activityWindows,
-          itemLabel: (int days) => 'Last $days',
-          selected: controller.activityDays.value,
-          onChanged: controller.setActivityWindow,
-        ),
-        const SizedBox(height: 14),
-        if (controller.isReloadingActivity.value)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 28),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (activity != null)
-          _ActivitySection(activity: activity, scope: beat?.scope)
-        else
-          const AppEmptyState(
-            icon: Icons.insights_outlined,
-            title: 'No activity yet',
-            message: 'Visits, fines and seals appear here as you record them.',
-          ),
-        if (beat?.generatedAt != null) ...[
-          const SizedBox(height: 24),
-          AppText.caption(
-            'Figures as of ${Formatters.dateTime(beat!.generatedAt!.toLocal())}',
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ],
+      ),
     ),
-  );
+  ];
 }
 
 class _ActivitySection extends StatelessWidget {
@@ -207,7 +229,7 @@ class _ActivitySection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _Grid(
-          extent: 118,
+          extent: AppStatTile.extent,
           children: [
             AppStatTile(
               label: 'Visits',
@@ -249,7 +271,7 @@ class _ActivitySection extends StatelessWidget {
         ],
         if (activity.byActionType.isNotEmpty) ...[
           const SizedBox(height: 24),
-          const _SectionTitle('What those visits were'),
+          const _SectionTitle('How far things went'),
           const SizedBox(height: 12),
           ActionBreakdown(byActionType: activity.byActionType),
         ],
@@ -341,22 +363,23 @@ class _QueueGrid extends StatelessWidget {
     }
 
     return _Grid(
+      columns: 3,
       extent: BeatQueueTile.extent,
       children: <Widget>[
-        // Not tappable yet, deliberately. Each queue carries the `endpoint`
-        // that opens it, so wiring is `ApiPaths.resolve(queue.endpoint)` and a
-        // route — never a match on `queue.key` against a hard-coded path.
         for (final FieldQueue queue in queues) BeatQueueTile(queue: queue),
       ],
     );
   }
 }
 
+/// A fixed-height grid, so a tile carrying money and one that is only a count
+/// line up instead of ragging.
 class _Grid extends StatelessWidget {
-  const _Grid({required this.children, required this.extent});
+  const _Grid({required this.children, required this.extent, this.columns = 2});
 
   final List<Widget> children;
   final double extent;
+  final int columns;
 
   @override
   Widget build(BuildContext context) {
@@ -366,9 +389,9 @@ class _Grid extends StatelessWidget {
       padding: EdgeInsets.zero,
       itemCount: children.length,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
+        crossAxisCount: columns,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
         mainAxisExtent: extent,
       ),
       itemBuilder: (BuildContext context, int index) => children[index],
@@ -394,25 +417,28 @@ class _Unreachable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    // Not a scroll view of its own: it sits inside the page's, which is what
+    // keeps pull-to-refresh working on the very state an officer most wants to
+    // retry from.
+    return Padding(
       padding: const EdgeInsets.all(20),
-      children: [
-        const SizedBox(height: 40),
-        AppEmptyState(
-          icon: Icons.cloud_off_rounded,
-          title: 'Could not load your beat',
-          message: message,
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: AppButton(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AppEmptyState(
+            icon: Icons.cloud_off_rounded,
+            title: 'Could not load your beat',
+            message: message,
+          ),
+          const SizedBox(height: 8),
+          AppButton(
             label: 'Try again',
             icon: Icons.refresh_rounded,
             fullWidth: false,
             onPressed: onRetry,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -10,6 +10,7 @@ class BarDatum {
     required this.value,
     required this.valueLabel,
     this.caption,
+    this.color,
   });
 
   /// The category this bar names, e.g. a bazaar or an action type.
@@ -26,6 +27,14 @@ class BarDatum {
 
   /// An optional second line, e.g. "25 shops behind".
   final String? caption;
+
+  /// This entity's own colour. Null leaves the list in one hue.
+  ///
+  /// Assign it from what the row *is*, never from where it sorts — the point
+  /// of colouring a ranked list at all is that the same entity is the same
+  /// colour in the chart beside it, and that breaks the moment a bar takes its
+  /// colour from its position.
+  final Color? color;
 }
 
 /// A ranked horizontal bar list: one measure across a handful of named
@@ -34,10 +43,13 @@ class BarDatum {
 /// Horizontal because the categories are names — "Liaquat Bazaar", "Notices
 /// served" — and names read along a row rather than rotated under a column.
 ///
-/// One measure, so one colour: the bars carry length, not identity, and giving
-/// each category its own hue would imply a distinction that is not in the data.
-/// The hue is the theme's brand step, which is chosen per brightness rather
-/// than flipped, so dark mode is its own colour and not an inversion.
+/// One colour by default: the bars carry length, not identity, and giving each
+/// category its own hue would imply a distinction that is not in the data. The
+/// default hue is the theme's brand step, chosen per brightness rather than
+/// flipped, so dark mode is its own colour and not an inversion.
+///
+/// A caller that is already showing these same entities in another chart can
+/// pass [BarDatum.color] per row, so one bazaar is one colour on both.
 ///
 /// Every row prints its own figure. There are few enough rows that a number on
 /// each is readable, and it means the length is a second reading of the value
@@ -86,7 +98,7 @@ class _Bar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fill = context.status.brand;
+    final fill = datum.color ?? context.status.brand;
     final track = Theme.of(context).colorScheme.surfaceContainerHighest;
     final muted = Theme.of(
       context,

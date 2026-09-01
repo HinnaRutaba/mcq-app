@@ -66,6 +66,12 @@ void main() {
       _seedDashboard();
       return const MagistrateHomeScreen();
     },
+    // The header once it has collapsed: the name pinned on a plain bar, with
+    // the designation and the beat strip gone.
+    'home_collapsed': () {
+      _seedDashboard();
+      return const MagistrateHomeScreen();
+    },
     // The state a bazaar with no signal produces, which the happy path never
     // shows and which is where a dashboard usually falls apart.
     'home_offline': () {
@@ -101,11 +107,15 @@ void main() {
   // would crop the half worth reviewing — the activity figures — out of the
   // picture, which is how a layout problem goes unseen.
   const tall = <String, double>{
-    'home': 6200,
+    'home': 7000,
+    'home_collapsed': 1400,
     'home_offline': 2100,
     'profile': 3900,
     'profile_indigo': 3900,
   };
+
+  /// Entries to drag before capturing, and by how much.
+  const scrolled = <String, double>{'home_collapsed': 420};
 
   for (final entry in screens.entries) {
     for (final mode in <String>['light', 'dark']) {
@@ -130,6 +140,17 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+
+        // A screen that wants to be seen mid-scroll says so, and the preview
+        // drags it there — a collapsing header is a state, not a still.
+        final scrollBy = scrolled[entry.key];
+        if (scrollBy != null) {
+          await tester.drag(
+            find.byType(CustomScrollView),
+            Offset(0, -scrollBy),
+          );
+          await tester.pumpAndSettle();
+        }
 
         await expectLater(
           find.byType(MaterialApp),

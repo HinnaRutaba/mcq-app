@@ -172,6 +172,19 @@ const Map<String, dynamic> officerJson = <String, dynamic>{
 
 FieldBeat get beatFixture => FieldBeat.fromJson(beatJson);
 
+/// The same beat with no amount on the defaulters queue — the case where the
+/// share chart has no denominator it is allowed to use.
+FieldBeat get beatWithoutTotalFixture => FieldBeat.fromJson(<String, dynamic>{
+  ...beatJson,
+  'queues': <dynamic>[
+    for (final dynamic queue in beatJson['queues'] as List<dynamic>)
+      <String, dynamic>{
+        ...queue as Map<String, dynamic>,
+        if (queue['key'] == 'defaulters') 'amount': null,
+      },
+  ],
+});
+
 FieldActivity get activityFixture => FieldActivity.fromJson(activityJson);
 
 List<RoundGroup> get roundFixture =>
@@ -184,7 +197,10 @@ AuthUser get officerFixture => AuthUser.fromJson(officerJson);
 /// [failure] makes both calls throw, for the states worth looking at that a
 /// happy path never shows: the bazaar with no signal.
 class FakeDashboardRepository implements DashboardRepository {
-  FakeDashboardRepository({this.failure, this.activityByDays});
+  FakeDashboardRepository({this.failure, this.activityByDays, this.beatOverride});
+
+  /// Stands in for [beatFixture] when a test needs a different beat.
+  final FieldBeat? beatOverride;
 
   /// Mutable so a test can let the signal come back and retry.
   Object? failure;
@@ -197,7 +213,7 @@ class FakeDashboardRepository implements DashboardRepository {
   @override
   Future<FieldBeat> beat() async {
     if (failure != null) throw failure!;
-    return beatFixture;
+    return beatOverride ?? beatFixture;
   }
 
   @override

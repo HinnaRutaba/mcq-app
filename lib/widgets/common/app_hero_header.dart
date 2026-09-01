@@ -29,7 +29,12 @@ class AppHeroHeader extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 18, 20, 26),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.paddingOf(context).top + 18,
+        20,
+        26,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -49,20 +54,24 @@ class AppHeroHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (subtitle != null) ...[
-                      AppText.body(subtitle!, color: Colors.white.withValues(alpha: 0.75)),
+                      AppText.body(
+                        subtitle!,
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
                       const SizedBox(height: 2),
                     ],
-                    AppText.headlineMedium(title, color: Colors.white, maxLines: 1),
+                    AppText.headlineMedium(
+                      title,
+                      color: Colors.white,
+                      maxLines: 1,
+                    ),
                   ],
                 ),
               ),
               ?trailing,
             ],
           ),
-          if (bottom != null) ...[
-            const SizedBox(height: 20),
-            bottom!,
-          ],
+          if (bottom != null) ...[const SizedBox(height: 20), bottom!],
         ],
       ),
     );
