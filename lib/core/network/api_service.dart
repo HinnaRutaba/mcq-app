@@ -8,14 +8,16 @@ import 'api_exception.dart';
 import 'api_file.dart';
 import 'api_log_interceptor.dart';
 import 'auth_interceptor.dart';
+import 'connectivity_interceptor.dart';
 
 /// The single HTTP door out of the app.
 ///
-/// Every repository goes through here and nowhere else, which puts four things
-/// in exactly one place: the bearer token (via [AuthInterceptor]), unwrapping
-/// the `{"data": …, "message": "…"}` envelope, turning a failure into an
-/// [ApiException] carrying the server's per-field `errors`, and building
-/// multipart bodies for the writes that carry a photograph.
+/// Every repository goes through here and nowhere else, which puts five things
+/// in exactly one place: failing fast when the handset has no route out (via
+/// [ConnectivityInterceptor]), the bearer token (via [AuthInterceptor]),
+/// unwrapping the `{"data": …, "message": "…"}` envelope, turning a failure
+/// into an [ApiException] carrying the server's per-field `errors`, and
+/// building multipart bodies for the writes that carry a photograph.
 ///
 /// Nothing above the data layer should ever hold a [Dio] instance.
 class ApiService {
@@ -24,7 +26,14 @@ class ApiService {
     Dio? client,
     VoidCallback? onUnauthorized,
     ApiLogLevel logLevel = ApiLogLevel.full,
+    NetworkProbe? networkProbe,
   }) : dio = client ?? Dio(defaultOptions()) {
+    // First in the chain. A call with nowhere to go should not reach the
+    // keychain, and the officer should not wait out the connect timeout to be
+    // told what the handset already knew.
+    dio.interceptors.add(
+      ConnectivityInterceptor(probe: networkProbe ?? PlatformNetworkProbe()),
+    );
     dio.interceptors.add(
       AuthInterceptor(storage: storage, onUnauthorized: onUnauthorized),
     );

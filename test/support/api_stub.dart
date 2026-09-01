@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:mcq_app/core/network/api_log_interceptor.dart';
 import 'package:mcq_app/core/network/api_service.dart';
+import 'package:mcq_app/core/network/connectivity_interceptor.dart';
 import 'package:mcq_app/core/storage/secure_storage_service.dart';
 
 /// Answers from memory instead of the network, and keeps the request that was
@@ -97,12 +99,43 @@ class UnwritableSecureStoragePlatform extends TestFlutterSecureStoragePlatform {
   );
 }
 
+/// A network probe a test drives, instead of resolving a real host.
+///
+/// Every suite installs one: the connectivity interceptor would otherwise do a
+/// live DNS lookup per call, which makes a test slow, flaky, and dependent on
+/// the machine having a network.
+class StubNetworkProbe implements NetworkProbe {
+  StubNetworkProbe({this.online = true});
+
+  bool online;
+
+  /// How many times the interceptor actually asked — the interceptor is
+  /// supposed to share one probe across concurrent calls.
+  int calls = 0;
+
+  final StreamController<void> _changes = StreamController<void>.broadcast();
+
+  @override
+  Stream<void> get changes => _changes.stream;
+
+  /// Stands in for the radio changing, the way `connectivity_plus` reports it.
+  void announceChange() => _changes.add(null);
+
+  Future<void> dispose() => _changes.close();
+
+  @override
+  Future<bool> hasRouteOut() async {
+    calls++;
+    return online;
+  }
+}
+
 /// An [ApiService] wired to an [ApiStub], over an in-memory keychain.
 ///
 /// Everything here is real except the socket and the platform keychain, so a
 /// test exercises the actual interceptors, envelope handling and error mapping.
 class StubbedApi {
-  StubbedApi() {
+  StubbedApi({StubNetworkProbe? probe}) : probe = probe ?? StubNetworkProbe() {
     FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
       keychain,
     );
@@ -113,10 +146,14 @@ class StubbedApi {
       // A test asserts on behaviour, not on log output, and the captured
       // payloads here are long enough to bury the results.
       logLevel: ApiLogLevel.summary,
+      networkProbe: this.probe,
     );
   }
 
   final ApiStub stub = ApiStub();
+
+  /// Drive this to take the handset offline mid-test.
+  final StubNetworkProbe probe;
 
   /// What the keychain holds, readable by a test.
   final Map<String, String> keychain = <String, String>{};

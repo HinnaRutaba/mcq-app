@@ -3,6 +3,11 @@
          and profile manifests, so a release build needs it declared here. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Reading whether there is any interface at all, so a call with nowhere
+         to go fails at once instead of sitting on the connect timeout
+         (connectivity_plus). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
     <!-- Photographing a shopfront, a seal or a signature as evidence for a
          fine, a visit or a seal (POST /enforcement/evidence). -->
     <uses-permission android:name="android.permission.CAMERA"/>

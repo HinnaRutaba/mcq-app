@@ -29,11 +29,92 @@ void main() {
   late ApiService api;
   late SecureStorageService storage;
 
+  late StubNetworkProbe probe;
+
   setUp(() {
     final stubbed = StubbedApi();
     adapter = stubbed.stub;
     storage = stubbed.storage;
     api = stubbed.service;
+    probe = stubbed.probe;
+  });
+
+  group('no route out', () {
+    test('a call with no connection fails before it reaches the socket', () async {
+      probe.online = false;
+      adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
+
+      await expectLater(
+        api.get(ApiPaths.beat),
+        throwsA(
+          isA<ApiException>()
+              .having((ApiException e) => e.failure, 'failure', ApiFailure.network)
+              .having((ApiException e) => e.isRetryable, 'isRetryable', isTrue),
+        ),
+      );
+
+      expect(
+        adapter.lastOptions,
+        isNull,
+        reason: 'the point is to fail fast, not to sit on the connect timeout',
+      );
+    });
+
+    test('the officer is told it is the connection, not the record', () async {
+      probe.online = false;
+
+      try {
+        await api.get(ApiPaths.beat);
+        fail('should not have reached the server');
+      } on ApiException catch (error) {
+        expect(error.message, 'No connection. The record is not saved yet.');
+      }
+    });
+
+    test('a connection that comes back lets the call through', () async {
+      probe.online = false;
+      await expectLater(api.get(ApiPaths.beat), throwsA(isA<ApiException>()));
+
+      // Shorter than the interceptor's own five-second trust in a "yes", but
+      // longer than the one second it trusts a "no".
+      await Future<void>.delayed(const Duration(milliseconds: 1100));
+      probe.online = true;
+      adapter.reply(<String, dynamic>{'data': <String, dynamic>{'ok': true}});
+
+      final response = await api.get(ApiPaths.beat);
+      expect(response.dataMap['ok'], isTrue);
+    });
+
+    test('a radio change is trusted over the cache', () async {
+      adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
+      await api.get(ApiPaths.beat);
+      expect(probe.calls, 1);
+
+      // Signal drops. Without the change signal the interceptor would keep
+      // saying "online" for the rest of its five-second window.
+      probe.online = false;
+      probe.announceChange();
+      await Future<void>.delayed(Duration.zero);
+
+      await expectLater(api.get(ApiPaths.beat), throwsA(isA<ApiException>()));
+      expect(probe.calls, 2);
+    });
+
+    test('several calls at once share one probe', () async {
+      adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
+
+      await Future.wait(<Future<void>>[
+        api.get(ApiPaths.beat),
+        api.get(ApiPaths.activity),
+        api.get(ApiPaths.session),
+      ]);
+
+      expect(
+        probe.calls,
+        1,
+        reason: 'a screen drawing itself must not resolve the host once per call',
+      );
+    });
   });
 
   group('envelope', () {
