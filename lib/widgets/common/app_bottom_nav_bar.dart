@@ -4,7 +4,6 @@ import '../../config/theme/app_colors.dart';
 import '../text/app_text.dart';
 import '../../config/theme/app_radius.dart';
 
-/// One destination in a bottom nav bar.
 class AppBottomNavEntry {
   const AppBottomNavEntry({
     required this.icon,
@@ -19,14 +18,6 @@ class AppBottomNavEntry {
   final int badgeCount;
 }
 
-/// A single nav destination: a plain icon that grows into a filled navy
-/// pill when selected, with the label always visible underneath (colored
-/// navy when active, muted otherwise).
-///
-/// The bold navy color is reserved for this pill — the bar itself stays a
-/// neutral surface color so it doesn't compete with [AppHeroHeader]'s solid
-/// navy block at the top of the screen. Drawn by [AppBottomNavBar] in both
-/// of its shapes, plain and notched.
 class AppBottomNavItem extends StatelessWidget {
   const AppBottomNavItem({
     super.key,
@@ -64,13 +55,13 @@ class AppBottomNavItem extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: selected
-                        ? Theme.of(context).colorScheme.primary
+                        ? scheme.primary.withValues(alpha: 0.3)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
                   ),
                   child: Icon(
                     selected ? entry.activeIcon : entry.icon,
-                    color: selected ? Colors.white : mutedColor,
+                    color: selected ? scheme.primary : mutedColor,
                     size: 21,
                   ),
                 ),
@@ -94,7 +85,7 @@ class AppBottomNavItem extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 9,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -117,11 +108,6 @@ class AppBottomNavItem extends StatelessWidget {
   }
 }
 
-/// The bottom nav bar: a neutral surface-colored bar carrying one
-/// [AppBottomNavItem] per destination.
-///
-/// [centerGap] picks the shape — null for a plain bar, a width for one with a
-/// notch cut in the middle for a center-docked FAB.
 class AppBottomNavBar extends StatelessWidget {
   const AppBottomNavBar({
     super.key,
@@ -194,13 +180,6 @@ class AppBottomNavBar extends StatelessWidget {
       );
     }
 
-    // Not `BottomAppBar`, which pins its child to a fixed 80 and clips the
-    // labels off the bottom. `PhysicalShape` takes its height from the row,
-    // as the plain bar does, so the two shapes stay the same height and the
-    // bar still grows with the accessibility text scale.
-    //
-    // The top border goes with the notch — a straight line would run through
-    // the curve — so a shadow separates the bar from the page instead.
     return PhysicalShape(
       clipper: _NotchClipper(width: gap, radius: centerGapRadius),
       color: surface,
@@ -211,14 +190,6 @@ class AppBottomNavBar extends StatelessWidget {
   }
 }
 
-/// Cuts the notch out of the bar's top edge.
-///
-/// The cut is centred and sized off the gap alone rather than read from the
-/// scaffold's FAB geometry: a center-docked button is centred by definition,
-/// so the hole in the row and the cut around it cannot disagree.
-///
-/// One rounded square covers both shapes — at a radius of half the side it
-/// *is* a circle — so there is no separate circular case.
 class _NotchClipper extends CustomClipper<Path> {
   const _NotchClipper({required this.width, this.radius});
 

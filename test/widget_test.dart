@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 
 import 'package:mcq_app/app/app.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
-import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
 import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
 import 'package:mcq_app/views/magistrate/round/round_screen.dart';
 
@@ -43,18 +42,9 @@ void main() {
   // The screens below are placeholders until they are wired to the MCQ
   // Magistrate API. These tests hold the shape that survives that wiring —
   // each screen builds, and names itself — so a screen cannot quietly go
-  // blank on the way to being connected. Home has been wired and left this
-  // list; it is covered by `dashboard_screen_test.dart`.
-  testWidgets('Defaulters screen builds while it awaits the defaulters list', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: DefaultersScreen()));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Defaulters'), findsOneWidget);
-    expect(find.text('Not wired up yet'), findsOneWidget);
-  });
-
+  // blank on the way to being connected. Home and Defaulters have been wired
+  // and left this list; they are covered by `dashboard_screen_test.dart` and
+  // `defaulters_screen_test.dart`.
   testWidgets('Round screen builds while it awaits the walking order', (
     WidgetTester tester,
   ) async {

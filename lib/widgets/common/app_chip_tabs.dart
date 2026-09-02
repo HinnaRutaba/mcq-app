@@ -13,6 +13,7 @@ class AppChipTabs<T> extends StatelessWidget {
     required this.selected,
     required this.onChanged,
     this.itemIcon,
+    this.compact = false,
   });
 
   final List<T> items;
@@ -24,12 +25,16 @@ class AppChipTabs<T> extends StatelessWidget {
   /// a second reading of the choice, never the only one.
   final IconData? Function(T item)? itemIcon;
 
+  /// A tighter chip, for a filter bar that sits over a list rather than a
+  /// single choice a page is built around.
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
     return SizedBox(
-      height: 38,
+      height: compact ? 30 : 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -41,7 +46,7 @@ class AppChipTabs<T> extends StatelessWidget {
             onTap: () => onChanged(item),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 150),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: isSelected
@@ -58,12 +63,18 @@ class AppChipTabs<T> extends StatelessWidget {
                 builder: (BuildContext context) {
                   final Color? ink = isSelected ? scheme.onPrimary : null;
                   final IconData? icon = itemIcon?.call(item);
-                  final label = AppText.label(itemLabel(item), color: ink);
+                  final label = compact
+                      ? AppText.caption(
+                          itemLabel(item),
+                          color: ink,
+                          fontWeight: FontWeight.w700,
+                        )
+                      : AppText.label(itemLabel(item), color: ink);
                   if (icon == null) return label;
                   return Row(
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Icon(icon, size: 16, color: ink),
+                      Icon(icon, size: compact ? 14 : 16, color: ink),
                       const SizedBox(width: 7),
                       label,
                     ],

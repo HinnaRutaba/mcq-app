@@ -138,7 +138,11 @@ List<Widget> _bodySlivers(DashboardController controller) {
     return <Widget>[
       SliverFillRemaining(
         hasScrollBody: false,
-        child: _Unreachable(message: error, onRetry: controller.load),
+        child: AppErrorRetry(
+          title: 'Could not load your beat',
+          message: error,
+          onRetry: controller.load,
+        ),
       ),
     ];
   }
@@ -333,21 +337,25 @@ class _ActivitySection extends StatelessWidget {
               label: 'Visits',
               value: '${activity.visits}',
               icon: Icons.directions_walk_rounded,
+              filled: true,
             ),
             AppStatTile(
               label: 'Fines imposed',
               value: '${activity.finesImposed}',
               icon: Icons.gavel_rounded,
+              filled: true,
             ),
             AppStatTile(
               label: 'Shops sealed',
               value: '${activity.shopsSealed}',
               icon: Icons.lock_outline_rounded,
+              filled: true,
             ),
             AppStatTile(
               label: 'Seals released',
               value: '${activity.sealsReleased}',
               icon: Icons.lock_open_outlined,
+              filled: true,
             ),
           ],
         ),
@@ -519,39 +527,4 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppText.titleMedium(title);
-}
-
-/// The whole screen failed and there is nothing to show behind it.
-class _Unreachable extends StatelessWidget {
-  const _Unreachable({required this.message, required this.onRetry});
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    // Not a scroll view of its own: it sits inside the page's, which is what
-    // keeps pull-to-refresh working on the very state an officer most wants to
-    // retry from.
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          AppEmptyState(
-            icon: Icons.cloud_off_rounded,
-            title: 'Could not load your beat',
-            message: message,
-          ),
-          const SizedBox(height: 8),
-          AppButton(
-            label: 'Try again',
-            icon: Icons.refresh_rounded,
-            fullWidth: false,
-            onPressed: onRetry,
-          ),
-        ],
-      ),
-    );
-  }
 }

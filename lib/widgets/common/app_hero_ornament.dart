@@ -53,16 +53,16 @@ class AppHeroOrnament extends StatelessWidget {
             _arc(radius: 96, stroke: 1.1, blur: 3, color: white, alpha: 0.20),
             _arc(radius: 186, stroke: 1, blur: 5, color: white, alpha: 0.10),
 
-            // The scatter, and the numbers are the point: horizontal gaps
-            // (26, 50, 31, 39, 38), vertical (24, 18, 24, 26, 32), nothing correlated with
-            // distance and no three shapes near a line. Any one of those
-            // regularities on its own is enough to read as a row.
+            // The scatter, and the placement is checked rather than eyed:
+            // uneven gaps both ways, no shape sharing a height with a
+            // neighbour, and no three within 22pt of a straight line. Any one
+            // of those regularities on its own reads as a row.
 
             // Small, and nearest the corner — the near shapes are not the
             // big ones.
             _Outline(
               right: 92,
-              bottom: 114,
+              bottom: 115,
               side: 14,
               radius: 7,
               stroke: 0.9,
@@ -71,7 +71,7 @@ class AppHeroOrnament extends StatelessWidget {
             ),
             _Outline(
               right: 118,
-              bottom: 48,
+              bottom: 71,
               side: 30,
               radius: 9,
               stroke: 1,
@@ -81,7 +81,7 @@ class AppHeroOrnament extends StatelessWidget {
             ),
             _Outline(
               right: 168,
-              bottom: 140,
+              bottom: 170,
               side: 18,
               radius: 5,
               stroke: 0.9,
@@ -94,7 +94,7 @@ class AppHeroOrnament extends StatelessWidget {
             // instead of announcing itself on it.
             _Outline(
               right: 199,
-              bottom: 90,
+              bottom: 48,
               side: 46,
               radius: 23,
               stroke: 1,
@@ -104,7 +104,7 @@ class AppHeroOrnament extends StatelessWidget {
             // Tilted the other way, so no two squares are parallel.
             _Outline(
               right: 238,
-              bottom: 172,
+              bottom: 145,
               side: 38,
               radius: 11,
               stroke: 1,
@@ -114,7 +114,7 @@ class AppHeroOrnament extends StatelessWidget {
             ),
             _Outline(
               right: 276,
-              bottom: 72,
+              bottom: 88,
               side: 24,
               radius: 12,
               stroke: 0.9,

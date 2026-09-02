@@ -142,6 +142,166 @@ const List<Map<String, dynamic>> roundJson = <Map<String, dynamic>>[
   },
 ];
 
+/// The defaulter list, as `enforcement/field/defaulters` returns it: worst
+/// first, money as strings, and every state a row can be in represented at
+/// least once — never paid, a promise on record, a sealed shop and a live
+/// case. The bazaars are the ones on [beatJson]'s scope.
+const List<Map<String, dynamic>> defaultersJson = <Map<String, dynamic>>[
+  <String, dynamic>{
+    'allotment_id': 41,
+    'allotment_no': 'ALT-2019-041',
+    'property_id': 118,
+    'property_code': 'JR-LQ-118',
+    'shop_no': 'S-22',
+    'area_id': 1,
+    'area_name': 'Jinnah Road',
+    'market_name': 'Liaquat Bazaar',
+    'allottee_id': 88,
+    'allottee_name': 'Muhammad Iqbal',
+    'mobile_no': '03001234511',
+    'cnic': '5440012345671',
+    'outstanding': '187450.00',
+    'months_behind': 14,
+    'days_overdue': 421,
+    'never_paid': true,
+    'last_payment_date': null,
+    'commitment': null,
+    'next_visit_date': null,
+    'open_case_id': 204,
+    'seal_no': null,
+    'is_sealed': false,
+    'map': <String, dynamic>{'lat': 30.1889, 'lng': 66.9987},
+  },
+  <String, dynamic>{
+    'allotment_id': 57,
+    'allotment_no': 'ALT-2021-057',
+    'property_id': 132,
+    'property_code': 'PR-PM-132',
+    'shop_no': 'F-3',
+    'area_id': 2,
+    'area_name': 'Prince Road',
+    'market_name': 'Prince Road Market',
+    'allottee_id': 96,
+    'allottee_name': 'Abdul Samad',
+    'mobile_no': '03001234512',
+    'cnic': '5440012345672',
+    'outstanding': '96300.50',
+    'months_behind': 7,
+    'days_overdue': 214,
+    'never_paid': false,
+    'last_payment_date': '2026-02-11',
+    'commitment': <String, dynamic>{
+      'promised_amount': '20000.00',
+      'promised_on': '2026-08-20',
+    },
+    'next_visit_date': '2026-09-05',
+    'open_case_id': null,
+    'seal_no': null,
+    'is_sealed': false,
+    'map': null,
+  },
+  <String, dynamic>{
+    'allotment_id': 63,
+    'allotment_no': 'ALT-2018-063',
+    'property_id': 145,
+    'property_code': 'PR-PM-145',
+    'shop_no': 'F-11',
+    'area_id': 2,
+    'area_name': 'Prince Road',
+    'market_name': 'Prince Road Market',
+    'allottee_id': 101,
+    'allottee_name': 'Noor Ahmed',
+    'mobile_no': null,
+    'cnic': '5440012345673',
+    'outstanding': '74020.00',
+    'months_behind': 6,
+    'days_overdue': 181,
+    'never_paid': false,
+    'last_payment_date': '2026-03-02',
+    'commitment': null,
+    'next_visit_date': null,
+    'open_case_id': 211,
+    'seal_no': 'SL-2026-0037',
+    'is_sealed': true,
+    'map': null,
+  },
+  <String, dynamic>{
+    'allotment_id': null,
+    'allotment_no': null,
+    'property_id': 151,
+    'property_code': 'JR-KD-151',
+    'shop_no': 'K-7',
+    'area_id': 1,
+    'area_name': 'Jinnah Road',
+    'market_name': 'Kandahari Bazaar',
+    'allottee_id': null,
+    'allottee_name': null,
+    'mobile_no': null,
+    'cnic': null,
+    'outstanding': '58900.00',
+    'months_behind': null,
+    'days_overdue': 96,
+    'never_paid': true,
+    'last_payment_date': null,
+    'commitment': null,
+    'next_visit_date': null,
+    'open_case_id': null,
+    'seal_no': null,
+    'is_sealed': false,
+    'map': null,
+  },
+  <String, dynamic>{
+    'allotment_id': 72,
+    'allotment_no': 'ALT-2023-072',
+    'property_id': 160,
+    'property_code': 'JR-LQ-160',
+    'shop_no': 'S-4',
+    'area_id': 1,
+    'area_name': 'Jinnah Road',
+    'market_name': 'Liaquat Bazaar',
+    'allottee_id': 114,
+    'allottee_name': 'Zubaida Bibi',
+    'mobile_no': '03001234514',
+    'cnic': '5440012345675',
+    'outstanding': '31275.75',
+    'months_behind': 3,
+    'days_overdue': 88,
+    'never_paid': false,
+    'last_payment_date': '2026-06-09',
+    'commitment': null,
+    'next_visit_date': '2026-09-12',
+    'open_case_id': null,
+    'seal_no': null,
+    'is_sealed': false,
+    'map': null,
+  },
+  <String, dynamic>{
+    'allotment_id': 80,
+    'allotment_no': 'ALT-2024-080',
+    'property_id': 173,
+    'property_code': 'JR-KD-173',
+    'shop_no': 'K-19',
+    'area_id': 1,
+    'area_name': 'Jinnah Road',
+    'market_name': 'Kandahari Bazaar',
+    'allottee_id': 121,
+    'allottee_name': 'Sher Ali',
+    'mobile_no': '03001234515',
+    'cnic': '5440012345676',
+    'outstanding': '12400.00',
+    'months_behind': 2,
+    'days_overdue': 47,
+    'never_paid': false,
+    'last_payment_date': '2026-07-18',
+    'commitment': null,
+    'next_visit_date': null,
+    'open_case_id': null,
+    'seal_no': null,
+    'is_sealed': false,
+    'map': null,
+  },
+];
+
 /// The signed-in officer, as the login endpoint returns them.
 const Map<String, dynamic> officerJson = <String, dynamic>{
   'id': '5',
@@ -190,6 +350,9 @@ FieldActivity get activityFixture => FieldActivity.fromJson(activityJson);
 List<RoundGroup> get roundFixture =>
     roundJson.map(RoundGroup.fromJson).toList();
 
+List<DefaulterCard> get defaultersFixture =>
+    defaultersJson.map(DefaulterCard.fromJson).toList();
+
 AuthUser get officerFixture => AuthUser.fromJson(officerJson);
 
 /// Answers from the fixtures instead of the network.
@@ -228,15 +391,27 @@ class FakeDashboardRepository implements DashboardRepository {
   }
 }
 
-/// The round, from the fixtures. Only [round] is used by the dashboard; the
-/// rest of the contract is not reachable from that screen.
+/// The defaulter endpoints, from the fixtures.
+///
+/// [defaulters] narrows the rows the way the server does, so a screen driving
+/// `area_id`, `search` and `never_paid` is exercised through them rather than
+/// merely asserted on — and the arguments it sent are kept for the assertion
+/// that they were the right ones.
 class FakeDefaultersRepository implements DefaultersRepository {
-  FakeDefaultersRepository({this.failure});
+  FakeDefaultersRepository({this.failure, List<DefaulterCard>? rows})
+    : rows = rows ?? defaultersFixture;
 
   /// Mutable so a test can let the signal come back and retry.
   Object? failure;
 
+  final List<DefaulterCard> rows;
+
   int roundCalls = 0;
+  int defaultersCalls = 0;
+  int? lastAreaId;
+  String? lastSearch;
+  bool? lastNeverPaid;
+  int? lastLimit;
 
   @override
   Future<List<RoundGroup>> round() async {
@@ -251,9 +426,36 @@ class FakeDefaultersRepository implements DefaultersRepository {
     String? search,
     bool? neverPaid,
     int? limit,
-  }) async => const <DefaulterCard>[];
+  }) async {
+    defaultersCalls++;
+    lastAreaId = areaId;
+    lastSearch = search;
+    lastNeverPaid = neverPaid;
+    lastLimit = limit;
+    if (failure != null) throw failure!;
+    return rows
+        .where(
+          (DefaulterCard card) =>
+              (areaId == null || card.areaId == areaId) &&
+              (neverPaid != true || card.neverPaid) &&
+              (search == null || _matches(card, search)),
+        )
+        .toList();
+  }
 
   @override
   Future<List<DefaulterCard>> followUps({FollowUpState? state}) async =>
       const <DefaulterCard>[];
+
+  /// Shop number, property code, the holder's name or their CNIC — the four
+  /// the published search covers.
+  static bool _matches(DefaulterCard card, String search) {
+    final String term = search.trim().toLowerCase();
+    return <String?>[
+      card.shopNo,
+      card.propertyCode,
+      card.allotteeName,
+      card.cnic,
+    ].any((String? field) => field?.toLowerCase().contains(term) ?? false);
+  }
 }

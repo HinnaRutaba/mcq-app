@@ -38,6 +38,36 @@ class AppBrandColors extends ThemeExtension<AppBrandColors> {
   /// The ink to put on [accent]. Gold and sand need dark ink; coral does not.
   Color get onAccent => inkOn(accent);
 
+  /// The plate a filled tile is drawn on — the brand muted and lifted to a
+  /// tint, lit from the top-left, so a row of them breaks up a page of pale
+  /// cards without shouting over it.
+  Gradient get filledPlate {
+    final Color top = Color.lerp(_muted(primary), Colors.white, 0.06)!;
+    return LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: <Color>[top, Color.lerp(top, Colors.black, 0.12)!],
+    );
+  }
+
+  /// The ink on [filledPlate]: the app's near-black, since the plate is a
+  /// light tint in both themes. Around 6:1 — legible in bright sun.
+  Color get onFilledPlate => const Color(0xFF11170F);
+
+  /// The brand at 60% saturation, lifted to luminance 0.28. Measured rather
+  /// than a fixed lightness step: HSL lightness is not perceptual, and one
+  /// step lands the green scheme twice as bright as the indigo one.
+  static Color _muted(Color fill) {
+    var hsl = HSLColor.fromColor(fill);
+    hsl = hsl.withSaturation(hsl.saturation * 0.6);
+    var lifted = hsl.toColor();
+    while (hsl.lightness < 1 && lifted.computeLuminance() < 0.28) {
+      hsl = hsl.withLightness((hsl.lightness + 0.005).clamp(0.0, 1.0));
+      lifted = hsl.toColor();
+    }
+    return lifted;
+  }
+
   /// White or near-black, whichever the fill can actually carry.
   ///
   /// A rule rather than a hand-picked value per scheme: ten hand-picked inks

@@ -27,6 +27,7 @@ class AppTextField extends StatefulWidget {
     this.maxLines = 1,
     this.inputFormatters,
     this.autofillHints,
+    this.dense = false,
   });
 
   final String? label;
@@ -44,6 +45,11 @@ class AppTextField extends StatefulWidget {
   final int maxLines;
   final List<TextInputFormatter>? inputFormatters;
   final Iterable<String>? autofillHints;
+
+  /// A shorter field — 48pt instead of the theme's 52. For an input that sits
+  /// over a list rather than in a form: a search box in a header, where the
+  /// height is spent on chrome and not on the answer.
+  final bool dense;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -76,6 +82,11 @@ class _AppTextFieldState extends State<AppTextField> {
           style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: widget.hint,
+            // Null keeps `InputDecorationTheme`'s own padding, so an ordinary
+            // form field is untouched by this.
+            contentPadding: widget.dense
+                ? const EdgeInsets.symmetric(horizontal: 14, vertical: 9)
+                : null,
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, size: 20)
                 : null,

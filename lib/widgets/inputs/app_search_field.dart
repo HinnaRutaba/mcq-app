@@ -4,6 +4,11 @@ import 'app_text_field.dart';
 
 /// A search input built on [AppTextField]: search icon up front, and a
 /// clear ("x") button that appears once the user has typed something.
+///
+/// Shorter than a form field on purpose — see [AppTextField.dense]. The clear
+/// button is tightened to match: an `IconButton` at its default 48pt would
+/// set the height itself, and the box would grow the moment anything was
+/// typed into it.
 class AppSearchField extends StatefulWidget {
   const AppSearchField({
     super.key,
@@ -60,9 +65,12 @@ class _AppSearchFieldState extends State<AppSearchField> {
       textInputAction: TextInputAction.search,
       onChanged: widget.onChanged,
       onFieldSubmitted: widget.onSubmitted,
+      dense: true,
       suffixIcon: _hasText
           ? IconButton(
               icon: const Icon(Icons.close_rounded, size: 18),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minHeight: 40, minWidth: 40),
               onPressed: _clear,
             )
           : null,

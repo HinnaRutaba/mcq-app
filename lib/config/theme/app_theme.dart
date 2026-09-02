@@ -92,8 +92,8 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.lightSurface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 14,
+          vertical: 11,
         ),
         hintStyle: AppTextTheme.light.bodyMedium?.copyWith(
           color: AppColors.lightTextHint,
@@ -204,8 +204,8 @@ class AppTheme {
         filled: true,
         fillColor: AppColors.darkSurface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 14,
+          vertical: 11,
         ),
         hintStyle: AppTextTheme.dark.bodyMedium?.copyWith(
           color: AppColors.darkTextHint,

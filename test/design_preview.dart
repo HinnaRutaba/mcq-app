@@ -10,6 +10,7 @@ import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
+import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
@@ -123,7 +124,16 @@ void main() {
         centerGapRadius: CreateFineButton.notchRadius,
       ),
     ),
-    'defaulters': () => const DefaultersScreen(),
+    'defaulters': () {
+      _seedDefaulters();
+      return const DefaultersScreen();
+    },
+    // The same list with a state chip on it, which is the only filter that
+    // does not go to the server.
+    'defaulters_never_paid': () {
+      _seedDefaulters().showState(DefaulterState.neverPaid);
+      return const DefaultersScreen();
+    },
     'round': () => const RoundScreen(),
     'more': () => const MoreScreen(),
     'sealed': () => const SealedScreen(),
@@ -180,6 +190,8 @@ void main() {
     'home_arriving': 2900,
     'home_collapsed': 1400,
     'home_offline': 2100,
+    'defaulters': 2900,
+    'defaulters_never_paid': 2900,
     'profile': 3900,
     'profile_indigo': 3900,
   };
@@ -286,6 +298,19 @@ void _seedDashboard({Object? failure}) {
     permanent: true,
   );
   Get.delete<DashboardController>(force: true);
+}
+
+/// Puts the defaulter list and the officer's bazaars over the fixtures, and
+/// drops the controller so it is rebuilt over them. Returns it, so an entry
+/// can set the filter it means to show.
+DefaultersController _seedDefaulters() {
+  Get.delete<DashboardRepository>(force: true);
+  Get.put<DashboardRepository>(FakeDashboardRepository(), permanent: true);
+  Get.delete<DefaultersRepository>(force: true);
+  Get.put<DefaultersRepository>(FakeDefaultersRepository(), permanent: true);
+  // `fenix`, so the find below builds a fresh one over the fakes just put.
+  Get.delete<DefaultersController>(force: true);
+  return Get.find<DefaultersController>();
 }
 
 /// The app's theme asks `google_fonts` for Inter, which cannot be fetched in a

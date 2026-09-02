@@ -181,7 +181,7 @@ class _BarChartPainter extends CustomPainter {
 
       textPainter.text = TextSpan(
         text: point.label,
-        style: TextStyle(fontSize: 11, color: axisColor),
+        style: TextStyle(fontSize: 9.5, color: axisColor),
       );
       textPainter.layout();
       textPainter.paint(

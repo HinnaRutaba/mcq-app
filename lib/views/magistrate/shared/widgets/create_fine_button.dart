@@ -6,12 +6,6 @@ import '../../../../config/theme/app_brand.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../widgets/widgets.dart';
 
-/// The create button in the middle of the bar, and the gap the bar leaves for
-/// it.
-///
-/// One definition so the button and the notch cut around it cannot drift: the
-/// shell docks this and asks it for [notchGap] and [notchRadius], and the
-/// widget preview does the same.
 class CreateFineButton extends StatelessWidget {
   const CreateFineButton({super.key});
 
@@ -27,13 +21,10 @@ class CreateFineButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppFab(
-      icon: Icons.add_rounded,
+      icon: Icons.add_card,
       label: 'Fine',
       size: size,
       color: context.brand.accent,
-      // Not `brand.onAccent`, which is derived by luminance and lands on white
-      // for the light gold — 2.3:1 under the label. This is the ink the
-      // palette authored for gold: 6.9:1 light, 8.7:1 dark.
       foregroundColor: AppColors.onAccent,
       onTap: () => context.push(AppRoutes.createFine),
     );

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/config/routes/app_router.dart';
+import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
 import 'package:mcq_app/views/magistrate/magistrate_shell.dart';
@@ -15,6 +16,7 @@ import 'package:mcq_app/views/magistrate/round/round_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/back_to_home_button.dart';
 
 import 'support/api_stub.dart';
+import 'support/dashboard_fixtures.dart';
 
 /// Whether the four labels physically fit is a question about real font
 /// metrics, so it is answered by the `nav_bar` entry in `design_preview.dart`
@@ -223,9 +225,18 @@ void main() {
   testWidgets('every tab but Home carries an arrow back to Home', (
     WidgetTester tester,
   ) async {
-    // Pumped one at a time rather than through the router: these four need no
-    // controllers, and reaching them via the shell would build Home's branch
-    // and put the dashboard's fetch on the wire.
+    // Pumped one at a time rather than through the router: reaching them via
+    // the shell would build Home's branch and put the dashboard's fetch on
+    // the wire. Defaulters wants a controller, which it gets over the
+    // fixtures — the arrow is what is under test, not the list.
+    Get.put<DefaultersController>(
+      DefaultersController(
+        defaultersRepository: FakeDefaultersRepository(),
+        dashboardRepository: FakeDashboardRepository(),
+      ),
+    );
+    addTearDown(Get.reset);
+
     for (final Widget screen in <Widget>[
       const DefaultersScreen(),
       const RoundScreen(),
