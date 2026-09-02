@@ -4,7 +4,6 @@ import '../../config/theme/app_brand.dart';
 import '../cards/app_card.dart';
 import '../text/app_text.dart';
 
-
 class AppStatTile extends StatelessWidget {
   const AppStatTile({
     super.key,
@@ -32,9 +31,7 @@ class AppStatTile extends StatelessWidget {
 
     return AppCard(
       gradient: filled ? brand.filledPlate : null,
-      borderColor: filled
-          ? brand.onFilledPlate.withValues(alpha: 0.16)
-          : null,
+      borderColor: filled ? brand.onFilledPlate.withValues(alpha: 0.16) : null,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

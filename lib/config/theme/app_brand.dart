@@ -42,7 +42,7 @@ class AppBrandColors extends ThemeExtension<AppBrandColors> {
   /// tint, lit from the top-left, so a row of them breaks up a page of pale
   /// cards without shouting over it.
   Gradient get filledPlate {
-    final Color top = Color.lerp(_muted(primary), Colors.white, 0.06)!;
+    final Color top = Color.lerp(_muted(primary), Colors.white, 0.6)!;
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
