@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// One slice of an [AppCompositionBar].
 class CompositionSlice {
@@ -136,7 +137,7 @@ class _AppCompositionBarState extends State<AppCompositionBar> {
                         BarChartRodData(
                           toY: grown ? widget.total : 0,
                           width: _height,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(AppRadius.xs),
                           color: Colors.transparent,
                           rodStackItems: grown
                               ? _stack(theme, remainder, gap)
@@ -194,7 +195,10 @@ class _AppCompositionBarState extends State<AppCompositionBar> {
         items.add(BarChartRodStackItem(at, at + gap, surface));
         at += gap;
       }
-      final end = (at + value - (items.isEmpty ? 0 : 0)).clamp(at, widget.total);
+      final end = (at + value - (items.isEmpty ? 0 : 0)).clamp(
+        at,
+        widget.total,
+      );
       items.add(BarChartRodStackItem(at, end, color));
       at = end;
     }
@@ -238,7 +242,7 @@ class _LegendRow extends StatelessWidget {
           height: 10,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(AppRadius.xs),
           ),
         ),
         const SizedBox(width: 10),
@@ -248,7 +252,10 @@ class _LegendRow extends StatelessWidget {
           AppText.caption(value, color: muted),
           const SizedBox(width: 10),
         ],
-        SizedBox(width: 42, child: AppText.label(share, textAlign: TextAlign.end)),
+        SizedBox(
+          width: 42,
+          child: AppText.label(share, textAlign: TextAlign.end),
+        ),
       ],
     );
   }

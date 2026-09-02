@@ -3,13 +3,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../views/auth/change_password_screen.dart';
 import '../../views/auth/login_screen.dart';
-import '../../views/magistrate/collection_detail_screen.dart';
-import '../../views/magistrate/collections_screen.dart';
-import '../../views/magistrate/create_chalaan_screen.dart';
-import '../../views/magistrate/magistrate_home_screen.dart';
-import '../../views/magistrate/magistrate_profile_screen.dart';
+import '../../views/magistrate/defaulters/defaulters_screen.dart';
+import '../../views/magistrate/home/home_screen.dart';
 import '../../views/magistrate/magistrate_shell.dart';
-import '../../views/magistrate/sealed_screen.dart';
+import '../../views/magistrate/more/more_screen.dart';
+import '../../views/magistrate/more/profile_screen.dart';
+import '../../views/magistrate/more/sealed_screen.dart';
+import '../../views/magistrate/round/round_screen.dart';
+import '../../views/magistrate/shared/collection_detail_screen.dart';
+import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/splash/splash_screen.dart';
 import 'app_routes.dart';
 
@@ -36,6 +38,10 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // --- Magistrate shell --------------------------------------------------
+    // Four branches, in the order they sit on the bar: Home, Defaulters,
+    // Round, More. The branch index is the tab index — `MagistrateShell`
+    // reads it straight off `navigationShell.currentIndex`, so the two lists
+    // must stay in step.
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MagistrateShell(navigationShell: navigationShell),
@@ -51,24 +57,36 @@ final GoRouter appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: AppRoutes.magistrateCollections,
-              builder: (context, state) => const CollectionsScreen(),
+              path: AppRoutes.magistrateDefaulters,
+              builder: (context, state) => const DefaultersScreen(),
             ),
           ],
         ),
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: AppRoutes.magistrateSealed,
-              builder: (context, state) => const SealedScreen(),
+              path: AppRoutes.magistrateRound,
+              builder: (context, state) => const RoundScreen(),
             ),
           ],
         ),
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: AppRoutes.magistrateProfile,
-              builder: (context, state) => const MagistrateProfileScreen(),
+              path: AppRoutes.magistrateMore,
+              builder: (context, state) => const MoreScreen(),
+              // Nested, so these push onto the More branch's own navigator and
+              // the bottom bar stays put.
+              routes: [
+                GoRoute(
+                  path: AppRoutes.magistrateSealedSegment,
+                  builder: (context, state) => const SealedScreen(),
+                ),
+                GoRoute(
+                  path: AppRoutes.magistrateProfileSegment,
+                  builder: (context, state) => const MagistrateProfileScreen(),
+                ),
+              ],
             ),
           ],
         ),
@@ -76,10 +94,14 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // --- Pushed full-screen routes (above the shell) ----------------------
+    // Above the shell: a form the officer should finish or abandon, not wander
+    // off from into another tab with a half-written fine behind them.
     GoRoute(
-      path: AppRoutes.createChalaan,
+      path: AppRoutes.createFine,
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) => const CreateChalaanScreen(),
+      builder: (context, state) => CreateFineScreen(
+        propertyId: int.tryParse(state.uri.queryParameters['property'] ?? ''),
+      ),
     ),
     GoRoute(
       path: AppRoutes.collectionDetail,

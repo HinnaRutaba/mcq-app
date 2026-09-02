@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// A generic single-select row of filter chips (Collections filter, Sealed
 /// status filter, the Profile screen's theme picker, …).
@@ -43,10 +44,14 @@ class AppChipTabs<T> extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: isSelected ? scheme.primary : Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(999),
+                color: isSelected
+                    ? scheme.primary
+                    : Theme.of(context).cardTheme.color,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: Border.all(
-                  color: isSelected ? scheme.primary : Theme.of(context).dividerColor,
+                  color: isSelected
+                      ? scheme.primary
+                      : Theme.of(context).dividerColor,
                 ),
               ),
               child: Builder(

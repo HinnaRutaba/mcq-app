@@ -5,10 +5,15 @@ import 'package:flutter/material.dart';
 import '../../config/theme/app_status_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// One month's worth of data for [AppBarChart].
 class ChartPoint {
-  const ChartPoint({required this.label, required this.paid, required this.due});
+  const ChartPoint({
+    required this.label,
+    required this.paid,
+    required this.due,
+  });
 
   final String label;
   final double paid;
@@ -90,8 +95,10 @@ class _AppBarChartState extends State<AppBarChart> {
                     ),
                     if (_selected != null)
                       Positioned(
-                        left: (_selected! * groupWidth)
-                            .clamp(0, math.max(0, constraints.maxWidth - 150)),
+                        left: (_selected! * groupWidth).clamp(
+                          0,
+                          math.max(0, constraints.maxWidth - 150),
+                        ),
                         top: 0,
                         child: _ChartTooltip(point: widget.data[_selected!]),
                       ),
@@ -143,7 +150,8 @@ class _BarChartPainter extends CustomPainter {
 
     for (var i = 0; i < data.length; i++) {
       final point = data[i];
-      final groupLeft = i * groupWidth + (groupWidth - (barWidth * 2 + barGap)) / 2;
+      final groupLeft =
+          i * groupWidth + (groupWidth - (barWidth * 2 + barGap)) / 2;
       final isDimmed = selected != null && selected != i;
       final opacity = isDimmed ? 0.35 : 1.0;
 
@@ -152,7 +160,12 @@ class _BarChartPainter extends CustomPainter {
 
       _drawBar(
         canvas,
-        Rect.fromLTWH(groupLeft, chartHeight - paidHeight, barWidth, paidHeight),
+        Rect.fromLTWH(
+          groupLeft,
+          chartHeight - paidHeight,
+          barWidth,
+          paidHeight,
+        ),
         paidColor.withValues(alpha: opacity),
       );
       _drawBar(
@@ -173,7 +186,10 @@ class _BarChartPainter extends CustomPainter {
       textPainter.layout();
       textPainter.paint(
         canvas,
-        Offset(i * groupWidth + (groupWidth - textPainter.width) / 2, chartHeight + 4),
+        Offset(
+          i * groupWidth + (groupWidth - textPainter.width) / 2,
+          chartHeight + 4,
+        ),
       );
     }
   }
@@ -182,8 +198,8 @@ class _BarChartPainter extends CustomPainter {
     if (rect.height <= 0) return;
     final rrect = RRect.fromRectAndCorners(
       rect,
-      topLeft: const Radius.circular(4),
-      topRight: const Radius.circular(4),
+      topLeft: const Radius.circular(AppRadius.xs),
+      topRight: const Radius.circular(AppRadius.xs),
     );
     canvas.drawRRect(rrect, Paint()..color = color);
   }
@@ -231,7 +247,7 @@ class _ChartTooltip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: theme.dividerColor),
         boxShadow: [
           BoxShadow(

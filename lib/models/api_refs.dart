@@ -7,11 +7,7 @@ import '../core/utils/json_parse.dart';
 /// table in the app: the server owns the wording, and new statuses appear
 /// without an app release.
 class LabelledValue {
-  const LabelledValue({
-    required this.value,
-    required this.label,
-    this.tone,
-  });
+  const LabelledValue({required this.value, required this.label, this.tone});
 
   /// The machine value, e.g. `warned`, `site_visit`, `fine`.
   final String value;
@@ -49,10 +45,8 @@ class UserRef {
   final int? id;
   final String name;
 
-  factory UserRef.fromJson(Map<String, dynamic> json) => UserRef(
-    id: Json.integer(json['id']),
-    name: Json.stringOr(json['name']),
-  );
+  factory UserRef.fromJson(Map<String, dynamic> json) =>
+      UserRef(id: Json.integer(json['id']), name: Json.stringOr(json['name']));
 
   static UserRef? maybe(Object? source) =>
       source is Map ? UserRef.fromJson(Json.map(source)) : null;

@@ -16,12 +16,18 @@ import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
-import 'package:mcq_app/views/magistrate/collection_detail_screen.dart';
-import 'package:mcq_app/views/magistrate/collections_screen.dart';
-import 'package:mcq_app/views/magistrate/create_chalaan_screen.dart';
-import 'package:mcq_app/views/magistrate/magistrate_home_screen.dart';
-import 'package:mcq_app/views/magistrate/magistrate_profile_screen.dart';
-import 'package:mcq_app/views/magistrate/sealed_screen.dart';
+import 'package:mcq_app/models/unit_card.dart';
+import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
+import 'package:mcq_app/views/magistrate/home/home_screen.dart';
+import 'package:mcq_app/views/magistrate/magistrate_shell.dart';
+import 'package:mcq_app/views/magistrate/more/more_screen.dart';
+import 'package:mcq_app/views/magistrate/more/profile_screen.dart';
+import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
+import 'package:mcq_app/views/magistrate/round/round_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/collection_detail_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
+import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
@@ -35,6 +41,15 @@ import 'support/dashboard_fixtures.dart';
 /// `*_test.dart`, so these stay out of the ordinary suite. They are previews to
 /// review, not assertions — a deliberate redesign should never surface as a
 /// failing build.
+const UnitCard _finedUnit = UnitCard(
+  propertyId: 77,
+  shopNo: 'F-3',
+  marketName: 'Prince Road',
+  allotmentId: 12,
+  allotteeName: 'Abdul Samad',
+  outstanding: '4500.00',
+);
+
 void main() {
   setUpAll(() async {
     Get.reset();
@@ -89,7 +104,28 @@ void main() {
       );
       return const MagistrateHomeScreen();
     },
-    'collections': () => const CollectionsScreen(),
+    // One per tab on the bottom bar, so a restructure of the shell shows up
+    // as a picture and not only as a passing test.
+    // The bar on its own, at a small handset's width and in the real font:
+    // whether four labels fit is a question about font metrics, which a
+    // widget test cannot answer because it draws every glyph as a square.
+    // The button is here because the notch is cut around it — a bar drawn
+    // without one shows a gap and no curve.
+    'nav_bar': () => Scaffold(
+      body: const SizedBox.shrink(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: const CreateFineButton(),
+      bottomNavigationBar: AppBottomNavBar(
+        entries: MagistrateShell.entries,
+        currentIndex: 0,
+        onTap: (_) {},
+        centerGap: CreateFineButton.notchGap,
+        centerGapRadius: CreateFineButton.notchRadius,
+      ),
+    ),
+    'defaulters': () => const DefaultersScreen(),
+    'round': () => const RoundScreen(),
+    'more': () => const MoreScreen(),
     'sealed': () => const SealedScreen(),
     'profile': () {
       Get.find<AuthController>().officer.value = officerFixture;
@@ -106,13 +142,40 @@ void main() {
       return const MagistrateProfileScreen();
     },
     'detail': () => const CollectionDetailScreen(recordId: '77'),
-    'fine': () => const CreateChalaanScreen(),
+    'fine': () {
+      // Reset the scheme: an earlier entry deliberately switches to indigo and
+      // the controller is a permanent singleton, so without this the fine form
+      // is previewed in somebody else's brand.
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      return const CreateFineScreen();
+    },
+    // The same form with a shop already chosen, which is how it is reached
+    // from a unit's profile.
+    'fine_with_shop': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      return const CreateFineScreen(unit: _finedUnit);
+    },
+    // The lower half of the same form: who pays, and the evidence strip.
+    'fine_evidence': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      return const CreateFineScreen(unit: _finedUnit);
+    },
   };
 
   // A dashboard is taller than a form. Rendering it at the default height
   // would crop the half worth reviewing — the activity figures — out of the
   // picture, which is how a layout problem goes unseen.
   const tall = <String, double>{
+    'nav_bar': 400,
+    'fine': 2600,
+    'fine_with_shop': 2600,
+    'fine_evidence': 2600,
     'home': 7000,
     'home_arriving': 2900,
     'home_collapsed': 1400,
@@ -122,7 +185,10 @@ void main() {
   };
 
   /// Entries to drag before capturing, and by how much.
-  const scrolled = <String, double>{'home_collapsed': 420};
+  const scrolled = <String, double>{
+    'home_collapsed': 420,
+    'fine_evidence': 700,
+  };
 
   /// Entries caught part-way through their entrance instead of at rest. A
   /// still of a settled page proves nothing about how it arrives.
@@ -169,10 +235,11 @@ void main() {
         // drags it there — a collapsing header is a state, not a still.
         final scrollBy = scrolled[entry.key];
         if (scrollBy != null) {
-          await tester.drag(
-            find.byType(CustomScrollView),
-            Offset(0, -scrollBy),
-          );
+          // Whichever scrollable the screen happens to use.
+          final scrollable = find.byType(CustomScrollView).evaluate().isNotEmpty
+              ? find.byType(CustomScrollView)
+              : find.byType(ListView).first;
+          await tester.drag(scrollable, Offset(0, -scrollBy));
           await tester.pumpAndSettle();
           // Sections that scrolled into view start their entrance on a plain
           // `Timer`, which `pumpAndSettle` does not advance — without this the
@@ -271,7 +338,11 @@ Future<void> _loadRealFonts() async {
   );
 
   final fonts = <String, List<String>>{
-    'Roboto': <String>['Roboto-Regular.ttf', 'Roboto-Medium.ttf', 'Roboto-Bold.ttf'],
+    'Roboto': <String>[
+      'Roboto-Regular.ttf',
+      'Roboto-Medium.ttf',
+      'Roboto-Bold.ttf',
+    ],
     'MaterialIcons': <String>['MaterialIcons-Regular.otf'],
   };
 

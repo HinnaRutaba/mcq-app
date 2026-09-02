@@ -19,7 +19,11 @@ class ApiUnitsRepository implements UnitsRepository {
   final ApiService _api;
 
   @override
-  Future<List<UnitCard>> units({int? areaId, String? search, int? limit}) async {
+  Future<List<UnitCard>> units({
+    int? areaId,
+    String? search,
+    int? limit,
+  }) async {
     final response = await _api.get(
       ApiPaths.units,
       query: <String, dynamic>{

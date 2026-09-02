@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../config/theme/app_status_colors.dart';
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// One row of an [AppBarList].
 class BarDatum {
@@ -104,7 +105,9 @@ class _Bar extends StatelessWidget {
       context,
     ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
 
-    final fraction = largest <= 0 ? 0.0 : (datum.value / largest).clamp(0.0, 1.0);
+    final fraction = largest <= 0
+        ? 0.0
+        : (datum.value / largest).clamp(0.0, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,7 +127,10 @@ class _Bar extends StatelessWidget {
             final width = fraction == 0
                 ? 0.0
                 // A real but tiny value still gets something to see.
-                : (constraints.maxWidth * fraction).clamp(3.0, constraints.maxWidth);
+                : (constraints.maxWidth * fraction).clamp(
+                    3.0,
+                    constraints.maxWidth,
+                  );
 
             return Stack(
               children: [
@@ -133,7 +139,7 @@ class _Bar extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: track,
                     borderRadius: const BorderRadiusDirectional.horizontal(
-                      end: Radius.circular(4),
+                      end: Radius.circular(AppRadius.xs),
                     ),
                   ),
                 ),
@@ -154,7 +160,7 @@ class _Bar extends StatelessWidget {
                           color: fill,
                           borderRadius:
                               const BorderRadiusDirectional.horizontal(
-                                end: Radius.circular(4),
+                                end: Radius.circular(AppRadius.xs),
                               ),
                         ),
                       ),

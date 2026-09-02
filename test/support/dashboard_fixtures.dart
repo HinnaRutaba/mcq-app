@@ -197,7 +197,11 @@ AuthUser get officerFixture => AuthUser.fromJson(officerJson);
 /// [failure] makes both calls throw, for the states worth looking at that a
 /// happy path never shows: the bazaar with no signal.
 class FakeDashboardRepository implements DashboardRepository {
-  FakeDashboardRepository({this.failure, this.activityByDays, this.beatOverride});
+  FakeDashboardRepository({
+    this.failure,
+    this.activityByDays,
+    this.beatOverride,
+  });
 
   /// Stands in for [beatFixture] when a test needs a different beat.
   final FieldBeat? beatOverride;

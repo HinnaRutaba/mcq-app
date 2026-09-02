@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/theme/app_series_colors.dart';
-import '../../../widgets/widgets.dart';
+import '../../../../config/theme/app_series_colors.dart';
+import '../../../../widgets/widgets.dart';
 
 /// What the officer's visits actually were, as an escalation ladder.
 ///

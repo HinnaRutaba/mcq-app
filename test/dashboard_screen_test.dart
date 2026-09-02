@@ -7,8 +7,8 @@ import 'package:mcq_app/controllers/dashboard_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
 import 'package:mcq_app/config/theme/app_series_colors.dart';
-import 'package:mcq_app/views/magistrate/magistrate_home_screen.dart';
-import 'package:mcq_app/views/magistrate/widgets/beat_queue_tile.dart';
+import 'package:mcq_app/views/magistrate/home/home_screen.dart';
+import 'package:mcq_app/views/magistrate/home/widgets/beat_queue_tile.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/api_stub.dart';
@@ -40,9 +40,7 @@ void main() {
         authController: auth,
       ),
     );
-    await tester.pumpWidget(
-      const MaterialApp(home: MagistrateHomeScreen()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: MagistrateHomeScreen()));
     await tester.pumpAndSettle();
   }
 
@@ -135,7 +133,7 @@ void main() {
             find
                 .descendant(
                   of: find.byType(AppSliverHeroHeader),
-                  matching: find.byType(ClipRect),
+                  matching: find.byType(ClipRRect),
                 )
                 .first,
           )
@@ -156,22 +154,26 @@ void main() {
       // The name survives; everything around it has gone.
       expect(find.text('Habibullah Tareen'), findsOneWidget);
       expect(
-        tester.widget<Opacity>(
-          find.ancestor(
-            of: find.text('Municipal Magistrate'),
-            matching: find.byType(Opacity),
-          ),
-        ).opacity,
+        tester
+            .widget<Opacity>(
+              find.ancestor(
+                of: find.text('Municipal Magistrate'),
+                matching: find.byType(Opacity),
+              ),
+            )
+            .opacity,
         0,
         reason: 'the designation is faded out, not left ghosted over the bar',
       );
       expect(
-        tester.widget<Opacity>(
-          find.ancestor(
-            of: find.text('Your beat'),
-            matching: find.byType(Opacity),
-          ),
-        ).opacity,
+        tester
+            .widget<Opacity>(
+              find.ancestor(
+                of: find.text('Your beat'),
+                matching: find.byType(Opacity),
+              ),
+            )
+            .opacity,
         0,
       );
     });
@@ -186,7 +188,7 @@ void main() {
             find
                 .descendant(
                   of: find.byType(AppSliverHeroHeader),
-                  matching: find.byType(ClipRect),
+                  matching: find.byType(ClipRRect),
                 )
                 .first,
           )
@@ -223,10 +225,8 @@ void main() {
   group('the defaulters', () {
     /// Finds [text] inside the ranked bar list, not the share legend above
     /// it — both name the same bazaars.
-    Finder inList(String text) => find.descendant(
-      of: find.byType(AppBarList),
-      matching: find.text(text),
-    );
+    Finder inList(String text) =>
+        find.descendant(of: find.byType(AppBarList), matching: find.text(text));
 
     testWidgets('breaks the arrears down by bazaar, worst first', (
       WidgetTester tester,
@@ -361,20 +361,24 @@ void main() {
       expect(find.text('Site visits'), findsOneWidget);
     });
 
-    testWidgets('labels the collected money as the server does, with the caveat', (
-      WidgetTester tester,
-    ) async {
-      await pumpHome(tester);
+    testWidgets(
+      'labels the collected money as the server does, with the caveat',
+      (WidgetTester tester) async {
+        await pumpHome(tester);
 
-      expect(find.text('Collected in your areas'), findsOneWidget);
-      expect(find.text('Rs 224,506'), findsOneWidget);
-      expect(
-        find.text('Everything paid in these bazaars — not only what you recovered.'),
-        findsOneWidget,
-        reason: 'the figure is not a personal recovery total and must not read as one',
-      );
-      expect(find.text('Rs 15,000'), findsOneWidget);
-    });
+        expect(find.text('Collected in your areas'), findsOneWidget);
+        expect(find.text('Rs 224,506'), findsOneWidget);
+        expect(
+          find.text(
+            'Everything paid in these bazaars — not only what you recovered.',
+          ),
+          findsOneWidget,
+          reason:
+              'the figure is not a personal recovery total and must not read as one',
+        );
+        expect(find.text('Rs 15,000'), findsOneWidget);
+      },
+    );
 
     testWidgets('a different window refetches only the activity', (
       WidgetTester tester,
@@ -394,7 +398,8 @@ void main() {
       expect(
         find.text('Jinnah Road · Prince Road'),
         findsOneWidget,
-        reason: 'the beat does not depend on the window and must not be refetched away',
+        reason:
+            'the beat does not depend on the window and must not be refetched away',
       );
     });
   });

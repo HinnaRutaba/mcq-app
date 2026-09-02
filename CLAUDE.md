@@ -9,8 +9,10 @@ This app has an existing widget library — treat it as the source of truth for 
 - **[lib/widgets/](lib/widgets/)** — shared, generic components used across the whole app
   (buttons, cards, charts, common, inputs, text), exported through
   [lib/widgets/widgets.dart](lib/widgets/widgets.dart).
-- **[lib/views/magistrate/widgets/](lib/views/magistrate/widgets/)** — widgets specific to
-  that feature area (e.g. `chalaan_tile.dart`, `collection_tile.dart`).
+- **`lib/views/magistrate/<tab>/widgets/`** — widgets belonging to one tab, beside the
+  screen that uses them: [home/widgets/](lib/views/magistrate/home/widgets/),
+  [more/widgets/](lib/views/magistrate/more/widgets/). A widget used by more than one tab
+  is promoted to [lib/widgets/](lib/widgets/) rather than imported across tabs.
 
 **Rule:** before building or editing any screen, check whether a suitable widget already
 exists in one of the folders above and reuse it. Do not write new inline/duplicate widget

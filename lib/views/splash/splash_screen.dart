@@ -6,6 +6,7 @@ import '../../config/routes/app_routes.dart';
 import '../../config/theme/app_brand.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/widgets.dart';
+import '../../config/theme/app_radius.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -63,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 width: 88,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
                 ),
                 child: const Icon(
                   Icons.account_balance_rounded,

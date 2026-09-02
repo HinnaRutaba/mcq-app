@@ -3,7 +3,10 @@ import '../core/utils/json_parse.dart';
 /// Map pins for the officer's bazaars, with the server's own count of how many
 /// units it could not place.
 class MapPins {
-  const MapPins({this.pins = const <MapPin>[], this.meta = const MapPinsMeta()});
+  const MapPins({
+    this.pins = const <MapPin>[],
+    this.meta = const MapPinsMeta(),
+  });
 
   final List<MapPin> pins;
   final MapPinsMeta meta;

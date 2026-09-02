@@ -71,7 +71,9 @@ class ApiStub implements HttpClientAdapter {
 /// simply hang. Returns the backing map, so a test can seed or inspect it.
 Map<String, String> installInMemoryKeychain() {
   final data = <String, String>{};
-  FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(data);
+  FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
+    data,
+  );
   return data;
 }
 

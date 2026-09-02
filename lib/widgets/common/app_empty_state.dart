@@ -4,7 +4,12 @@ import '../text/app_text.dart';
 
 /// The single "nothing here" placeholder every empty list should use.
 class AppEmptyState extends StatelessWidget {
-  const AppEmptyState({super.key, required this.icon, required this.title, this.message});
+  const AppEmptyState({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.message,
+  });
 
   final IconData icon;
   final String title;
@@ -12,7 +17,9 @@ class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted = Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+    final muted = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),

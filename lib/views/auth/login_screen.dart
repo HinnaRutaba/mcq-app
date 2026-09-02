@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../config/routes/app_routes.dart';
 import '../../controllers/auth_controller.dart';
 import '../../widgets/widgets.dart';
+import '../../config/theme/app_radius.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -50,7 +51,7 @@ class LoginScreen extends StatelessWidget {
                         color: Theme.of(
                           context,
                         ).colorScheme.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
                       ),
                       child: Icon(
                         Icons.account_balance_rounded,

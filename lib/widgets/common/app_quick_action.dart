@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// A circular icon + label action, laid out in a row under a header (Pay
 /// Now / Payments / Profile, etc.) — the quick-access row pattern.
@@ -24,7 +25,7 @@ class AppQuickAction extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Column(
@@ -33,7 +34,10 @@ class AppQuickAction extends StatelessWidget {
             Container(
               height: 52,
               width: 52,
-              decoration: BoxDecoration(color: tint.withValues(alpha: 0.12), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
               child: Icon(icon, color: tint),
             ),
             const SizedBox(height: 8),

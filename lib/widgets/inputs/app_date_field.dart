@@ -29,7 +29,9 @@ class AppDateField extends StatefulWidget {
 }
 
 class _AppDateFieldState extends State<AppDateField> {
-  late final TextEditingController _controller = TextEditingController(text: _textFor(widget.value));
+  late final TextEditingController _controller = TextEditingController(
+    text: _textFor(widget.value),
+  );
 
   String _textFor(DateTime? date) => date == null ? '' : Formatters.date(date);
 

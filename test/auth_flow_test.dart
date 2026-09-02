@@ -71,27 +71,29 @@ void main() {
   }
 
   group('signing in from the screen', () {
-    testWidgets('a good password lands on the dashboard, token in the keychain',
-        (WidgetTester tester) async {
-      api.stub.reply(_loginResponse);
+    testWidgets(
+      'a good password lands on the dashboard, token in the keychain',
+      (WidgetTester tester) async {
+        api.stub.reply(_loginResponse);
 
-      await pumpLogin(tester);
-      expect(find.text('DASHBOARD'), findsNothing);
+        await pumpLogin(tester);
+        expect(find.text('DASHBOARD'), findsNothing);
 
-      await signIn(tester);
+        await signIn(tester);
 
-      expect(find.text('DASHBOARD'), findsOneWidget);
-      expect(await api.storage.readToken(), 'live-token');
-      expect(controller.isSignedIn, isTrue);
-      expect(controller.officer.value!.name, 'Habibullah Tareen');
+        expect(find.text('DASHBOARD'), findsOneWidget);
+        expect(await api.storage.readToken(), 'live-token');
+        expect(controller.isSignedIn, isTrue);
+        expect(controller.officer.value!.name, 'Habibullah Tareen');
 
-      // Signed in with the username, not the email, and the handset named
-      // itself so the officer can recognise the device server-side.
-      expect(api.stub.sentBody['username'], 'magistrate');
-      expect(api.stub.sentBody['password'], 'password');
-      expect(api.stub.sentBody['device_name'], isNotEmpty);
-      expect(api.stub.lastOptions!.path, '/api/v1/auth/device/login');
-    });
+        // Signed in with the username, not the email, and the handset named
+        // itself so the officer can recognise the device server-side.
+        expect(api.stub.sentBody['username'], 'magistrate');
+        expect(api.stub.sentBody['password'], 'password');
+        expect(api.stub.sentBody['device_name'], isNotEmpty);
+        expect(api.stub.lastOptions!.path, '/api/v1/auth/device/login');
+      },
+    );
 
     testWidgets('the sign-in call carries no bearer token', (
       WidgetTester tester,
@@ -387,25 +389,30 @@ void main() {
 
       expect(await controller.restoreSession(), isTrue);
       expect(api.stub.lastOptions!.path, '/api/v1/auth/device/session');
-      expect(api.stub.lastOptions!.headers['Authorization'], 'Bearer live-token');
+      expect(
+        api.stub.lastOptions!.headers['Authorization'],
+        'Bearer live-token',
+      );
       expect(controller.officer.value!.username, 'magistrate');
     });
 
-    test('a dead token is cleared and reported without a scary message',
-        () async {
-      await api.storage.saveSession(token: 'dead-token');
-      api.stub.reply(<String, dynamic>{
-        'message': 'Unauthenticated.',
-      }, statusCode: 401);
+    test(
+      'a dead token is cleared and reported without a scary message',
+      () async {
+        await api.storage.saveSession(token: 'dead-token');
+        api.stub.reply(<String, dynamic>{
+          'message': 'Unauthenticated.',
+        }, statusCode: 401);
 
-      expect(await controller.restoreSession(), isFalse);
-      expect(await api.storage.readToken(), isNull);
-      expect(
-        controller.errorMessage.value,
-        isNull,
-        reason: 'an expired session is routine; do not alarm the officer',
-      );
-    });
+        expect(await controller.restoreSession(), isFalse);
+        expect(await api.storage.readToken(), isNull);
+        expect(
+          controller.errorMessage.value,
+          isNull,
+          reason: 'an expired session is routine; do not alarm the officer',
+        );
+      },
+    );
 
     test('no signal keeps the token but still asks them to sign in', () async {
       await api.storage.saveSession(token: 'live-token');
@@ -423,7 +430,10 @@ void main() {
 
   group('signing out', () {
     test('revokes the device token and empties the keychain', () async {
-      await api.storage.saveSession(token: 'live-token', username: 'magistrate');
+      await api.storage.saveSession(
+        token: 'live-token',
+        username: 'magistrate',
+      );
       api.stub.reply(<String, dynamic>{'message': 'Signed out.'});
 
       await controller.signOut();
@@ -469,28 +479,32 @@ void main() {
       expect(controller.errorMessage.value, isNull);
     });
 
-    test('the token nothing could store still authenticates later calls', () async {
-      await api.storage.saveSession(
-        token: 'live-token',
-        username: 'magistrate',
-      );
+    test(
+      'the token nothing could store still authenticates later calls',
+      () async {
+        await api.storage.saveSession(
+          token: 'live-token',
+          username: 'magistrate',
+        );
 
-      expect(
-        api.keychain,
-        isEmpty,
-        reason: 'the write was refused, so nothing reached the platform store',
-      );
-      expect(api.storage.isPersistent, isFalse);
-      expect(await api.storage.readToken(), 'live-token');
+        expect(
+          api.keychain,
+          isEmpty,
+          reason:
+              'the write was refused, so nothing reached the platform store',
+        );
+        expect(api.storage.isPersistent, isFalse);
+        expect(await api.storage.readToken(), 'live-token');
 
-      api.stub.reply(<String, dynamic>{'data': <String, dynamic>{}});
-      await api.service.get('/api/v1/auth/session');
+        api.stub.reply(<String, dynamic>{'data': <String, dynamic>{}});
+        await api.service.get('/api/v1/auth/session');
 
-      expect(
-        api.stub.lastOptions!.headers['Authorization'],
-        'Bearer live-token',
-      );
-    });
+        expect(
+          api.stub.lastOptions!.headers['Authorization'],
+          'Bearer live-token',
+        );
+      },
+    );
 
     test('signing out still drops the token', () async {
       await api.storage.saveSession(token: 'live-token');

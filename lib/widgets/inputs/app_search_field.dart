@@ -23,7 +23,8 @@ class AppSearchField extends StatefulWidget {
 }
 
 class _AppSearchFieldState extends State<AppSearchField> {
-  late final TextEditingController _controller = widget.controller ?? TextEditingController();
+  late final TextEditingController _controller =
+      widget.controller ?? TextEditingController();
   bool _hasText = false;
 
   @override

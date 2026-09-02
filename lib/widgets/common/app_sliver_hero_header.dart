@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../../config/theme/app_brand.dart';
 import '../text/app_text.dart';
+import 'app_hero_ornament.dart';
+import '../../config/theme/app_radius.dart';
 
 /// The collapsing counterpart to [AppHeroHeader], for a screen built out of
 /// slivers.
@@ -55,6 +57,9 @@ class AppSliverHeroHeader extends StatelessWidget {
   }
 }
 
+/// The corner the bar keeps in both states.
+const double _lipRadius = AppRadius.xl;
+
 class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _HeroHeaderDelegate({
     required this.title,
@@ -89,22 +94,31 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
     // the scroll is a clean toolbar rather than ghost text over it.
     final fade = (1 - t * 1.8).clamp(0.0, 1.0);
 
-    return ClipRect(
-      child: Container(
+    // The lip is clipped, not just painted: the ornament sits past the
+    // bottom-right corner and has to be cut by the same curve.
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        bottom: Radius.circular(_lipRadius),
+      ),
+      child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: <Color>[brand.headerFrom, brand.headerTo],
           ),
-          borderRadius: BorderRadius.vertical(
-            // Square once pinned: a rounded lip halfway down the screen reads
-            // as a card, not as the top of the app.
-            bottom: Radius.circular(lerpDouble(28, 0, t)!),
-          ),
         ),
         child: Stack(
           children: <Widget>[
+            // Pinned to the bottom edge, so it rides up with the bar as the
+            // officer scrolls — and goes with the rest of the expanded block,
+            // slower than the text does. Held on, it would end up drawing
+            // rings around the notification button on the collapsed toolbar.
+            Positioned(
+              right: -26,
+              bottom: -44,
+              child: Opacity(opacity: 1 - t, child: const AppHeroOrnament()),
+            ),
             if (subtitle != null)
               Positioned(
                 left: 20,
@@ -138,9 +152,9 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
                 t,
               ),
               child: Transform.scale(
-                scale: lerpDouble(1, 0.82, t)!,
+                scale: lerpDouble(1, 0.92, t)!,
                 alignment: Alignment.centerLeft,
-                child: AppText.headlineMedium(
+                child: AppText.titleLarge(
                   title,
                   color: Colors.white,
                   maxLines: 1,

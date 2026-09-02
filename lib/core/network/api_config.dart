@@ -52,8 +52,7 @@ class ApiPaths {
   // 7. Imposing a fine
   static String propertyFines(int propertyId) =>
       '${ApiConfig.apiPrefix}/enforcement/properties/$propertyId/fines';
-  static const String evidence =
-      '${ApiConfig.apiPrefix}/enforcement/evidence';
+  static const String evidence = '${ApiConfig.apiPrefix}/enforcement/evidence';
 
   // 8. Seals and the unseal queue
   static const String seals = '${ApiConfig.apiPrefix}/enforcement/field/seals';

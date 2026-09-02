@@ -47,9 +47,7 @@ class ApiEvidenceRepository implements EvidenceRepository {
     final response = await _api.post(
       ApiPaths.evidence,
       body: <String, dynamic>{'kind': kind},
-      files: <ApiFile>[
-        ApiFile(path: filePath, mimeType: mimeType),
-      ],
+      files: <ApiFile>[ApiFile(path: filePath, mimeType: mimeType)],
       onSendProgress: onProgress,
     );
     return EvidenceUpload.fromJson(response.dataMap);

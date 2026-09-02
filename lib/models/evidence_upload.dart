@@ -29,7 +29,12 @@ class EvidenceUpload {
 
   factory EvidenceUpload.fromJson(Map<String, dynamic> json) => EvidenceUpload(
     path: Json.string(
-      Json.pick(json, <String>['path', 'photo_path', 'file_path', 'evidence_path']),
+      Json.pick(json, <String>[
+        'path',
+        'photo_path',
+        'file_path',
+        'evidence_path',
+      ]),
     ),
     kind: Json.string(json['kind']),
     url: Json.string(Json.pick(json, <String>['url', 'public_url'])),

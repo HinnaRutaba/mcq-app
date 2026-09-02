@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/theme/app_colors.dart';
-import '../../../core/utils/formatters.dart';
-import '../../../models/field_beat.dart';
-import '../../../widgets/widgets.dart';
+import '../../../../config/theme/app_colors.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../models/field_beat.dart';
+import '../../../../widgets/widgets.dart';
+import '../../../../config/theme/app_radius.dart';
 
 class BeatQueueTile extends StatelessWidget {
   const BeatQueueTile({super.key, required this.queue, this.onTap});
@@ -14,13 +15,21 @@ class BeatQueueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tone = _tone(queue.tone);
+    final tone = AppToneColors.fromApi(queue.tone);
     final shown = queue.isEmpty ? AppTone.neutral : tone;
     final amount = Formatters.money(queue.amount);
+    final ink = shown.on(context);
+    final toned = shown != AppTone.neutral;
 
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.all(10),
+      // Every tile sits on its tone's light plate, so the grid reads as one
+      // set rather than two coloured cards among four white ones. A queue
+      // with no tone — or an empty one, since nought defaulters is not a
+      // danger — gets the neutral plate.
+      color: shown.container(context),
+      borderColor: ink.withValues(alpha: 0.22),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -30,43 +39,52 @@ class BeatQueueTile extends StatelessWidget {
                 height: 26,
                 width: 26,
                 decoration: BoxDecoration(
-                  color: shown.container(context),
-                  borderRadius: BorderRadius.circular(8),
+                  // Filled for a real tone; a deeper wash of the same grey
+                  // for neutral. A *filled* neutral chip is light-on-black in
+                  // dark mode, which would make the empty queues the loudest
+                  // thing on the grid.
+                  color: toned ? ink : ink.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Icon(
                   _icon(queue.key),
                   size: 15,
-                  color: shown.on(context),
+                  color: toned ? shown.onFilled(context) : ink,
                 ),
               ),
               const SizedBox(width: 8),
               Flexible(
                 child: AppText.headlineSmall(
                   '${queue.count}',
-                  color: queue.isEmpty ? null : shown.on(context),
+                  // Default ink on a neutral plate: a faint grey wash is not
+                  // enough contrast to also drop the count to secondary.
+                  color: toned ? ink : null,
                   maxLines: 1,
                 ),
               ),
             ],
           ),
           const Spacer(),
-          Flexible(child: AppText.caption(_label(queue.key), maxLines: 2)),
+          Flexible(
+            child: AppText.caption(
+              _label(queue.key),
+              color: toned ? ink : null,
+              maxLines: 2,
+            ),
+          ),
           if (amount != null) ...[
             const SizedBox(height: 2),
-            AppText.caption(amount, fontWeight: FontWeight.w700, maxLines: 1),
+            AppText.caption(
+              amount,
+              color: toned ? ink : null,
+              fontWeight: FontWeight.w700,
+              maxLines: 1,
+            ),
           ],
         ],
       ),
     );
   }
-
-  static AppTone _tone(String? tone) => switch (tone) {
-    'danger' => AppTone.danger,
-    'warning' => AppTone.warning,
-    'info' => AppTone.info,
-    'primary' => AppTone.primary,
-    _ => AppTone.neutral,
-  };
 
   static IconData _icon(String key) => switch (key) {
     'defaulters' => Icons.person_off_outlined,

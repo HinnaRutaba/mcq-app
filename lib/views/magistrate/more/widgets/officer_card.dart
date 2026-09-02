@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/theme/app_colors.dart';
-import '../../../core/utils/formatters.dart';
-import '../../../models/auth_user.dart';
-import '../../../widgets/widgets.dart';
+import '../../../../config/theme/app_colors.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../models/auth_user.dart';
+import '../../../../widgets/widgets.dart';
 
 /// Who is signed in, from the token's own user — name, designation, how to
 /// reach them, and the roles the server granted.
@@ -80,7 +80,8 @@ class OfficerCard extends StatelessWidget {
           if (officer.lastLoginAt != null)
             _Detail(
               icon: Icons.schedule_rounded,
-              value: 'Last signed in ${Formatters.dateTime(officer.lastLoginAt!.toLocal())}',
+              value:
+                  'Last signed in ${Formatters.dateTime(officer.lastLoginAt!.toLocal())}',
             ),
         ],
       ),

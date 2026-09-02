@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/theme/app_colors.dart';
-import '../../../config/theme/app_series_colors.dart';
-import '../../../core/utils/formatters.dart';
-import '../../../models/round_group.dart';
-import '../../../widgets/widgets.dart';
+import '../../../../config/theme/app_colors.dart';
+import '../../../../config/theme/app_series_colors.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../models/round_group.dart';
+import '../../../../widgets/widgets.dart';
 
 /// Where the arrears sit across the officer's beat.
 ///
@@ -54,7 +54,11 @@ class DefaulterBreakdown extends StatelessWidget {
                 tone: AppTone.danger,
               ),
               const _Divider(),
-              _Stat(value: neverPaid, label: 'Never paid', tone: AppTone.warning),
+              _Stat(
+                value: neverPaid,
+                label: 'Never paid',
+                tone: AppTone.warning,
+              ),
               const _Divider(),
               // No tone: a seal count is a fact, not a severity, and a third
               // status colour in the row would make it read as one.
@@ -87,8 +91,9 @@ class DefaulterBreakdown extends StatelessWidget {
                         AppText.caption(
                           'Of ${Formatters.money(totalOutstanding)} owed '
                           'across your beat.',
-                          color: Theme.of(context).textTheme.bodyMedium?.color
-                              ?.withValues(alpha: 0.6),
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                         ),
                         const SizedBox(height: 14),
                         AppCompositionBar(
@@ -153,7 +158,8 @@ class DefaulterBreakdown extends StatelessWidget {
   /// The area only when it adds something the market name has not already
   /// said — "Prince Road Market, Prince Road" is noise.
   static String _caption(RoundGroup group) {
-    final shops = '${group.shops} ${group.shops == 1 ? 'shop' : 'shops'} behind';
+    final shops =
+        '${group.shops} ${group.shops == 1 ? 'shop' : 'shops'} behind';
     final area = group.areaName;
     if (area == null || group.marketName == null || group.marketName == area) {
       return shops;
@@ -193,9 +199,6 @@ class _Divider extends StatelessWidget {
   const _Divider();
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 1,
-    height: 34,
-    color: Theme.of(context).dividerColor,
-  );
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 34, color: Theme.of(context).dividerColor);
 }

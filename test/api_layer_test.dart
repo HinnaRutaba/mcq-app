@@ -40,25 +40,37 @@ void main() {
   });
 
   group('no route out', () {
-    test('a call with no connection fails before it reaches the socket', () async {
-      probe.online = false;
-      adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
+    test(
+      'a call with no connection fails before it reaches the socket',
+      () async {
+        probe.online = false;
+        adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
 
-      await expectLater(
-        api.get(ApiPaths.beat),
-        throwsA(
-          isA<ApiException>()
-              .having((ApiException e) => e.failure, 'failure', ApiFailure.network)
-              .having((ApiException e) => e.isRetryable, 'isRetryable', isTrue),
-        ),
-      );
+        await expectLater(
+          api.get(ApiPaths.beat),
+          throwsA(
+            isA<ApiException>()
+                .having(
+                  (ApiException e) => e.failure,
+                  'failure',
+                  ApiFailure.network,
+                )
+                .having(
+                  (ApiException e) => e.isRetryable,
+                  'isRetryable',
+                  isTrue,
+                ),
+          ),
+        );
 
-      expect(
-        adapter.lastOptions,
-        isNull,
-        reason: 'the point is to fail fast, not to sit on the connect timeout',
-      );
-    });
+        expect(
+          adapter.lastOptions,
+          isNull,
+          reason:
+              'the point is to fail fast, not to sit on the connect timeout',
+        );
+      },
+    );
 
     test('the officer is told it is the connection, not the record', () async {
       probe.online = false;
@@ -79,7 +91,9 @@ void main() {
       // longer than the one second it trusts a "no".
       await Future<void>.delayed(const Duration(milliseconds: 1100));
       probe.online = true;
-      adapter.reply(<String, dynamic>{'data': <String, dynamic>{'ok': true}});
+      adapter.reply(<String, dynamic>{
+        'data': <String, dynamic>{'ok': true},
+      });
 
       final response = await api.get(ApiPaths.beat);
       expect(response.dataMap['ok'], isTrue);
@@ -112,7 +126,8 @@ void main() {
       expect(
         probe.calls,
         1,
-        reason: 'a screen drawing itself must not resolve the host once per call',
+        reason:
+            'a screen drawing itself must not resolve the host once per call',
       );
     });
   });
@@ -141,8 +156,12 @@ void main() {
         'message': 'The given data was invalid.',
         'code': 'VALIDATION_FAILED',
         'errors': <String, dynamic>{
-          'offender_father_name': <String>['The offender father name field is required.'],
-          'offender_mobile_no': <String>['The offender mobile no field is required.'],
+          'offender_father_name': <String>[
+            'The offender father name field is required.',
+          ],
+          'offender_mobile_no': <String>[
+            'The offender mobile no field is required.',
+          ],
         },
       }, statusCode: 422);
 
@@ -150,7 +169,11 @@ void main() {
         api.post('/anything'),
         throwsA(
           isA<ApiException>()
-              .having((ApiException e) => e.isValidation, 'isValidation', isTrue)
+              .having(
+                (ApiException e) => e.isValidation,
+                'isValidation',
+                isTrue,
+              )
               .having((ApiException e) => e.code, 'code', 'VALIDATION_FAILED')
               .having(
                 (ApiException e) => e.errorFor('offender_mobile_no'),
@@ -167,7 +190,11 @@ void main() {
         api.get('/anything'),
         throwsA(
           isA<ApiException>()
-              .having((ApiException e) => e.failure, 'failure', ApiFailure.network)
+              .having(
+                (ApiException e) => e.failure,
+                'failure',
+                ApiFailure.network,
+              )
               .having((ApiException e) => e.isRetryable, 'isRetryable', isTrue),
         ),
       );
@@ -175,39 +202,55 @@ void main() {
   });
 
   group('bearer token', () {
-    test('is attached to an authenticated call and withheld from sign-in', () async {
-      await storage.saveSession(token: 'live-token');
+    test(
+      'is attached to an authenticated call and withheld from sign-in',
+      () async {
+        await storage.saveSession(token: 'live-token');
 
-      adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
-      await api.get('/authenticated');
-      expect(adapter.lastOptions!.headers['Authorization'], 'Bearer live-token');
+        adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
+        await api.get('/authenticated');
+        expect(
+          adapter.lastOptions!.headers['Authorization'],
+          'Bearer live-token',
+        );
 
-      adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
-      await api.post('/sign-in', requiresAuth: false);
-      expect(adapter.lastOptions!.headers.containsKey('Authorization'), isFalse);
-    });
+        adapter.reply(<String, dynamic>{'data': <String, dynamic>{}});
+        await api.post('/sign-in', requiresAuth: false);
+        expect(
+          adapter.lastOptions!.headers.containsKey('Authorization'),
+          isFalse,
+        );
+      },
+    );
 
     test('a 401 on an authenticated call clears the keychain', () async {
       await storage.saveSession(token: 'dead-token');
-      adapter.reply(<String, dynamic>{'message': 'Unauthenticated.'}, statusCode: 401);
+      adapter.reply(<String, dynamic>{
+        'message': 'Unauthenticated.',
+      }, statusCode: 401);
 
-      await expectLater(api.get('/authenticated'), throwsA(isA<ApiException>()));
+      await expectLater(
+        api.get('/authenticated'),
+        throwsA(isA<ApiException>()),
+      );
       expect(await storage.readToken(), isNull);
     });
 
-    test('a 401 from the sign-in call leaves an existing session alone', () async {
-      await storage.saveSession(token: 'live-token');
-      adapter.reply(
-        <String, dynamic>{'message': 'These credentials do not match.'},
-        statusCode: 401,
-      );
+    test(
+      'a 401 from the sign-in call leaves an existing session alone',
+      () async {
+        await storage.saveSession(token: 'live-token');
+        adapter.reply(<String, dynamic>{
+          'message': 'These credentials do not match.',
+        }, statusCode: 401);
 
-      await expectLater(
-        api.post('/sign-in', requiresAuth: false),
-        throwsA(isA<ApiException>()),
-      );
-      expect(await storage.readToken(), 'live-token');
-    });
+        await expectLater(
+          api.post('/sign-in', requiresAuth: false),
+          throwsA(isA<ApiException>()),
+        );
+        expect(await storage.readToken(), 'live-token');
+      },
+    );
   });
 
   group('request bodies', () {
@@ -222,61 +265,75 @@ void main() {
       expect(body, <String, dynamic>{'kept': 'yes'});
     });
 
-    test('flattens a nested body into bracket notation for multipart', () async {
-      final file = File(
-        '${Directory.systemTemp.createTempSync('mcq').path}/shopfront.jpg',
-      )..writeAsBytesSync(<int>[1, 2, 3]);
+    test(
+      'flattens a nested body into bracket notation for multipart',
+      () async {
+        final file = File(
+          '${Directory.systemTemp.createTempSync('mcq').path}/shopfront.jpg',
+        )..writeAsBytesSync(<int>[1, 2, 3]);
 
-      adapter.reply(<String, dynamic>{'data': <String, dynamic>{'path': 'evidence/1.jpg'}});
-      await api.post(
-        '/anything',
-        body: <String, dynamic>{
-          'fine_amount': '3000.00',
-          'recorded_offline': true,
-          'seal': <String, dynamic>{'seal_reason': 'Arrears unpaid after notice.'},
-        },
-        files: <ApiFile>[ApiFile(path: file.path, mimeType: 'image/jpeg')],
-      );
+        adapter.reply(<String, dynamic>{
+          'data': <String, dynamic>{'path': 'evidence/1.jpg'},
+        });
+        await api.post(
+          '/anything',
+          body: <String, dynamic>{
+            'fine_amount': '3000.00',
+            'recorded_offline': true,
+            'seal': <String, dynamic>{
+              'seal_reason': 'Arrears unpaid after notice.',
+            },
+          },
+          files: <ApiFile>[ApiFile(path: file.path, mimeType: 'image/jpeg')],
+        );
 
-      final form = adapter.lastOptions!.data as FormData;
-      final fields = Map<String, String>.fromEntries(form.fields);
-      expect(fields['seal[seal_reason]'], 'Arrears unpaid after notice.');
-      expect(fields['fine_amount'], '3000.00');
-      expect(fields['recorded_offline'], '1');
-      expect(form.files.single.key, 'file');
-      expect(form.files.single.value.filename, 'shopfront.jpg');
-    });
+        final form = adapter.lastOptions!.data as FormData;
+        final fields = Map<String, String>.fromEntries(form.fields);
+        expect(fields['seal[seal_reason]'], 'Arrears unpaid after notice.');
+        expect(fields['fine_amount'], '3000.00');
+        expect(fields['recorded_offline'], '1');
+        expect(form.files.single.key, 'file');
+        expect(form.files.single.value.filename, 'shopfront.jpg');
+      },
+    );
   });
 
   group('signing in', () {
-    test('stores the token in the keychain and remembers the username', () async {
-      adapter.reply(<String, dynamic>{
-        'data': <String, dynamic>{
-          'token': 'secret-token',
-          'token_expires_at': null,
-          'user': _sessionUser,
-        },
-      });
+    test(
+      'stores the token in the keychain and remembers the username',
+      () async {
+        adapter.reply(<String, dynamic>{
+          'data': <String, dynamic>{
+            'token': 'secret-token',
+            'token_expires_at': null,
+            'user': _sessionUser,
+          },
+        });
 
-      final repository = ApiAuthRepository(api: api, storage: storage);
-      final session = await repository.signIn(
-        username: 'magistrate',
-        password: 'password',
-        deviceName: 'Pixel 8',
-      );
+        final repository = ApiAuthRepository(api: api, storage: storage);
+        final session = await repository.signIn(
+          username: 'magistrate',
+          password: 'password',
+          deviceName: 'Pixel 8',
+        );
 
-      expect(session.user.name, 'Habibullah Tareen');
-      expect(session.user.designation, 'Municipal Magistrate');
-      expect(session.user.id, 5, reason: 'the API sends this id as the string "5"');
-      expect(session.user.can('enforcement.fine.impose'), isTrue);
-      expect(session.user.can('billing.payment.record'), isFalse);
-      expect(session.user.hasRole('MAGISTRATE'), isTrue);
-      expect(session.mustChangePassword, isFalse);
+        expect(session.user.name, 'Habibullah Tareen');
+        expect(session.user.designation, 'Municipal Magistrate');
+        expect(
+          session.user.id,
+          5,
+          reason: 'the API sends this id as the string "5"',
+        );
+        expect(session.user.can('enforcement.fine.impose'), isTrue);
+        expect(session.user.can('billing.payment.record'), isFalse);
+        expect(session.user.hasRole('MAGISTRATE'), isTrue);
+        expect(session.mustChangePassword, isFalse);
 
-      expect(await storage.readToken(), 'secret-token');
-      expect(await storage.readUsername(), 'magistrate');
-      expect(await storage.readDeviceName(), 'Pixel 8');
-    });
+        expect(await storage.readToken(), 'secret-token');
+        expect(await storage.readUsername(), 'magistrate');
+        expect(await storage.readDeviceName(), 'Pixel 8');
+      },
+    );
 
     test('signing out clears the token even when the call fails', () async {
       await storage.saveSession(token: 'live-token');
@@ -287,21 +344,23 @@ void main() {
       expect(await storage.readToken(), isNull);
     });
 
-    test('changing the password clears the token, because the server revokes it',
-        () async {
-      await storage.saveSession(token: 'live-token');
-      adapter.reply(<String, dynamic>{'message': 'Password updated.'});
+    test(
+      'changing the password clears the token, because the server revokes it',
+      () async {
+        await storage.saveSession(token: 'live-token');
+        adapter.reply(<String, dynamic>{'message': 'Password updated.'});
 
-      final repository = ApiAuthRepository(api: api, storage: storage);
-      await repository.changePassword(
-        currentPassword: 'password',
-        newPassword: 'Quetta-Revenue-2026!',
-        confirmPassword: 'Quetta-Revenue-2026!',
-      );
+        final repository = ApiAuthRepository(api: api, storage: storage);
+        await repository.changePassword(
+          currentPassword: 'password',
+          newPassword: 'Quetta-Revenue-2026!',
+          confirmPassword: 'Quetta-Revenue-2026!',
+        );
 
-      expect(adapter.lastOptions!.method, 'PUT');
-      expect(await storage.readToken(), isNull);
-    });
+        expect(adapter.lastOptions!.method, 'PUT');
+        expect(await storage.readToken(), isNull);
+      },
+    );
   });
 
   group('home', () {
@@ -372,7 +431,9 @@ void main() {
 
   group('defaulters', () {
     test('reads a card whole, with the amount left as text', () async {
-      adapter.reply(<String, dynamic>{'data': <dynamic>[_defaulterCard]});
+      adapter.reply(<String, dynamic>{
+        'data': <dynamic>[_defaulterCard],
+      });
 
       final cards = await ApiDefaultersRepository(api: api).defaulters();
       final card = cards.single;
@@ -393,10 +454,9 @@ void main() {
     test('sends never_paid as 1 and omits the filters left unset', () async {
       adapter.reply(<String, dynamic>{'data': <dynamic>[]});
 
-      await ApiDefaultersRepository(api: api).defaulters(
-        neverPaid: true,
-        areaId: 2,
-      );
+      await ApiDefaultersRepository(
+        api: api,
+      ).defaulters(neverPaid: true, areaId: 2);
 
       final query = adapter.lastOptions!.queryParameters;
       expect(query['never_paid'], 1);
@@ -432,53 +492,60 @@ void main() {
 
     test('follow-ups pass the state through', () async {
       adapter.reply(<String, dynamic>{'data': <dynamic>[]});
-      await ApiDefaultersRepository(api: api).followUps(state: FollowUpState.due);
+      await ApiDefaultersRepository(
+        api: api,
+      ).followUps(state: FollowUpState.due);
       expect(adapter.lastOptions!.queryParameters['state'], 'due');
     });
   });
 
   group('search and map', () {
-    test('a unit card says when the fine form must collect an offender', () async {
-      adapter.reply(<String, dynamic>{
-        'data': <dynamic>[
-          <String, dynamic>{
-            'property_id': 87,
-            'property_code': 'MCQ-PR-000803',
-            'shop_no': 'F-3',
-            'occupancy_status': 'allotted',
-            'area_id': 2,
-            'area_name': 'Prince Road',
-            'market_name': 'Prince Road Market',
-            'is_vacant': false,
-            'allotment_id': 77,
-            'allotment_no': 'MCQ-AL-00077',
-            'allottee_id': 77,
-            'allottee_name': 'Abdul Sattar Tareen (4)',
-            'mobile_no': '03301000076',
-            'cnic': '5440010010412',
-            'outstanding': '175200.00',
-            'last_payment_date': null,
-            'open_case_id': null,
-            'seal_no': null,
-            'is_sealed': false,
-            'can_fine_holder': true,
-            'needs_offender_details': false,
-            'map': <String, dynamic>{
-              'latitude': '30.1889400',
-              'longitude': '67.0123300',
+    test(
+      'a unit card says when the fine form must collect an offender',
+      () async {
+        adapter.reply(<String, dynamic>{
+          'data': <dynamic>[
+            <String, dynamic>{
+              'property_id': 87,
+              'property_code': 'MCQ-PR-000803',
+              'shop_no': 'F-3',
+              'occupancy_status': 'allotted',
+              'area_id': 2,
+              'area_name': 'Prince Road',
+              'market_name': 'Prince Road Market',
+              'is_vacant': false,
+              'allotment_id': 77,
+              'allotment_no': 'MCQ-AL-00077',
+              'allottee_id': 77,
+              'allottee_name': 'Abdul Sattar Tareen (4)',
+              'mobile_no': '03301000076',
+              'cnic': '5440010010412',
+              'outstanding': '175200.00',
+              'last_payment_date': null,
+              'open_case_id': null,
+              'seal_no': null,
+              'is_sealed': false,
+              'can_fine_holder': true,
+              'needs_offender_details': false,
+              'map': <String, dynamic>{
+                'latitude': '30.1889400',
+                'longitude': '67.0123300',
+              },
             },
-          },
-        ],
-      });
+          ],
+        });
 
-      final unit = (await ApiUnitsRepository(api: api).units(search: 'F-3')).single;
+        final unit = (await ApiUnitsRepository(
+          api: api,
+        ).units(search: 'F-3')).single;
 
-      expect(adapter.lastOptions!.queryParameters['search'], 'F-3');
-      expect(unit.canFineHolder, isTrue);
-      expect(unit.needsOffenderDetails, isFalse);
-      expect(unit.isVacant, isFalse);
-      expect(unit.outstanding, '175200.00');
-    });
+        expect(adapter.lastOptions!.queryParameters['search'], 'F-3');
+        expect(unit.canFineHolder, isTrue);
+        expect(unit.needsOffenderDetails, isFalse);
+        expect(unit.isVacant, isFalse);
+        expect(unit.outstanding, '175200.00');
+      },
+    );
 
     test('map pins read lat/lng and carry the truncation warning', () async {
       adapter.reply(<String, dynamic>{
@@ -511,7 +578,9 @@ void main() {
         },
       });
 
-      final pins = await ApiReportingRepository(api: api).mapPins(defaultersOnly: true);
+      final pins = await ApiReportingRepository(
+        api: api,
+      ).mapPins(defaultersOnly: true);
 
       expect(adapter.lastOptions!.queryParameters['defaulters_only'], 1);
       expect(pins.pins.single.severity, 'owing');
@@ -526,7 +595,10 @@ void main() {
 
       final profile = await ApiReportingRepository(api: api).propertyProfile(8);
 
-      expect(adapter.lastOptions!.path, '/api/v1/reporting/properties/8/profile');
+      expect(
+        adapter.lastOptions!.path,
+        '/api/v1/reporting/properties/8/profile',
+      );
       expect(profile.property.propertyCode, 'MCQ-JR-000108');
       expect(profile.property.register949Ref, '949/JR/0108');
       expect(profile.isVacant, isTrue);
@@ -544,7 +616,9 @@ void main() {
     test('reads a paged case list and its labelled statuses', () async {
       adapter.reply(_casesResponse);
 
-      final page = await ApiEnforcementCaseRepository(api: api).cases(perPage: 2);
+      final page = await ApiEnforcementCaseRepository(
+        api: api,
+      ).cases(perPage: 2);
       final first = page.items.first;
 
       expect(page.meta.total, 12);
@@ -568,7 +642,10 @@ void main() {
     });
 
     test('assignedToMe sends magistrate_id=me', () async {
-      adapter.reply(<String, dynamic>{'data': <dynamic>[], 'meta': <String, dynamic>{}});
+      adapter.reply(<String, dynamic>{
+        'data': <dynamic>[],
+        'meta': <String, dynamic>{},
+      });
       await ApiEnforcementCaseRepository(api: api).cases(assignedToMe: true);
       expect(adapter.lastOptions!.queryParameters['magistrate_id'], 'me');
     });
@@ -609,13 +686,17 @@ void main() {
               'lag_minutes': null,
               'client_action_uuid': null,
             },
-            'performed_by': <String, dynamic>{'id': 5, 'name': 'Habibullah Tareen'},
+            'performed_by': <String, dynamic>{
+              'id': 5,
+              'name': 'Habibullah Tareen',
+            },
           },
         ],
       });
 
-      final action =
-          (await ApiEnforcementCaseRepository(api: api).actions(1)).single;
+      final action = (await ApiEnforcementCaseRepository(
+        api: api,
+      ).actions(1)).single;
 
       expect(adapter.lastOptions!.path, '/api/v1/enforcement/cases/1/actions');
       expect(action.actionType!.label, 'Fine imposed');
@@ -688,7 +769,10 @@ void main() {
         ),
       );
 
-      expect(adapter.lastOptions!.path, '/api/v1/enforcement/properties/2/fines');
+      expect(
+        adapter.lastOptions!.path,
+        '/api/v1/enforcement/properties/2/fines',
+      );
       final body = adapter.lastOptions!.data as Map<String, dynamic>;
       expect(body['fine_amount'], '3000.00');
       expect(body['imposed_on'], '2026-08-31');
@@ -764,26 +848,31 @@ void main() {
       expect(seal['sealed_on'], '2026-08-31');
     });
 
-    test('uploads evidence as multipart before the write that cites it', () async {
-      final file = File(
-        '${Directory.systemTemp.createTempSync('mcq').path}/seal.jpg',
-      )..writeAsBytesSync(<int>[9, 9, 9]);
+    test(
+      'uploads evidence as multipart before the write that cites it',
+      () async {
+        final file = File(
+          '${Directory.systemTemp.createTempSync('mcq').path}/seal.jpg',
+        )..writeAsBytesSync(<int>[9, 9, 9]);
 
-      adapter.reply(<String, dynamic>{
-        'data': <String, dynamic>{'path': 'evidence/2026/08/seal.jpg', 'kind': 'photo'},
-      }, statusCode: 201);
+        adapter.reply(<String, dynamic>{
+          'data': <String, dynamic>{
+            'path': 'evidence/2026/08/seal.jpg',
+            'kind': 'photo',
+          },
+        }, statusCode: 201);
 
-      final upload = await ApiEvidenceRepository(api: api).upload(
-        filePath: file.path,
-        mimeType: 'image/jpeg',
-      );
+        final upload = await ApiEvidenceRepository(
+          api: api,
+        ).upload(filePath: file.path, mimeType: 'image/jpeg');
 
-      expect(adapter.lastOptions!.path, '/api/v1/enforcement/evidence');
-      final form = adapter.lastOptions!.data as FormData;
-      expect(Map<String, String>.fromEntries(form.fields)['kind'], 'photo');
-      expect(upload.hasPath, isTrue);
-      expect(upload.path, 'evidence/2026/08/seal.jpg');
-    });
+        expect(adapter.lastOptions!.path, '/api/v1/enforcement/evidence');
+        final form = adapter.lastOptions!.data as FormData;
+        expect(Map<String, String>.fromEntries(form.fields)['kind'], 'photo');
+        expect(upload.hasPath, isTrue);
+        expect(upload.path, 'evidence/2026/08/seal.jpg');
+      },
+    );
   });
 
   group('seals', () {
@@ -794,7 +883,10 @@ void main() {
 
       adapter.reply(<String, dynamic>{'data': <dynamic>[]});
       await ApiFieldSealRepository(api: api).seals();
-      expect(adapter.lastOptions!.queryParameters.containsKey('ready'), isFalse);
+      expect(
+        adapter.lastOptions!.queryParameters.containsKey('ready'),
+        isFalse,
+      );
     });
 
     test('a seal row reads leniently and keeps the raw payload', () async {
@@ -827,13 +919,16 @@ void main() {
     });
 
     test('releasing a seal sends the reason and the override', () async {
-      adapter.reply(<String, dynamic>{'data': <String, dynamic>{'id': 4}});
+      adapter.reply(<String, dynamic>{
+        'data': <String, dynamic>{'id': 4},
+      });
 
       await ApiFieldSealRepository(api: api).release(
         4,
         SealReleaseRequest(
           unsealReason: 'Fine paid in full, receipt MCQ-RC-2627-00123.',
-          overrideReason: 'Deputy Commissioner directed release pending appeal.',
+          overrideReason:
+              'Deputy Commissioner directed release pending appeal.',
           unsealedOn: DateTime(2026, 8, 31),
         ),
       );
@@ -846,7 +941,9 @@ void main() {
     });
 
     test('sealing a case sends the reason', () async {
-      adapter.reply(<String, dynamic>{'data': <String, dynamic>{'id': 5}}, statusCode: 201);
+      adapter.reply(<String, dynamic>{
+        'data': <String, dynamic>{'id': 5},
+      }, statusCode: 201);
 
       await ApiEnforcementCaseRepository(api: api).seal(
         11,
@@ -878,10 +975,9 @@ void main() {
     test('a fine challan reads as one charge, not a rent breakdown', () async {
       adapter.reply(_challansResponse);
 
-      final page = await ApiChallanRepository(api: api).challans(
-        perPage: 1,
-        challanType: ChallanRepository.typeFine,
-      );
+      final page = await ApiChallanRepository(
+        api: api,
+      ).challans(perPage: 1, challanType: ChallanRepository.typeFine);
       final challan = page.items.single;
 
       expect(adapter.lastOptions!.queryParameters['challan_type'], 'fine');
@@ -895,8 +991,16 @@ void main() {
       expect(challan.hasLiveLink, isTrue);
       expect(challan.linkShortCode, 'RUP7EVZS');
       expect(challan.isSettled, isFalse);
-      expect(challan.allottee, isNull, reason: 'raised against a named offender');
-      expect(challan.area!.code, 'JR', reason: 'a challan spells this plain code');
+      expect(
+        challan.allottee,
+        isNull,
+        reason: 'raised against a named offender',
+      );
+      expect(
+        challan.area!.code,
+        'JR',
+        reason: 'a challan spells this plain code',
+      );
       expect(challan.billingPeriod!.periodCode, '2026-08');
       expect(page.meta.total, 193);
     });

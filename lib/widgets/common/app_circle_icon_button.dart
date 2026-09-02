@@ -37,7 +37,11 @@ class AppCircleIconButton extends StatelessWidget {
             child: SizedBox(
               height: size,
               width: size,
-              child: Icon(icon, color: iconColor ?? Colors.white, size: size * 0.5),
+              child: Icon(
+                icon,
+                color: iconColor ?? Colors.white,
+                size: size * 0.5,
+              ),
             ),
           ),
         ),
@@ -51,7 +55,10 @@ class AppCircleIconButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.error,
                 shape: BoxShape.circle,
-                border: Border.all(color: Theme.of(context).colorScheme.primary, width: 1.5),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 1.5,
+                ),
               ),
             ),
           ),

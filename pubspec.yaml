@@ -46,6 +46,11 @@ dependencies:
   fl_chart: ^1.1.1
   permission_handler: ^13.0.1
 
+  # --- Field capture, for the evidence a fine has to carry ---------------
+  image_picker: ^1.2.3   # the photograph; compressed on the way out
+  geolocator: ^14.0.2    # the GPS fix, with the accuracy the OS reports
+  signature: ^6.4.0      # the witness signature, drawn on the handset
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

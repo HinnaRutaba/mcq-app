@@ -37,35 +37,115 @@ class AppText extends StatelessWidget {
     this.decoration,
   });
 
-  const AppText.headlineLarge(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.headlineLarge;
+  const AppText.headlineLarge(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.headlineLarge;
 
-  const AppText.headlineMedium(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.headlineMedium;
+  const AppText.headlineMedium(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.headlineMedium;
 
-  const AppText.headlineSmall(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.headlineSmall;
+  const AppText.headlineSmall(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.headlineSmall;
 
-  const AppText.titleLarge(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.titleLarge;
+  const AppText.titleLarge(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.titleLarge;
 
-  const AppText.titleMedium(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.titleMedium;
+  const AppText.titleMedium(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.titleMedium;
 
-  const AppText.body(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.bodyMedium;
+  const AppText.body(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.bodyMedium;
 
-  const AppText.bodyLarge(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.bodyLarge;
+  const AppText.bodyLarge(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.bodyLarge;
 
-  const AppText.bodySmall(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.bodySmall;
+  const AppText.bodySmall(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.bodySmall;
 
-  const AppText.label(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.labelLarge;
+  const AppText.label(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.labelLarge;
 
-  const AppText.caption(this.text, {super.key, this.color, this.textAlign, this.fontWeight, this.maxLines, this.overflow, this.decoration})
-      : variant = AppTextVariant.labelSmall;
+  const AppText.caption(
+    this.text, {
+    super.key,
+    this.color,
+    this.textAlign,
+    this.fontWeight,
+    this.maxLines,
+    this.overflow,
+    this.decoration,
+  }) : variant = AppTextVariant.labelSmall;
 
   final String text;
   final AppTextVariant variant;

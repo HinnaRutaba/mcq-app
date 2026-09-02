@@ -5,6 +5,7 @@
 library;
 
 export 'buttons/app_button.dart';
+export 'buttons/app_fab.dart';
 export 'cards/app_card.dart';
 export 'charts/app_bar_chart.dart';
 export 'charts/app_bar_list.dart';
@@ -17,6 +18,7 @@ export 'common/app_circle_icon_button.dart';
 export 'common/app_empty_state.dart';
 export 'common/app_entrance.dart';
 export 'common/app_hero_header.dart';
+export 'common/app_hero_ornament.dart';
 export 'common/app_quick_action.dart';
 export 'common/app_sliver_hero_header.dart';
 export 'common/app_stat_tile.dart';

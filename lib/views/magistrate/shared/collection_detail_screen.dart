@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/widgets.dart';
+import '../../../widgets/widgets.dart';
 
 /// The shopkeeper profile — emptied while the app moves onto the MCQ
 /// Magistrate API.

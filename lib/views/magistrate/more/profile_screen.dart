@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../config/routes/app_routes.dart';
-import '../../controllers/auth_controller.dart';
-import '../../widgets/widgets.dart';
+import '../../../config/routes/app_routes.dart';
+import '../../../controllers/auth_controller.dart';
+import '../../../widgets/widgets.dart';
 import 'widgets/appearance_settings.dart';
 import 'widgets/officer_card.dart';
 
@@ -36,9 +36,7 @@ class MagistrateProfileScreen extends StatelessWidget {
                 Obx(() {
                   final officer = auth.officer.value;
                   if (officer == null) {
-                    return const AppCard(
-                      child: AppText.body('Not signed in.'),
-                    );
+                    return const AppCard(child: AppText.body('Not signed in.'));
                   }
                   return OfficerCard(officer: officer);
                 }),

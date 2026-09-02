@@ -1,87 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../config/routes/app_routes.dart';
 import '../../widgets/widgets.dart';
+import 'shared/widgets/back_to_home_button.dart';
+import 'shared/widgets/create_fine_button.dart';
 
-/// Magistrate app shell: Home / Collections / Sealed / Profile on a neutral
-/// bar, notched around a center FAB (opens "Create Chalaan/Fine").
 class MagistrateShell extends StatelessWidget {
   const MagistrateShell({super.key, required this.navigationShell});
 
   final StatefulNavigationShell navigationShell;
 
+  /// Even by necessity: the create button's gap splits the row in half.
+  static const List<AppBottomNavEntry> entries = <AppBottomNavEntry>[
+    AppBottomNavEntry(
+      icon: Icons.home_outlined,
+      activeIcon: Icons.home_rounded,
+      label: 'Home',
+    ),
+    AppBottomNavEntry(
+      icon: Icons.storefront_outlined,
+      activeIcon: Icons.storefront_rounded,
+      label: 'Defaulters',
+    ),
+    AppBottomNavEntry(
+      icon: Icons.directions_walk_outlined,
+      activeIcon: Icons.directions_walk_rounded,
+      label: 'Round',
+    ),
+    AppBottomNavEntry(
+      icon: Icons.more_horiz_outlined,
+      activeIcon: Icons.more_horiz_rounded,
+      label: 'More',
+    ),
+  ];
+
+  /// Tapping the tab you are already on returns that branch to its first
+  /// screen — the way back out of a shop's profile without hunting for a
+  /// back arrow.
   void _goBranch(int index) {
-    navigationShell.goBranch(index, initialLocation: index == navigationShell.currentIndex);
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(AppRoutes.createChalaan),
-        tooltip: 'Create Chalaan/Fine',
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-        foregroundColor: Theme.of(context).colorScheme.onSecondary,
-        child: const Icon(Icons.add_rounded),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        color: Theme.of(context).colorScheme.surface,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        padding: EdgeInsets.zero,
-        child: Row(
-          children: [
-            Expanded(
-              child: AppBottomNavItem(
-                entry: const AppBottomNavEntry(
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home_rounded,
-                  label: 'Home',
-                ),
-                selected: navigationShell.currentIndex == 0,
-                onTap: () => _goBranch(0),
-              ),
-            ),
-            Expanded(
-              child: AppBottomNavItem(
-                entry: const AppBottomNavEntry(
-                  icon: Icons.location_on_outlined,
-                  activeIcon: Icons.location_on_rounded,
-                  label: 'Collect',
-                ),
-                selected: navigationShell.currentIndex == 1,
-                onTap: () => _goBranch(1),
-              ),
-            ),
-            const SizedBox(width: 48),
-            Expanded(
-              // No badge until the unseal queue is wired: the count is
-              // `FieldSealRepository.seals(readyOnly: true).length`.
-              child: AppBottomNavItem(
-                entry: const AppBottomNavEntry(
-                  icon: Icons.lock_outline_rounded,
-                  activeIcon: Icons.lock_rounded,
-                  label: 'Sealed',
-                ),
-                selected: navigationShell.currentIndex == 2,
-                onTap: () => _goBranch(2),
-              ),
-            ),
-            Expanded(
-              child: AppBottomNavItem(
-                entry: const AppBottomNavEntry(
-                  icon: Icons.person_outline_rounded,
-                  activeIcon: Icons.person_rounded,
-                  label: 'Profile',
-                ),
-                selected: navigationShell.currentIndex == 3,
-                onTap: () => _goBranch(3),
-              ),
-            ),
-          ],
+    final onHome = navigationShell.currentIndex == BackToHomeButton.homeBranch;
+
+    return PopScope(
+      canPop: onHome,
+      onPopInvokedWithResult: (bool didPop, Object? result) {
+        if (didPop) return;
+        _goBranch(BackToHomeButton.homeBranch);
+      },
+      child: Scaffold(
+        body: navigationShell,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: const CreateFineButton(),
+        bottomNavigationBar: AppBottomNavBar(
+          entries: entries,
+          currentIndex: navigationShell.currentIndex,
+          onTap: _goBranch,
+          centerGap: CreateFineButton.notchGap,
+          centerGapRadius: CreateFineButton.notchRadius,
         ),
       ),
     );

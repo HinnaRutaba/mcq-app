@@ -4,8 +4,9 @@ import 'package:get/get.dart';
 
 import 'package:mcq_app/app/app.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
-import 'package:mcq_app/views/magistrate/collections_screen.dart';
-import 'package:mcq_app/views/magistrate/sealed_screen.dart';
+import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
+import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
+import 'package:mcq_app/views/magistrate/round/round_screen.dart';
 
 import 'support/api_stub.dart';
 
@@ -44,13 +45,23 @@ void main() {
   // each screen builds, and names itself — so a screen cannot quietly go
   // blank on the way to being connected. Home has been wired and left this
   // list; it is covered by `dashboard_screen_test.dart`.
-  testWidgets('Collections screen builds while it awaits the defaulters list', (
+  testWidgets('Defaulters screen builds while it awaits the defaulters list', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: CollectionsScreen()));
+    await tester.pumpWidget(const MaterialApp(home: DefaultersScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Collections'), findsOneWidget);
+    expect(find.text('Defaulters'), findsOneWidget);
+    expect(find.text('Not wired up yet'), findsOneWidget);
+  });
+
+  testWidgets('Round screen builds while it awaits the walking order', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: RoundScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Today\u2019s Round'), findsOneWidget);
     expect(find.text('Not wired up yet'), findsOneWidget);
   });
 

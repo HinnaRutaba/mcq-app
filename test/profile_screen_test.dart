@@ -10,7 +10,7 @@ import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/core/storage/secure_storage_service.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
-import 'package:mcq_app/views/magistrate/magistrate_profile_screen.dart';
+import 'package:mcq_app/views/magistrate/more/profile_screen.dart';
 
 import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
@@ -39,7 +39,8 @@ void main() {
         ),
         GoRoute(
           path: AppRoutes.login,
-          builder: (_, _) => const Scaffold(body: Center(child: Text('SIGN IN'))),
+          builder: (_, _) =>
+              const Scaffold(body: Center(child: Text('SIGN IN'))),
         ),
       ],
     );
@@ -128,9 +129,9 @@ void main() {
 
       expect(theme.colorScheme.value, AppColorScheme.indigo);
       expect(
-        Theme.of(tester.element(find.byType(MagistrateProfileScreen)))
-            .colorScheme
-            .primary,
+        Theme.of(
+          tester.element(find.byType(MagistrateProfileScreen)),
+        ).colorScheme.primary,
         AppColorScheme.indigo.light.primary,
         reason: 'the choice has to reach the theme, not just the controller',
       );

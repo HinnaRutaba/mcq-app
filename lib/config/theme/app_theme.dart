@@ -4,6 +4,7 @@ import 'app_brand.dart';
 import 'app_colors.dart';
 import 'app_status_colors.dart';
 import 'app_text_theme.dart';
+import 'app_radius.dart';
 
 /// Light and dark [ThemeData] for the app, for a chosen [AppColorScheme].
 ///
@@ -24,7 +25,7 @@ import 'app_text_theme.dart';
 class AppTheme {
   AppTheme._();
 
-  static const double _radius = 14;
+  static const double _radius = AppRadius.md;
 
   static ThemeData light([
     AppColorScheme scheme = AppColorScheme.balochistanGreen,
@@ -90,10 +91,13 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.lightSurface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: AppTextTheme.light.bodyMedium
-            ?.copyWith(color: AppColors.lightTextHint),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        hintStyle: AppTextTheme.light.bodyMedium?.copyWith(
+          color: AppColors.lightTextHint,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
           borderSide: const BorderSide(color: AppColors.lightBorder),
@@ -117,7 +121,7 @@ class AppTheme {
       ),
       checkboxTheme: CheckboxThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
         fillColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
@@ -199,10 +203,13 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.darkSurface,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: AppTextTheme.dark.bodyMedium
-            ?.copyWith(color: AppColors.darkTextHint),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+        hintStyle: AppTextTheme.dark.bodyMedium?.copyWith(
+          color: AppColors.darkTextHint,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
           borderSide: const BorderSide(color: AppColors.darkBorder),
@@ -221,13 +228,15 @@ class AppTheme {
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
-          borderSide:
-              const BorderSide(color: AppColors.dangerOnDark, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.dangerOnDark,
+            width: 1.5,
+          ),
         ),
       ),
       checkboxTheme: CheckboxThemeData(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(AppRadius.xs),
         ),
         fillColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)

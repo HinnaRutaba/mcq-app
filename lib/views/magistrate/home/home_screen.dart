@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../config/theme/app_colors.dart';
-import '../../controllers/dashboard_controller.dart';
-import '../../core/utils/formatters.dart';
-import '../../models/auth_user.dart';
-import '../../models/field_activity.dart';
-import '../../models/field_beat.dart';
-import '../../widgets/widgets.dart';
+import '../../../config/theme/app_colors.dart';
+import '../../../controllers/dashboard_controller.dart';
+import '../../../core/utils/formatters.dart';
+import '../../../models/auth_user.dart';
+import '../../../models/field_activity.dart';
+import '../../../models/field_beat.dart';
+import '../../../widgets/widgets.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
 import 'widgets/defaulter_breakdown.dart';
+import '../../../config/theme/app_radius.dart';
 
 class MagistrateHomeScreen extends StatelessWidget {
   const MagistrateHomeScreen({super.key});
@@ -65,7 +66,7 @@ class _ScopeStrip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

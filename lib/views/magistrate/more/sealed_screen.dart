@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/widgets.dart';
+import '../../../widgets/widgets.dart';
 
 /// Sealed shops and the unseal queue — emptied while the app moves onto the
 /// MCQ Magistrate API.

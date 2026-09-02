@@ -14,15 +14,41 @@ class AppRoutes {
   static const String changePassword = '/change-password';
 
   // --- Magistrate shell branches ---------------------------------------
+  // One per tab on the bottom bar, in bar order — the create button in the
+  // middle of the bar is not one of these; it pushes `createFine` over the
+  // shell. Each has a directory of its own under `lib/views/magistrate/`.
   static const String magistrateHome = '/magistrate/home';
-  static const String magistrateCollections = '/magistrate/collections';
-  static const String magistrateSealed = '/magistrate/sealed';
-  static const String magistrateProfile = '/magistrate/profile';
+  static const String magistrateDefaulters = '/magistrate/defaulters';
+  static const String magistrateRound = '/magistrate/round';
+  static const String magistrateMore = '/magistrate/more';
+
+  // --- Inside the "More" branch ----------------------------------------
+  // Nested under it rather than pushed over the top, so the bar stays on
+  // screen and the officer is never stranded on a page with no way back to
+  // their round but the system gesture.
+  static const String magistrateSealed = '/magistrate/more/sealed';
+  static const String magistrateProfile = '/magistrate/more/profile';
+
+  /// The `go_router` child segments for the two routes above. A nested
+  /// [GoRoute] takes the tail, not the whole path.
+  static const String magistrateSealedSegment = 'sealed';
+  static const String magistrateProfileSegment = 'profile';
 
   // --- Pushed full-screen routes (appear above the shell/bottom nav) ---
-  static const String createChalaan = '/magistrate/chalaan/new';
-  static const String collectionDetail = '/magistrate/collections/:id';
+
+  /// Imposing a fine. Reached from the add button on the shell with no shop in
+  /// mind, and from a unit's profile with one — hence the optional
+  /// `?property=` rather than a path parameter.
+  static const String createFine = '/magistrate/fine/new';
+
+  static String createFinePath({int? propertyId}) =>
+      propertyId == null ? createFine : '$createFine?property=$propertyId';
+
+  /// The unit profile. Opened from Defaulters, from the Round and from Find,
+  /// which is why it lives in `views/magistrate/shared/` rather than under any
+  /// one tab.
+  static const String collectionDetail = '/magistrate/unit/:id';
 
   static String collectionDetailPath(String recordId) =>
-      '/magistrate/collections/$recordId';
+      '/magistrate/unit/$recordId';
 }

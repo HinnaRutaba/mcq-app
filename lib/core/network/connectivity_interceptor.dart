@@ -46,7 +46,6 @@ class ConnectivityInterceptor extends Interceptor {
     this.onlineFor = const Duration(seconds: 5),
     this.offlineFor = const Duration(seconds: 1),
   }) : _probe = probe ?? PlatformNetworkProbe() {
-
     _probe.changes?.listen(
       (void _) => _checkedAt = null,
       onError: (Object _) {},

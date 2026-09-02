@@ -202,7 +202,10 @@ class ApiService {
     });
     for (final file in files) {
       form.files.add(
-        MapEntry<String, MultipartFile>(file.field, await file.toMultipartFile()),
+        MapEntry<String, MultipartFile>(
+          file.field,
+          await file.toMultipartFile(),
+        ),
       );
     }
     return form;

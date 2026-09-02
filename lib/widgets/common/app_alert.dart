@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../config/theme/app_colors.dart';
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// The single inline message block for a form or a screen — the thing that says
 /// why a submission did not go through.
@@ -36,7 +37,7 @@ class AppAlert extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: tone.container(context),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

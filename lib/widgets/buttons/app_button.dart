@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// Visual styles [AppButton] supports.
 enum AppButtonVariant { primary, secondary, outline, ghost, danger }
@@ -73,7 +74,10 @@ class AppButton extends StatelessWidget {
         ? SizedBox(
             height: 20,
             width: 20,
-            child: CircularProgressIndicator(strokeWidth: 2.2, color: foreground),
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: foreground,
+            ),
           )
         : Row(
             mainAxisSize: MainAxisSize.min,
@@ -103,7 +107,9 @@ class AppButton extends StatelessWidget {
           elevation: 0,
           shadowColor: Colors.transparent,
           side: border,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 20),
         ),
         child: child,

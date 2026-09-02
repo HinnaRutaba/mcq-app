@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../text/app_text.dart';
+import '../../config/theme/app_radius.dart';
 
 /// The single checkbox widget every screen should use, with an optional
 /// tappable [label] next to it.
@@ -19,7 +20,7 @@ class AppCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(AppRadius.xs),
       onTap: onChanged == null ? null : () => onChanged!(!value),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),

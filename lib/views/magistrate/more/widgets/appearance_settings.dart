@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../config/theme/app_brand.dart';
-import '../../../controllers/theme_controller.dart';
-import '../../../widgets/widgets.dart';
+import '../../../../config/theme/app_brand.dart';
+import '../../../../controllers/theme_controller.dart';
+import '../../../../widgets/widgets.dart';
+import '../../../../config/theme/app_radius.dart';
 
 /// Letting the officer make the app comfortable to look at.
 ///
@@ -105,7 +106,7 @@ class _SchemeCard extends StatelessWidget {
     // The chosen scheme's own colour rings it, so the selection is shown in
     // the thing being selected.
     final ring = scheme.of(theme.brightness).primary;
-    final radius = BorderRadius.circular(14);
+    final radius = BorderRadius.circular(AppRadius.md);
 
     return Semantics(
       selected: selected,
@@ -195,7 +196,7 @@ class _SchemePreview extends StatelessWidget {
       height: 58,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(9),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
@@ -260,7 +261,7 @@ class _Bar extends StatelessWidget {
     width: width,
     decoration: BoxDecoration(
       color: color,
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(AppRadius.pill),
     ),
   );
 }
