@@ -10,12 +10,13 @@ import '../../config/theme/app_brand.dart';
 /// filled. A filled shape on a gradient reads as a panel someone forgot to put
 /// content in; a stroke reads as ornament, which is all this is.
 ///
-/// The group starts in the bottom-right corner, where the shapes are biggest,
-/// sharpest and closest together, and breaks apart as it travels left: each one
-/// further out is smaller, fainter and blurred harder, until the last is barely
-/// there. It keeps to the lower band of the header on the way, because the
-/// title sits top-left and outlines drifting up under it read as dirt on the
-/// screen rather than as ornament.
+/// The arcs sweep out of the bottom-right corner and the shapes scatter away
+/// from them. Size and alpha are deliberately *not* tied to how far out a
+/// shape sits — the biggest is mid-field, the smallest is up among the arcs —
+/// because a group that shrinks and fades in step reads as one line of shapes
+/// rather than a scatter. Blur still grows with distance: that is the depth
+/// cue. It all keeps right and low, because the title sits top-left and
+/// outlines drifting under it read as dirt on the screen.
 ///
 /// Nothing here carries meaning — it exists so the header has something to
 /// look at — which is why it is always the *first* child of the header's
@@ -28,11 +29,11 @@ class AppHeroOrnament extends StatelessWidget {
   /// above this band belongs to the title.
   static const Size size = Size(300, 190);
 
-  /// The corner the arcs ripple out from, in cluster coordinates. Sharing one
-  /// centre is what keeps them from crossing: concentric circles never do, so
-  /// three of them stack up in the corner without a single stroke collision.
-  static const double _originRight = 35;
-  static const double _originBottom = 25;
+  /// The corner the arcs ripple out from. Still one shared centre — concentric
+  /// circles never cross, so the strokes cannot collide — but the radii below
+  /// are spaced unevenly, because three even gaps read as ruled lines.
+  static const double _originRight = 30;
+  static const double _originBottom = 18;
 
   @override
   Widget build(BuildContext context) {
@@ -45,59 +46,80 @@ class AppHeroOrnament extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: <Widget>[
-            // Three arcs off the same centre, just past the corner. Most of
-            // each one is outside the header, so what shows is a sweep running
-            // out of the corner rather than circles sitting in it.
-            _arc(radius: 62, stroke: 1.2, blur: 2, color: white, alpha: 0.28),
-            _arc(radius: 105, stroke: 1.2, blur: 3, color: white, alpha: 0.34),
-            _arc(radius: 155, stroke: 1, blur: 4.5, color: white, alpha: 0.18),
+            // Gaps of 44 then 90, not 43 then 50: uneven enough that they
+            // stop reading as a ripple. The outermost is faint enough to be a
+            // suggestion rather than a third band.
+            _arc(radius: 52, stroke: 1.2, blur: 2, color: white, alpha: 0.30),
+            _arc(radius: 96, stroke: 1.1, blur: 3, color: white, alpha: 0.20),
+            _arc(radius: 186, stroke: 1, blur: 5, color: white, alpha: 0.10),
 
-            // Past the last arc the group breaks up, staying low as it
-            // travels left so it never climbs into the title.
+            // The scatter, and the numbers are the point: horizontal gaps
+            // (26, 50, 31, 39, 38), vertical (24, 18, 24, 26, 32), nothing correlated with
+            // distance and no three shapes near a line. Any one of those
+            // regularities on its own is enough to read as a row.
 
-            // The warm note — dim, and out in the drift rather than in the
-            // corner, so the scheme's accent tints the header instead of
-            // announcing itself on it.
+            // Small, and nearest the corner — the near shapes are not the
+            // big ones.
             _Outline(
-              right: 193,
-              bottom: 83,
-              side: 44,
-              radius: 22,
+              right: 92,
+              bottom: 114,
+              side: 14,
+              radius: 7,
+              stroke: 0.9,
+              blur: 2,
+              color: white.withValues(alpha: 0.14),
+            ),
+            _Outline(
+              right: 118,
+              bottom: 48,
+              side: 30,
+              radius: 9,
               stroke: 1,
               blur: 2,
-              color: context.brand.accent.withValues(alpha: 0.32),
-            ),
-            // The one shape with corners, tilted so it is parallel to nothing
-            // else on the screen.
-            _Outline(
-              right: 160,
-              bottom: 145,
-              side: 34,
-              radius: 10,
-              stroke: 1,
-              blur: 2.5,
-              angle: 0.5,
-              color: white.withValues(alpha: 0.15),
+              angle: 0.25,
+              color: white.withValues(alpha: 0.16),
             ),
             _Outline(
-              right: 262,
-              bottom: 58,
-              side: 26,
-              radius: 13,
-              stroke: 0.9,
-              blur: 2.5,
-              color: white.withValues(alpha: 0.13),
-            ),
-            // The last of it, more suggestion than shape.
-            _Outline(
-              right: 250,
+              right: 168,
               bottom: 140,
-              side: 16,
+              side: 18,
               radius: 5,
               stroke: 0.9,
+              blur: 1.8,
+              angle: 0.6,
+              color: white.withValues(alpha: 0.20),
+            ),
+            // The warm note, and the largest of them — out in the field rather
+            // than in the corner, so the scheme's accent tints the header
+            // instead of announcing itself on it.
+            _Outline(
+              right: 199,
+              bottom: 90,
+              side: 46,
+              radius: 23,
+              stroke: 1,
+              blur: 2.2,
+              color: context.brand.accent.withValues(alpha: 0.30),
+            ),
+            // Tilted the other way, so no two squares are parallel.
+            _Outline(
+              right: 238,
+              bottom: 172,
+              side: 38,
+              radius: 11,
+              stroke: 1,
+              blur: 2.6,
+              angle: -0.4,
+              color: white.withValues(alpha: 0.13),
+            ),
+            _Outline(
+              right: 276,
+              bottom: 72,
+              side: 24,
+              radius: 12,
+              stroke: 0.9,
               blur: 3,
-              angle: 0.4,
-              color: white.withValues(alpha: 0.09),
+              color: white.withValues(alpha: 0.11),
             ),
           ],
         ),
