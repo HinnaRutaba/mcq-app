@@ -1,16 +1,6 @@
 import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
 
-/// Every drop-down in the enforcement module, in one payload.
-///
-/// Fetch it once at sign-in and cache it — see `DefinitionsRepository`. Do not
-/// copy the fine types or the action types into the app: they are rows MCQ can
-/// rename, reorder and switch off, and a hardcoded copy is a list that
-/// silently stops matching the register.
-///
-/// The four status vocabularies come through as [LabelledValue] like every
-/// other status in the system, so a filter chip built from them is coloured by
-/// the same `tone` the server puts on the record itself.
 class EnforcementDefinitions {
   const EnforcementDefinitions({
     this.fineTypes = const <FineTypeDefinition>[],

@@ -2,17 +2,7 @@ import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
 import 'trade_licence.dart';
 
-/// Who is this? — the CNIC search an officer makes before writing a fine.
-///
-/// Four registers are answered **separately** and deliberately not merged: MCQ
-/// has no single person register, and folding an allottee together with a trade
-/// licence holder would assert an identity nobody verified. So do not present
-/// this as one person: present what each register holds, and let the officer
-/// decide.
-///
-/// Read [fineCount] before the form opens. A first offence and a fifth are
-/// different conversations to have at a counter, and the count is the only
-/// place that difference shows.
+
 class PersonLookup {
   const PersonLookup({
     this.searched,

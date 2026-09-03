@@ -2,11 +2,7 @@ import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
 import 'challan.dart';
 
-/// The full profile of one unit: the holder, the money position, the seal and
-/// any open case.
-///
-/// Opened from a card, so the header can be drawn from the card already in hand
-/// and this call only enriches it.
+
 class PropertyProfile {
   const PropertyProfile({
     required this.property,

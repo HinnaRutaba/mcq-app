@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
+import '../controllers/definitions_controller.dart';
 import '../controllers/theme_controller.dart';
 import '../core/network/api_service.dart';
 import '../core/permissions/permission_service.dart';
@@ -87,6 +88,14 @@ void setupDependencies() {
   // screen's sign-out.
   Get.put(AuthController(), permanent: true);
   Get.put(ThemeController(), permanent: true);
+
+  // After the session owner, and permanent alongside it: the enforcement
+  // module's drop-downs are read from here for the whole app lifecycle, and
+  // this watches `AuthController.officer` to know when it may fetch them. It
+  // puts nothing on the wire until an officer is signed in — see
+  // [DefinitionsController] — so registering it eagerly is safe where the
+  // fetching controllers below are not.
+  Get.put(DefinitionsController(), permanent: true);
 
   // Lazily, unlike the rest: these fetch in `onInit`, and building them here
   // would put authenticated calls on the wire before anyone has signed in.
