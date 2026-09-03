@@ -60,6 +60,11 @@ class FieldOfficer {
 
 /// The bazaars this officer may see. The server enforces the restriction; this
 /// is here so the app can say out loud what the figures cover.
+///
+/// Shared with the licensing beat, which sends the same block with fewer keys:
+/// [areaNames] and [zoneNames] are derived from [areas] when the server does
+/// not send them separately, so a screen can always print which bazaars it is
+/// talking about.
 class FieldScope {
   const FieldScope({
     this.restricted = true,
@@ -78,12 +83,50 @@ class FieldScope {
 
   final List<String> zoneNames;
 
-  factory FieldScope.fromJson(Map<String, dynamic> json) => FieldScope(
-    restricted: Json.booleanOr(json['restricted'], true),
-    areas: Json.list(json['areas']).map(FieldArea.fromJson).toList(),
-    areaNames: Json.stringList(json['area_names']),
-    zoneNames: Json.stringList(json['zone_names']),
-  );
+  factory FieldScope.fromJson(Map<String, dynamic> json) {
+    final areas = Json.list(json['areas']).map(FieldArea.fromJson).toList();
+    final areaNames = Json.stringList(json['area_names']);
+    final zoneNames = Json.stringList(json['zone_names']);
+    return FieldScope(
+      restricted: Json.booleanOr(json['restricted'], true),
+      areas: areas,
+      areaNames: areaNames.isEmpty ? _names(areas, _areaName) : areaNames,
+      zoneNames: zoneNames.isEmpty ? _names(areas, _zoneName) : zoneNames,
+    );
+  }
+
+  /// The bazaar names as one phrase, e.g. "Jinnah Road and Prince Road" — the
+  /// line a screen puts under a figure so nobody reads it as city-wide.
+  String get areaSentence => _sentence(areaNames);
+
+  String get zoneSentence => _sentence(zoneNames);
+
+  bool get hasAreas => areas.isNotEmpty || areaNames.isNotEmpty;
+
+  static String? _areaName(FieldArea area) =>
+      area.areaName.isEmpty ? null : area.areaName;
+
+  static String? _zoneName(FieldArea area) => area.zoneName;
+
+  /// Distinct, in the order the server listed them — several bazaars share a
+  /// zone, and repeating its name reads as a mistake.
+  static List<String> _names(
+    List<FieldArea> areas,
+    String? Function(FieldArea area) of,
+  ) {
+    final names = <String>[];
+    for (final area in areas) {
+      final name = of(area);
+      if (name != null && !names.contains(name)) names.add(name);
+    }
+    return names;
+  }
+
+  static String _sentence(List<String> names) => switch (names.length) {
+    0 => '',
+    1 => names.first,
+    _ => '${names.sublist(0, names.length - 1).join(', ')} and ${names.last}',
+  };
 }
 
 class FieldArea {
@@ -110,11 +153,13 @@ class FieldArea {
   );
 }
 
-/// One work queue on the home screen.
+/// One work queue on a home screen — enforcement's or licensing's.
 ///
 /// [endpoint] is the list this tile opens, e.g.
 /// `enforcement/field/seals?ready=1`. Route from it rather than matching [key]
-/// against a hard-coded path — see `ApiPaths.resolve`.
+/// against a hard-coded path — see `ApiPaths.resolve`, which reads both the
+/// relative form the enforcement beat sends and the absolute one the licensing
+/// beat sends.
 class FieldQueue {
   const FieldQueue({
     required this.key,
@@ -122,23 +167,33 @@ class FieldQueue {
     required this.endpoint,
     this.amount,
     this.tone,
+    this.areaScoped,
   });
 
   /// Server-defined. Known keys: `defaulters`, `follow_ups_due`,
-  /// `awaiting_unseal`, `sealed_shops`, `open_cases`, `assigned_to_me`.
+  /// `awaiting_unseal`, `sealed_shops`, `open_cases`, `assigned_to_me` on the
+  /// enforcement beat; `expiring`, `lapsed`, `live` on the licensing one.
   final String key;
 
   final int count;
 
-  /// The relative path this queue opens, without the `/api/v1` prefix.
+  /// The path this queue opens. Relative on the enforcement beat, absolute and
+  /// already carrying `/api/v1` on the licensing beat.
   final String endpoint;
 
   /// Total owed across the queue, as a string. Null on the queues that are a
-  /// count of work rather than a sum of money.
+  /// count of work rather than a sum of money — which is all of the licensing
+  /// ones.
   final String? amount;
 
-  /// `danger` | `warning` | `info` | `neutral` | `primary`.
+  /// `danger` | `warning` | `info` | `neutral` | `primary`. Null on the
+  /// licensing beat, which tones nothing.
   final String? tone;
+
+  /// Whether the count covers the officer's bazaars only. Sent by the
+  /// licensing beat; null on the enforcement beat, where the whole payload is
+  /// area-scoped and saying so per queue would be noise.
+  final bool? areaScoped;
 
   factory FieldQueue.fromJson(Map<String, dynamic> json) => FieldQueue(
     key: Json.stringOr(json['key']),
@@ -146,6 +201,7 @@ class FieldQueue {
     endpoint: Json.stringOr(json['endpoint']),
     amount: Json.money(json['amount']),
     tone: Json.string(json['tone']),
+    areaScoped: Json.boolean(json['area_scoped']),
   );
 
   bool get isEmpty => count == 0;

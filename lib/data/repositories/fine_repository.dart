@@ -26,6 +26,20 @@ abstract class FineRepository {
   /// Retry with the same [request] instance, never a rebuilt one: its
   /// `client_action_uuid` is what stops a resend becoming a second fine.
   Future<Fine> impose({required int propertyId, required FineRequest request});
+
+  /// Imposes a fine on somebody with no MCQ property at all — a hawker, a
+  /// handcart, somebody blocking a road.
+  ///
+  /// Build it with `FineRequest.inArea`, which requires the two things this
+  /// endpoint cannot do without: the bazaar, which is the only scoping there
+  /// is, and the offender's own name, father's name and mobile, because there
+  /// is no agreement to fall back on. The officer still cannot fine outside
+  /// their own postings — the server refuses it whatever `area_id` says.
+  ///
+  /// Everything [impose] says about a refused seal, about a fine being a
+  /// separate debt from the rent, and about retrying with the same [request]
+  /// instance applies here too.
+  Future<Fine> imposeInArea({required FineRequest request});
 }
 
 class ApiFineRepository implements FineRepository {
@@ -42,6 +56,12 @@ class ApiFineRepository implements FineRepository {
       ApiPaths.propertyFines(propertyId),
       body: request.toJson(),
     );
+    return Fine.fromJson(response.dataMap);
+  }
+
+  @override
+  Future<Fine> imposeInArea({required FineRequest request}) async {
+    final response = await _api.post(ApiPaths.fines, body: request.toJson());
     return Fine.fromJson(response.dataMap);
   }
 }

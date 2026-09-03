@@ -20,6 +20,10 @@ class ApiConfig {
 class ApiPaths {
   ApiPaths._();
 
+  // 0. Master data — fetched once at sign-in and cached
+  static const String definitions =
+      '${ApiConfig.apiPrefix}/enforcement/definitions';
+
   // 1. Signing in
   static const String login = '${ApiConfig.apiPrefix}/auth/device/login';
   static const String session = '${ApiConfig.apiPrefix}/auth/device/session';
@@ -50,8 +54,22 @@ class ApiPaths {
       '${ApiConfig.apiPrefix}/enforcement/cases/$caseId/actions';
 
   // 7. Imposing a fine
+  /// Who is this? — the CNIC search made before writing a fine.
+  static const String person =
+      '${ApiConfig.apiPrefix}/enforcement/field/person';
+
+  /// A fine on a unit MCQ lets, or on somebody trading at one.
   static String propertyFines(int propertyId) =>
       '${ApiConfig.apiPrefix}/enforcement/properties/$propertyId/fines';
+
+  /// A fine on anybody in the city, against no MCQ property. Scoped by
+  /// `area_id` alone.
+  static const String fines = '${ApiConfig.apiPrefix}/enforcement/fines';
+
+  /// Opening a case from the handset.
+  static const String fieldCases =
+      '${ApiConfig.apiPrefix}/enforcement/field/cases';
+
   static const String evidence = '${ApiConfig.apiPrefix}/enforcement/evidence';
 
   // 8. Seals and the unseal queue
@@ -63,6 +81,18 @@ class ApiPaths {
 
   // 9. Challans
   static const String challans = '${ApiConfig.apiPrefix}/billing/challans';
+
+  // 10. Trade licences — a different register from everything above
+  static const String tradeBeat = '${ApiConfig.apiPrefix}/trade/field/beat';
+  static const String tradeLapsed = '${ApiConfig.apiPrefix}/trade/field/lapsed';
+  static const String tradeExpiring =
+      '${ApiConfig.apiPrefix}/trade/field/expiring';
+  static const String tradeLookup = '${ApiConfig.apiPrefix}/trade/field/lookup';
+  static const String tradeTariff = '${ApiConfig.apiPrefix}/trade/field/tariff';
+  static const String tradePending =
+      '${ApiConfig.apiPrefix}/trade/field/pending';
+  static const String tradeApplications =
+      '${ApiConfig.apiPrefix}/trade/applications/field';
 
   /// Turns an endpoint the server handed us — a home-screen queue's
   /// `endpoint`, e.g. `enforcement/field/seals?ready=1` — into a path and a

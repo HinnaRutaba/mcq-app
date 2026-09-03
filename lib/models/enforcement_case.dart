@@ -24,6 +24,8 @@ class EnforcementCase {
     this.property,
     this.allotment,
     this.allottee,
+    this.offender,
+    this.isConductCase = false,
     this.area,
     this.magistrate,
     this.isAssigned = false,
@@ -74,6 +76,16 @@ class EnforcementCase {
   final PropertyRef? property;
   final AllotmentRef? allotment;
   final AllotteeRef? allottee;
+
+  /// Somebody the case names who is not on the register. Set instead of
+  /// [allottee] on a case about conduct at a unit MCQ has not let.
+  final OffenderRef? offender;
+
+  /// Whether this case is about what is happening at the unit rather than
+  /// about arrears. Recovery cases are opened against a tenancy, conduct cases
+  /// against the unit — see `FieldCaseRequest`.
+  final bool isConductCase;
+
   final AreaRef? area;
 
   /// The magistrate the taxation branch assigned.
@@ -110,6 +122,8 @@ class EnforcementCase {
         property: PropertyRef.maybe(json['property']),
         allotment: AllotmentRef.maybe(json['allotment']),
         allottee: AllotteeRef.maybe(json['allottee']),
+        offender: OffenderRef.maybe(json['offender']),
+        isConductCase: Json.booleanOr(json['is_conduct_case']),
         area: AreaRef.maybe(json['area']),
         magistrate: UserRef.maybe(json['magistrate']),
         isAssigned: Json.booleanOr(json['is_assigned']),

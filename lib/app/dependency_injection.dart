@@ -11,11 +11,14 @@ import '../data/repositories/auth_repository.dart';
 import '../data/repositories/challan_repository.dart';
 import '../data/repositories/dashboard_repository.dart';
 import '../data/repositories/defaulters_repository.dart';
+import '../data/repositories/definitions_repository.dart';
 import '../data/repositories/enforcement_case_repository.dart';
 import '../data/repositories/evidence_repository.dart';
 import '../data/repositories/field_seal_repository.dart';
 import '../data/repositories/fine_repository.dart';
+import '../data/repositories/person_repository.dart';
 import '../data/repositories/reporting_repository.dart';
+import '../data/repositories/trade_repository.dart';
 import '../data/repositories/units_repository.dart';
 
 /// Registers app-wide singletons before [runApp].
@@ -43,6 +46,12 @@ void setupDependencies() {
     ApiAuthRepository(api: api, storage: storage),
     permanent: true,
   );
+  // Master data first, because it is what every enforcement drop-down is drawn
+  // from. It caches, so registering it here costs nothing until something asks.
+  Get.put<DefinitionsRepository>(
+    ApiDefinitionsRepository(api: api),
+    permanent: true,
+  );
   Get.put<DashboardRepository>(
     ApiDashboardRepository(api: api),
     permanent: true,
@@ -61,12 +70,17 @@ void setupDependencies() {
     permanent: true,
   );
   Get.put<FineRepository>(ApiFineRepository(api: api), permanent: true);
+  Get.put<PersonRepository>(ApiPersonRepository(api: api), permanent: true);
   Get.put<FieldSealRepository>(
     ApiFieldSealRepository(api: api),
     permanent: true,
   );
   Get.put<ChallanRepository>(ApiChallanRepository(api: api), permanent: true);
   Get.put<EvidenceRepository>(ApiEvidenceRepository(api: api), permanent: true);
+
+  // A different register from everything above: the shops MCQ licenses but is
+  // not landlord to. Same bazaar, second job.
+  Get.put<TradeRepository>(ApiTradeRepository(api: api), permanent: true);
 
   // The session owner. Permanent because three places read it: the splash
   // screen restoring a stored token, the sign-in form, and the profile

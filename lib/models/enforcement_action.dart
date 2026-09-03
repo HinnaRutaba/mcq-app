@@ -8,6 +8,7 @@ class EnforcementAction {
     this.id,
     this.enforcementCaseId,
     this.actionType,
+    this.actionTypeId,
     this.actionDate,
     required this.amounts,
     this.promisedPaymentDate,
@@ -30,6 +31,11 @@ class EnforcementAction {
   /// `fine_imposed` appears here but is created by the fine endpoint, not by
   /// recording an action.
   final LabelledValue? actionType;
+
+  /// The definitions row behind [actionType] — `ActionTypeDefinition.id`. The
+  /// id to match on when the server has renamed the label since the app cached
+  /// the definitions.
+  final int? actionTypeId;
 
   final DateTime? actionDate;
   final ActionAmounts amounts;
@@ -62,6 +68,7 @@ class EnforcementAction {
         id: Json.integer(json['id']),
         enforcementCaseId: Json.integer(json['enforcement_case_id']),
         actionType: LabelledValue.maybe(json['action_type']),
+        actionTypeId: Json.integer(json['action_type_id']),
         actionDate: Json.dateTime(json['action_date']),
         amounts: ActionAmounts.fromJson(Json.map(json['amounts'])),
         promisedPaymentDate: Json.dateTime(json['promised_payment_date']),

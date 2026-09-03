@@ -40,6 +40,8 @@ class Challan {
     this.billingPeriod,
     this.allotment,
     this.allottee,
+    this.payerName,
+    this.payerMobileNo,
     this.property,
     this.area,
     this.createdAt,
@@ -102,6 +104,13 @@ class Challan {
   final AllotmentRef? allotment;
   final AllotteeRef? allottee;
 
+  /// Who the bill is addressed to. Populated on a fine raised against somebody
+  /// who is not on the register — where [allottee] is null, this is the only
+  /// name on the challan, and it is who to ring about it.
+  final String? payerName;
+
+  final String? payerMobileNo;
+
   final PropertyRef? property;
   final AreaRef? area;
   final DateTime? createdAt;
@@ -136,6 +145,8 @@ class Challan {
     billingPeriod: BillingPeriod.maybe(json['billing_period']),
     allotment: AllotmentRef.maybe(json['allotment']),
     allottee: AllotteeRef.maybe(json['allottee']),
+    payerName: Json.string(json['payer_name']),
+    payerMobileNo: Json.string(json['payer_mobile_no']),
     property: PropertyRef.maybe(json['property']),
     area: AreaRef.maybe(json['area']),
     createdAt: Json.dateTime(json['created_at']),

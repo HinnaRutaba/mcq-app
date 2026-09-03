@@ -16,7 +16,10 @@ class Fine {
     this.id,
     this.fineNo,
     this.fineType,
+    this.fineTypeId,
     this.status,
+    this.photoPath,
+    this.propertySealId,
     required this.amounts,
     this.imposedOn,
     this.legalProvision,
@@ -44,8 +47,19 @@ class Fine {
   /// Labelled by the server, e.g. "Used the unit without permission".
   final LabelledValue? fineType;
 
+  /// The definitions row behind [fineType] — `FineTypeDefinition.id`.
+  final int? fineTypeId;
+
   /// e.g. "Added to a challan".
   final LabelledValue? status;
+
+  /// The server-side path of the photograph filed with the fine, as returned
+  /// by the evidence upload.
+  final String? photoPath;
+
+  /// The seal this fine is tied to, when one was applied alongside it or the
+  /// fine was raised for breaking one.
+  final int? propertySealId;
 
   final FineAmounts amounts;
   final DateTime? imposedOn;
@@ -96,7 +110,10 @@ class Fine {
     id: Json.integer(json['id']),
     fineNo: Json.string(json['fine_no']),
     fineType: LabelledValue.maybe(json['fine_type']),
+    fineTypeId: Json.integer(json['fine_type_id']),
     status: LabelledValue.maybe(json['status']),
+    photoPath: Json.string(json['photo_path']),
+    propertySealId: Json.integer(json['property_seal_id']),
     amounts: FineAmounts.fromJson(Json.map(json['amounts'])),
     imposedOn: Json.dateTime(json['imposed_on']),
     legalProvision: Json.string(json['legal_provision']),

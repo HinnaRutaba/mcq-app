@@ -8,6 +8,7 @@ class CaseSealRequest extends FieldWriteRequest {
     required this.sealReason,
     this.sealedOn,
     this.sealPhotoPath,
+    this.fineId,
     super.actionDate,
     super.latitude,
     super.longitude,
@@ -37,6 +38,16 @@ class CaseSealRequest extends FieldWriteRequest {
   /// Path from the evidence upload — the photograph of the applied seal.
   final String? sealPhotoPath;
 
+  /// The fine this seal is being applied for, when there is one already on
+  /// record.
+  ///
+  /// Sealing *with* a fine is one request — `FineRequest.seal`. This is the
+  /// other case: the fine was written earlier and the shop is being shut for
+  /// not paying it. Naming it here is what ties the seal to the debt, and so
+  /// what lets the unseal queue work out that the seal is clear to come off
+  /// once the fine is settled.
+  final int? fineId;
+
   static const int reasonMinLength = 10;
   static const int reasonMaxLength = 300;
 
@@ -46,6 +57,7 @@ class CaseSealRequest extends FieldWriteRequest {
     'seal_reason': sealReason,
     'sealed_on': Json.dateOnly(sealedOn),
     'seal_photo_path': sealPhotoPath,
+    'fine_id': fineId,
   };
 }
 

@@ -1,0 +1,134 @@
+import '../../core/network/api_config.dart';
+import '../../core/network/api_service.dart';
+import '../../models/trade_application_request.dart';
+import '../../models/trade_application.dart';
+import '../../models/trade_beat.dart';
+import '../../models/trade_licence.dart';
+import '../../models/trade_tariff.dart';
+
+/// Trade licences — the shops MCQ does not let.
+///
+/// A **different register** from everything in the enforcement module. Those
+/// are MCQ's own shops, let under agreements; these are the businesses around
+/// Quetta that MCQ licenses but is not landlord to. Same bazaar, second job.
+///
+/// Nothing here has an allotment, an allottee or a property: a licence is keyed
+/// on a CNIC and a mobile number. Do not try to join the two registers in the
+/// app — a shopkeeper who appears in both is two records that happen to share a
+/// name, and merging them would assert an identity nobody verified.
+abstract class TradeRepository {
+  /// The licensing home screen: the officer's bazaars and the three queues.
+  ///
+  /// Route each tile from its `FieldQueue.endpoint`, which arrives absolute
+  /// here (`/api/v1/trade/field/expiring`) rather than relative as on the
+  /// enforcement beat. `ApiPaths.resolve` reads both.
+  Future<TradeBeat> beat();
+
+  /// Licences that ran out in the last 90 days and were not renewed — the
+  /// round list.
+  ///
+  /// A shopkeeper who renewed early is already excluded. Do not filter again on
+  /// the client: a second filter over the server's window is how a shop that
+  /// has paid ends up being visited anyway.
+  Future<List<TradeLicence>> lapsed();
+
+  /// Licences running out inside 30 days.
+  ///
+  /// The same window that raises the renewal challan, so everybody on this list
+  /// has already been sent a demand — the visit is a reminder, not news.
+  Future<List<TradeLicence>> expiring();
+
+  /// The doorway lookup, by CNIC, mobile, licence number or verification code.
+  ///
+  /// Deliberately **not** area-scoped: a licence issued in the next bazaar is
+  /// still valid, and an officer standing in front of a shop needs the true
+  /// answer rather than the one their posting allows.
+  ///
+  /// Read `TradeLicenceLookup.hasValidLicence`, never `found` alone.
+  /// Found-and-lapsed is a renewal; never-licensed is a capture.
+  Future<TradeLicenceLookup> lookup(String query);
+
+  /// Every trade with its price in one bazaar, grouped for a picker.
+  ///
+  /// Cache it — MCQ reprices a zone a few times a year. An unpriced trade comes
+  /// back with a null fee and is counted in `TradeTariff.unpriced`; never
+  /// render that as `0.00`. `TradeCategory.canQuote` is the flag to gate the
+  /// picker on.
+  Future<TradeTariff> tariff({int? areaId});
+
+  /// The officer's own field captures that have not been paid.
+  ///
+  /// Scoped to them, not to the bazaar — somebody else's captures are not
+  /// theirs to chase.
+  Future<List<TradeApplication>> pending();
+
+  /// Captures an unlicensed shop on the spot.
+  ///
+  /// The only write in this module, and it does four things at once: quotes the
+  /// fee from (trade x zone), raises the challan, issues a payment link and
+  /// texts the shopkeeper. So never compute the fee in the app — pick a
+  /// category whose `canQuote` is true and let the server price it.
+  ///
+  /// Unlike every enforcement write, this endpoint accepts no
+  /// `client_action_uuid`, so a resend is **not** made safe by the server.
+  /// After a timeout, check [pending] before sending again.
+  Future<TradeApplication> submitApplication(TradeApplicationRequest request);
+}
+
+class ApiTradeRepository implements TradeRepository {
+  ApiTradeRepository({required this._api});
+
+  final ApiService _api;
+
+  @override
+  Future<TradeBeat> beat() async {
+    final response = await _api.get(ApiPaths.tradeBeat);
+    return TradeBeat.fromJson(response.dataMap);
+  }
+
+  @override
+  Future<List<TradeLicence>> lapsed() => _licences(ApiPaths.tradeLapsed);
+
+  @override
+  Future<List<TradeLicence>> expiring() => _licences(ApiPaths.tradeExpiring);
+
+  @override
+  Future<TradeLicenceLookup> lookup(String query) async {
+    final response = await _api.get(
+      ApiPaths.tradeLookup,
+      query: <String, dynamic>{'q': query},
+    );
+    return TradeLicenceLookup.fromJson(response.dataMap);
+  }
+
+  @override
+  Future<TradeTariff> tariff({int? areaId}) async {
+    final response = await _api.get(
+      ApiPaths.tradeTariff,
+      query: <String, dynamic>{'area_id': areaId},
+    );
+    return TradeTariff.fromJson(response.dataMap);
+  }
+
+  @override
+  Future<List<TradeApplication>> pending() async {
+    final response = await _api.get(ApiPaths.tradePending);
+    return response.dataList.map(TradeApplication.fromJson).toList();
+  }
+
+  @override
+  Future<TradeApplication> submitApplication(
+    TradeApplicationRequest request,
+  ) async {
+    final response = await _api.post(
+      ApiPaths.tradeApplications,
+      body: request.toJson(),
+    );
+    return TradeApplication.fromJson(response.dataMap);
+  }
+
+  Future<List<TradeLicence>> _licences(String path) async {
+    final response = await _api.get(path);
+    return response.dataList.map(TradeLicence.fromJson).toList();
+  }
+}

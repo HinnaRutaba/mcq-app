@@ -4,6 +4,7 @@ import 'package:mcq_app/models/api_response.dart';
 import 'package:mcq_app/models/enforcement_action.dart';
 import 'package:mcq_app/models/enforcement_action_request.dart';
 import 'package:mcq_app/models/enforcement_case.dart';
+import 'package:mcq_app/models/field_case_request.dart';
 import 'package:mcq_app/models/field_seal.dart';
 import 'package:mcq_app/models/map_pins.dart';
 import 'package:mcq_app/models/property_profile.dart';
@@ -513,6 +514,10 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
       ),
     );
   }
+
+  @override
+  Future<EnforcementCase> openCase(FieldCaseRequest request) async =>
+      throw UnimplementedError('the property profile does not open cases');
 
   @override
   Future<List<EnforcementAction>> actions(int caseId) async {

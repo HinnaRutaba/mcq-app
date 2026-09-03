@@ -99,31 +99,106 @@ class AllotmentRef {
 
 /// The person holding the tenancy. Null on a vacant unit, and on a fine
 /// raised against somebody who is not on the register.
+///
+/// Spelled `full_name` where a case or a challan references the holder and
+/// `name` on the person lookup, which also carries [fatherName] and [status];
+/// both are read here so one class serves every place a holder appears.
 class AllotteeRef {
   const AllotteeRef({
     this.id,
     this.allotteeCode,
     this.fullName,
+    this.fatherName,
     this.mobileNo,
     this.cnic,
+    this.status,
   });
 
   final int? id;
   final String? allotteeCode;
   final String? fullName;
+
+  /// Present on the person lookup. Null wherever the holder is referenced from
+  /// a case, a challan or a profile.
+  final String? fatherName;
+
   final String? mobileNo;
   final String? cnic;
+
+  /// e.g. `active`. Present on the person lookup only.
+  final String? status;
 
   factory AllotteeRef.fromJson(Map<String, dynamic> json) => AllotteeRef(
     id: Json.integer(json['id']),
     allotteeCode: Json.string(json['allottee_code']),
     fullName: Json.string(Json.pick(json, <String>['full_name', 'name'])),
+    fatherName: Json.string(json['father_name']),
     mobileNo: Json.string(json['mobile_no']),
     cnic: Json.string(json['cnic']),
+    status: Json.string(json['status']),
   );
 
   static AllotteeRef? maybe(Object? source) =>
       source is Map ? AllotteeRef.fromJson(Json.map(source)) : null;
+}
+
+/// Somebody a case or a fine names who is not on the property register — a
+/// hawker, a handcart, whoever is trading out of a unit MCQ has not let.
+///
+/// A case carries one of these when it is about conduct rather than arrears;
+/// see `EnforcementCase.isConductCase`. The published spec only ever captured
+/// it null, so the keys are read leniently and the untouched payload is kept in
+/// [raw] — read a missing field from there and then add it properly rather than
+/// guessing at a getter.
+class OffenderRef {
+  const OffenderRef({
+    this.id,
+    this.name,
+    this.fatherName,
+    this.mobileNo,
+    this.cnic,
+    this.business,
+    this.address,
+    this.raw = const <String, dynamic>{},
+  });
+
+  final int? id;
+  final String? name;
+  final String? fatherName;
+  final String? mobileNo;
+  final String? cnic;
+
+  /// What they trade as, e.g. "Fruit stall, handcart".
+  final String? business;
+
+  /// Where they were found.
+  final String? address;
+
+  final Map<String, dynamic> raw;
+
+  factory OffenderRef.fromJson(Map<String, dynamic> json) => OffenderRef(
+    id: Json.integer(json['id']),
+    name: Json.string(
+      Json.pick(json, <String>['name', 'full_name', 'offender_name']),
+    ),
+    fatherName: Json.string(
+      Json.pick(json, <String>['father_name', 'offender_father_name']),
+    ),
+    mobileNo: Json.string(
+      Json.pick(json, <String>['mobile_no', 'offender_mobile_no']),
+    ),
+    cnic: Json.string(Json.pick(json, <String>['cnic', 'offender_cnic'])),
+    business: Json.string(
+      Json.pick(json, <String>['business', 'offender_business']),
+    ),
+    address: Json.string(
+      Json.pick(json, <String>['address', 'offender_address']),
+    ),
+    raw: json,
+  );
+
+  static OffenderRef? maybe(Object? source) =>
+      source is Map ? OffenderRef.fromJson(Json.map(source)) : null;
 }
 
 /// A bazaar. Spelled `area_code`/`area_name` on an enforcement case and

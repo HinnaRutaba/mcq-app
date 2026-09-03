@@ -366,8 +366,15 @@ class FakeFineRepository implements FineRepository {
     required int propertyId,
     required FineRequest request,
   }) async {
-    calls++;
     lastPropertyId = propertyId;
+    return _record(request);
+  }
+
+  @override
+  Future<Fine> imposeInArea({required FineRequest request}) => _record(request);
+
+  Future<Fine> _record(FineRequest request) async {
+    calls++;
     lastRequest = request;
 
     final failure = failWith;
