@@ -9,15 +9,6 @@ import '../../../../config/theme/app_radius.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../widgets/widgets.dart';
 
-/// What the shop owes, on the hero header — the biggest figure on the screen,
-/// because it is the reason the officer opened it.
-///
-/// Drawn on the brand accent, which is the one loud colour on the header that
-/// makes no status claim: the block can carry the emphasis without saying
-/// "overdue", and the red pill inside keeps that job to itself.
-///
-/// Drawn from the card until the profile lands, so the figure they tapped in
-/// the list is the figure they keep looking at.
 class OwedStrip extends StatelessWidget {
   const OwedStrip({
     super.key,

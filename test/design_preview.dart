@@ -13,11 +13,14 @@ import 'package:mcq_app/controllers/dashboard_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
+import 'package:mcq_app/controllers/trade_capture_controller.dart';
+import 'package:mcq_app/controllers/trade_licences_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
+import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 import 'package:mcq_app/models/property_profile.dart';
@@ -30,6 +33,7 @@ import 'package:mcq_app/views/magistrate/more/more_screen.dart';
 import 'package:mcq_app/views/magistrate/more/profile_screen.dart';
 import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
 import 'package:mcq_app/views/magistrate/round/round_screen.dart';
+import 'package:mcq_app/views/magistrate/trade/trade_capture_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
@@ -40,6 +44,7 @@ import 'package:mcq_app/widgets/widgets.dart';
 import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
 import 'support/property_profile_fixtures.dart';
+import 'support/trade_fixtures.dart';
 
 /// Renders every screen to a PNG under `test/preview/` so a change can be
 /// looked at, not merely analysed. Run it deliberately:
@@ -163,7 +168,53 @@ void main() {
       return const DefaultersScreen();
     },
     'round': () => const RoundScreen(),
-    'trade_licences': () => const TradeLicencesScreen(),
+    // The licence round: three queues over the officer's own bazaars, and the
+    // doorway lookup that takes the screen over when anything is typed.
+    'trade_licences': () {
+      _seedTrade();
+      return const TradeLicencesScreen();
+    },
+    'trade_licences_lapsed': () {
+      _seedTrade().showQueue(TradeQueue.lapsed);
+      return const TradeLicencesScreen();
+    },
+    // The officer's own captures, which do carry money — and one whose
+    // payment link has died, so the consumer number is all the shopkeeper has.
+    'trade_licences_captures': () {
+      _seedTrade().showQueue(TradeQueue.captures);
+      return const TradeLicencesScreen();
+    },
+    // The doorway answer for a shop that may trade.
+    'trade_licences_lookup': () {
+      _seedTrade(query: '03304100000');
+      return const TradeLicencesScreen();
+    },
+    // And the one that becomes a field capture. Found-and-lapsed and
+    // never-licensed are different conversations, so both are worth seeing.
+    'trade_licences_unlicensed': () {
+      _seedTrade(query: '03309999999');
+      return const TradeLicencesScreen();
+    },
+    'trade_licences_renewal': () {
+      _seedTrade(query: '5440112233445');
+      return const TradeLicencesScreen();
+    },
+    // The capture form, reached from that answer with the number already in
+    // it. Nothing here prices the licence — the fee is the tariff's.
+    'trade_capture': () {
+      _seedTradeCapture();
+      return const TradeCaptureScreen(searched: '03309999999', areaId: 1);
+    },
+    'trade_capture_filled': () {
+      _seedTradeCapture();
+      return const TradeCaptureScreen(searched: '03001234567', areaId: 1);
+    },
+    // The bottom of the same form: the shop, and the GPS fix that is what puts
+    // somebody at this shopfront if the capture is ever argued with.
+    'trade_capture_shop': () {
+      _seedTradeCapture();
+      return const TradeCaptureScreen(areaId: 1);
+    },
     'challans': () => const ChallansScreen(),
     'more': () => const MoreScreen(),
     'sealed': () => const SealedScreen(),
@@ -259,6 +310,14 @@ void main() {
   const tall = <String, double>{
     'nav_bar': 400,
     'trade_licences': 2100,
+    'trade_licences_lapsed': 1800,
+    'trade_licences_captures': 1900,
+    'trade_licences_lookup': 1500,
+    'trade_licences_unlicensed': 1300,
+    'trade_licences_renewal': 1500,
+    'trade_capture': 3000,
+    'trade_capture_filled': 3000,
+    'trade_capture_shop': 2200,
     'challans': 2100,
     'fine': 2600,
     'fine_with_shop': 2600,
@@ -290,6 +349,7 @@ void main() {
     // Enough to take the header to about the middle of its collapse.
     'property_profile_half': 60,
     'fine_evidence': 700,
+    'trade_capture_shop': 1500,
   };
 
   /// Entries caught part-way through their entrance instead of at rest. A
@@ -306,6 +366,29 @@ void main() {
         Get.find<PropertyProfileController>().showTab(ProfileTab.cases),
     'property_profile_history': () =>
         Get.find<PropertyProfileController>().showTab(ProfileTab.history),
+    // The lookup is debounced, and `pumpAndSettle` does not advance a plain
+    // `Timer` — so the answer is asked for straight out rather than waiting
+    // 400ms that never pass. The call behind it is the real one.
+    'trade_licences_lookup': () =>
+        Get.find<TradeLicencesController>().retryLookup(),
+    'trade_licences_unlicensed': () =>
+        Get.find<TradeLicencesController>().retryLookup(),
+    'trade_licences_renewal': () =>
+        Get.find<TradeLicencesController>().retryLookup(),
+    // The form as it looks once the officer has filled it in: a trade chosen
+    // off the tariff, and the fee on the bar quoted per year rather than
+    // multiplied by the term.
+    'trade_capture_filled': () {
+      final TradeCaptureController capture = Get.find<TradeCaptureController>();
+      capture
+        ..applicantController.text = 'Abdul Karim'
+        ..fatherController.text = 'Muhammad Yousaf'
+        ..businessController.text = 'Al Madina Naan Shop'
+        ..addressController.text = 'Shop 14, Circular Road, Quetta'
+        ..cnicController.text = '5440112233445';
+      capture.chooseCategory(tradeTariffFixture.category(40)!);
+      capture.setYears(3);
+    },
   };
 
   for (final entry in screens.entries) {
@@ -421,6 +504,39 @@ DefaultersController _seedDefaulters() {
   // `fenix`, so the find below builds a fresh one over the fakes just put.
   Get.delete<DefaultersController>(force: true);
   return Get.find<DefaultersController>();
+}
+
+/// Puts the licence queues, the captures and the lookup over the fixtures, and
+/// drops the controller so it is rebuilt over them. Returns it, so an entry can
+/// choose the queue it means to show.
+///
+/// [query] is typed into the search box as well as set on the controller: the
+/// box is what an officer sees, and a preview of an answer with an empty box
+/// above it is a picture of a state the app never reaches.
+TradeLicencesController _seedTrade({Object? failure, String? query}) {
+  Get.delete<TradeRepository>(force: true);
+  Get.put<TradeRepository>(
+    FakeTradeRepository(failure: failure),
+    permanent: true,
+  );
+  // `fenix`, so the find below builds a fresh one over the fake just put.
+  Get.delete<TradeLicencesController>(force: true);
+  final TradeLicencesController controller =
+      Get.find<TradeLicencesController>();
+  if (query != null) {
+    controller.searchController.text = query;
+    controller.query.value = query;
+  }
+  return controller;
+}
+
+/// The capture form registers its own controller, so only the repository under
+/// it is swapped — and the controller is dropped, because `Get.put` is
+/// put-*if-absent* and the form would otherwise adopt the last entry's.
+void _seedTradeCapture() {
+  Get.delete<TradeRepository>(force: true);
+  Get.put<TradeRepository>(FakeTradeRepository(), permanent: true);
+  Get.delete<TradeCaptureController>(force: true);
 }
 
 /// Puts one property's profile, cases and timeline over the fixtures.

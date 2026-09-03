@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../text/app_text.dart';
 import '../../config/theme/app_radius.dart';
 
-/// A circular icon + label action, laid out in a row under a header (Pay
-/// Now / Payments / Profile, etc.) — the quick-access row pattern.
 class AppQuickAction extends StatelessWidget {
   const AppQuickAction({
     super.key,

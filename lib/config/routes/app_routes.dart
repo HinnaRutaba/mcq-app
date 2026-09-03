@@ -46,6 +46,24 @@ class AppRoutes {
   static String createFinePath({int? propertyId}) =>
       propertyId == null ? createFine : '$createFine?property=$propertyId';
 
+  /// Capturing an unlicensed shop. Pushed over the shell from the licences
+  /// tab: a form the officer should finish or abandon in front of the
+  /// shopkeeper, not wander off from into another tab.
+  ///
+  /// The CNIC or mobile that just came back "not on the register" travels as
+  /// `?q=`, and the bazaar they were filtering by as `?area=` — retyping
+  /// either is how a wrong digit gets onto a challan.
+  static const String tradeCapture = '/magistrate/trade/capture';
+
+  static String tradeCapturePath({String? searched, int? areaId}) {
+    final Map<String, String> query = <String, String>{
+      if (searched != null && searched.isNotEmpty) 'q': searched,
+      if (areaId != null) 'area': '$areaId',
+    };
+    if (query.isEmpty) return tradeCapture;
+    return Uri(path: tradeCapture, queryParameters: query).toString();
+  }
+
   /// The property profile — one shop read end to end. Pushed over the shell
   /// from Defaulters, from the Round and from Find, which is why it has a
   /// directory of its own (`views/magistrate/property/`) rather than sitting

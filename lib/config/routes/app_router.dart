@@ -11,6 +11,7 @@ import '../../views/magistrate/more/more_screen.dart';
 import '../../views/magistrate/more/profile_screen.dart';
 import '../../views/magistrate/more/sealed_screen.dart';
 import '../../views/magistrate/round/round_screen.dart';
+import '../../views/magistrate/trade/trade_capture_screen.dart';
 import '../../views/magistrate/trade/trade_licences_screen.dart';
 import '../../views/magistrate/challans/challans_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
@@ -120,6 +121,14 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => CreateFineScreen(
         propertyId: int.tryParse(state.uri.queryParameters['property'] ?? ''),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.tradeCapture,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => TradeCaptureScreen(
+        searched: state.uri.queryParameters['q'],
+        areaId: int.tryParse(state.uri.queryParameters['area'] ?? ''),
       ),
     ),
     GoRoute(

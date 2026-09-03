@@ -5,6 +5,7 @@ import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
 import '../controllers/definitions_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../controllers/trade_licences_controller.dart';
 import '../core/network/api_service.dart';
 import '../core/permissions/permission_service.dart';
 import '../core/storage/secure_storage_service.dart';
@@ -103,4 +104,8 @@ void setupDependencies() {
   // if the branch is ever disposed.
   Get.lazyPut<DashboardController>(DashboardController.new, fenix: true);
   Get.lazyPut<DefaultersController>(DefaultersController.new, fenix: true);
+  Get.lazyPut<TradeLicencesController>(
+    TradeLicencesController.new,
+    fenix: true,
+  );
 }
