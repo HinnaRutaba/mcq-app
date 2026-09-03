@@ -28,6 +28,16 @@ class MagistrateShell extends StatelessWidget {
       label: 'Round',
     ),
     AppBottomNavEntry(
+      icon: Icons.badge_outlined,
+      activeIcon: Icons.badge_rounded,
+      label: 'Licences',
+    ),
+    AppBottomNavEntry(
+      icon: Icons.receipt_long_outlined,
+      activeIcon: Icons.receipt_long_rounded,
+      label: 'Challans',
+    ),
+    AppBottomNavEntry(
       icon: Icons.more_horiz_outlined,
       activeIcon: Icons.more_horiz_rounded,
       label: 'More',

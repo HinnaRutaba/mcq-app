@@ -5,7 +5,7 @@ import 'api_refs.dart';
 ///
 /// A different register from everything in the enforcement module. These are
 /// the businesses MCQ licenses but is not landlord to: nothing here has an
-/// allotment, an allottee or a property, and a licence is keyed on a CNIC and a
+/// allotment, an allottee or a property, and a licpence is keyed on a CNIC and a
 /// mobile number. Do not try to join the two registers in the app.
 class TradeLicence {
   const TradeLicence({

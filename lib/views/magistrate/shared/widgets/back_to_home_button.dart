@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// The back arrow on the four bar tabs that are not Home.
+/// The back arrow on the five bar tabs that are not Home.
 ///
 /// Home is where an officer starts and what they read between shops, so every
 /// other tab is somewhere they *went* — and a screen you went to is expected

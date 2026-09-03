@@ -30,6 +30,8 @@ import 'package:mcq_app/views/magistrate/more/more_screen.dart';
 import 'package:mcq_app/views/magistrate/more/profile_screen.dart';
 import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
 import 'package:mcq_app/views/magistrate/round/round_screen.dart';
+import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
+import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
@@ -161,6 +163,8 @@ void main() {
       return const DefaultersScreen();
     },
     'round': () => const RoundScreen(),
+    'trade_licences': () => const TradeLicencesScreen(),
+    'challans': () => const ChallansScreen(),
     'more': () => const MoreScreen(),
     'sealed': () => const SealedScreen(),
     'profile': () {
@@ -254,6 +258,8 @@ void main() {
   // picture, which is how a layout problem goes unseen.
   const tall = <String, double>{
     'nav_bar': 400,
+    'trade_licences': 2100,
+    'challans': 2100,
     'fine': 2600,
     'fine_with_shop': 2600,
     'fine_evidence': 2600,

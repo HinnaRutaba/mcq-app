@@ -13,12 +13,14 @@ import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart'
 import 'package:mcq_app/widgets/widgets.dart';
 import 'package:mcq_app/views/magistrate/more/more_screen.dart';
 import 'package:mcq_app/views/magistrate/round/round_screen.dart';
+import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
+import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/back_to_home_button.dart';
 
 import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
 
-/// Whether the four labels physically fit is a question about real font
+/// Whether the six labels physically fit is a question about real font
 /// metrics, so it is answered by the `nav_bar` entry in `design_preview.dart`
 /// and not here — a widget test draws every glyph as a square of the font
 /// size and would call a bar clipped that is nowhere near it.
@@ -28,12 +30,14 @@ import 'support/dashboard_fixtures.dart';
 /// so: reorder one without the other and an officer tapping "Round" arrives
 /// at More.
 void main() {
-  /// The bar's four destinations, in the order they are drawn. The create
-  /// button sits between the second and third and is not one of them.
+  /// The bar's six destinations, in the order they are drawn. The create
+  /// button sits between the third and fourth and is not one of them.
   const List<String> barLabels = <String>[
     'Home',
     'Defaulters',
     'Round',
+    'Licences',
+    'Challans',
     'More',
   ];
 
@@ -42,10 +46,12 @@ void main() {
     AppRoutes.magistrateHome,
     AppRoutes.magistrateDefaulters,
     AppRoutes.magistrateRound,
+    AppRoutes.magistrateTradeLicences,
+    AppRoutes.magistrateChallans,
     AppRoutes.magistrateMore,
   ];
 
-  /// The shell over four stand-in pages. The real screens each want their own
+  /// The shell over six stand-in pages. The real screens each want their own
   /// controllers and repositories; what is under test here is the bar and the
   /// branch it selects, so a page that only names itself is enough.
   GoRouter buildRouter() => GoRouter(
@@ -77,8 +83,9 @@ void main() {
   /// Returns the router it pumped, so a test can call `popRoute` on it — that
   /// is the method Android's back button arrives through.
   Future<GoRouter> pumpShell(WidgetTester tester) async {
-    // Narrow enough to be a real handset: five labels have to fit on the bar
-    // of the smallest phone an officer is issued, not just on a tablet.
+    // Narrow enough to be a real handset: six labels and the button have to
+    // fit on the bar of the smallest phone an officer is issued, not just on
+    // a tablet.
     tester.view
       ..physicalSize = const Size(360, 720)
       ..devicePixelRatio = 1;
@@ -90,7 +97,7 @@ void main() {
     return router;
   }
 
-  testWidgets('the bar carries the four destinations, and the create button', (
+  testWidgets('the bar carries the six destinations, and the create button', (
     WidgetTester tester,
   ) async {
     await pumpShell(tester);
@@ -240,6 +247,8 @@ void main() {
     for (final Widget screen in <Widget>[
       const DefaultersScreen(),
       const RoundScreen(),
+      const TradeLicencesScreen(),
+      const ChallansScreen(),
       const MoreScreen(),
     ]) {
       await tester.pumpWidget(MaterialApp(home: screen));

@@ -39,7 +39,7 @@ class AppBottomNavItem extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -94,12 +94,19 @@ class AppBottomNavItem extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            AppText.caption(
-              entry.label,
-              color: selected
-                  ? Theme.of(context).colorScheme.primary
-                  : mutedColor,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            // Shrunk to the slot rather than wrapped: a bar this full gives a
+            // long label less width than it wants, and a second line pushes
+            // the whole bar taller. Never scaled up — a short label stays put.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: AppText.caption(
+                entry.label,
+                maxLines: 1,
+                color: selected
+                    ? Theme.of(context).colorScheme.primary
+                    : mutedColor,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
             ),
           ],
         ),

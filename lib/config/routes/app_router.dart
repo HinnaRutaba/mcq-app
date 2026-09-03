@@ -11,6 +11,8 @@ import '../../views/magistrate/more/more_screen.dart';
 import '../../views/magistrate/more/profile_screen.dart';
 import '../../views/magistrate/more/sealed_screen.dart';
 import '../../views/magistrate/round/round_screen.dart';
+import '../../views/magistrate/trade/trade_licences_screen.dart';
+import '../../views/magistrate/challans/challans_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/magistrate/property/property_profile_screen.dart';
 import '../../views/splash/splash_screen.dart';
@@ -39,10 +41,10 @@ final GoRouter appRouter = GoRouter(
     ),
 
     // --- Magistrate shell --------------------------------------------------
-    // Four branches, in the order they sit on the bar: Home, Defaulters,
-    // Round, More. The branch index is the tab index — `MagistrateShell`
-    // reads it straight off `navigationShell.currentIndex`, so the two lists
-    // must stay in step.
+    // Six branches, in the order they sit on the bar: Home, Defaulters,
+    // Round, Licences, Challans, More. The branch index is the tab index —
+    // `MagistrateShell` reads it straight off `navigationShell.currentIndex`,
+    // so the two lists must stay in step.
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MagistrateShell(navigationShell: navigationShell),
@@ -68,6 +70,22 @@ final GoRouter appRouter = GoRouter(
             GoRoute(
               path: AppRoutes.magistrateRound,
               builder: (context, state) => const RoundScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.magistrateTradeLicences,
+              builder: (context, state) => const TradeLicencesScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.magistrateChallans,
+              builder: (context, state) => const ChallansScreen(),
             ),
           ],
         ),

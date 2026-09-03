@@ -20,6 +20,8 @@ class AppRoutes {
   static const String magistrateHome = '/magistrate/home';
   static const String magistrateDefaulters = '/magistrate/defaulters';
   static const String magistrateRound = '/magistrate/round';
+  static const String magistrateTradeLicences = '/magistrate/trade-licences';
+  static const String magistrateChallans = '/magistrate/challans';
   static const String magistrateMore = '/magistrate/more';
 
   // --- Inside the "More" branch ----------------------------------------
