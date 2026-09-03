@@ -14,43 +14,45 @@ import 'widgets/defaulter_tile.dart';
 class DefaultersScreen extends StatelessWidget {
   const DefaultersScreen({super.key});
 
+  static const double _headerHeight = 130;
+
   @override
   Widget build(BuildContext context) {
     final DefaultersController controller = Get.find<DefaultersController>();
-
     return Scaffold(
-      body: Column(
-        children: <Widget>[
-          AppHeroHeader(
-            title: 'Defaulters',
-            leading: const BackToHomeButton(),
-            bottom: AppSearchField(
-              controller: controller.searchController,
-              hint: 'Shop, code, allottee or CNIC',
-              onChanged: controller.search,
-            ),
-          ),
-          DefaulterFilters(controller: controller),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: controller.load,
-              child: Obx(
-                () => CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: _slivers(context, controller),
+      body: RefreshIndicator(
+        onRefresh: controller.load,
+        child: Obx(
+          () => CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              AppSliverHeroHeader(
+                title: 'Defaulters',
+                expandedHeight: _headerHeight,
+                compactTitle: true,
+                leading: const BackToHomeButton(),
+                bottom: AppSearchField(
+                  controller: controller.searchController,
+                  hint: 'Shop, code, allottee or CNIC',
+                  onChanged: controller.search,
                 ),
               ),
-            ),
+              AppPinnedBar(
+                height: DefaulterFilters.heightFor(
+                  withAreaPicker: controller.hasAreaChoice,
+                ),
+                child: DefaulterFilters(controller: controller),
+              ),
+              ..._slivers(context, controller),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
 List<Widget> _slivers(BuildContext context, DefaultersController controller) {
-  // Nothing on screen yet: one spinner, not a page that shuffles as the list
-  // and the bazaars land separately.
   if (controller.isLoading.value && !controller.hasData) {
     return const <Widget>[
       SliverFillRemaining(
@@ -94,7 +96,7 @@ List<Widget> _slivers(BuildContext context, DefaultersController controller) {
 
   return <Widget>[
     SliverPadding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
       sliver: SliverList.builder(
         itemCount: rows.length + alert,
         itemBuilder: (BuildContext context, int index) {
@@ -128,7 +130,10 @@ List<Widget> _slivers(BuildContext context, DefaultersController controller) {
                 onTap: propertyId == null
                     ? null
                     : () => context.push(
-                        AppRoutes.collectionDetailPath('$propertyId'),
+                        AppRoutes.propertyProfilePath(propertyId),
+                        // The profile draws its header from this while its own
+                        // calls are still out.
+                        extra: card,
                       ),
               ),
             ),

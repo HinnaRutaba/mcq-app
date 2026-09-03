@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../text/app_text.dart';
 import '../../config/theme/app_radius.dart';
 
-/// A generic single-select row of filter chips (Collections filter, Sealed
-/// status filter, the Profile screen's theme picker, …).
 class AppChipTabs<T> extends StatelessWidget {
   const AppChipTabs({
     super.key,
@@ -34,7 +32,7 @@ class AppChipTabs<T> extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return SizedBox(
-      height: compact ? 30 : 38,
+      height: compact ? 32 : 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: items.length,
@@ -64,7 +62,7 @@ class AppChipTabs<T> extends StatelessWidget {
                   final Color? ink = isSelected ? scheme.onPrimary : null;
                   final IconData? icon = itemIcon?.call(item);
                   final label = compact
-                      ? AppText.caption(
+                      ? AppText.label(
                           itemLabel(item),
                           color: ink,
                           fontWeight: FontWeight.w700,

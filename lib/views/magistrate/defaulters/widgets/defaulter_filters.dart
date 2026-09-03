@@ -9,18 +9,19 @@ class DefaulterFilters extends StatelessWidget {
 
   final DefaultersController controller;
 
+  static double heightFor({required bool withAreaPicker}) =>
+      (withAreaPicker ? 62 : 16) + 56;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Obx(() {
+          if (!controller.hasAreaChoice) return const SizedBox(height: 16);
           final List<int> options = controller.areaOptions;
-          // Nothing to pick between until the beat's scope has landed, and
-          // nothing worth showing if it never does.
-          if (options.length < 2) return const SizedBox(height: 16);
           return Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
             child: AppDropdown<int>(
               items: options,
               itemLabel: controller.areaLabel,
@@ -32,17 +33,13 @@ class DefaulterFilters extends StatelessWidget {
         }),
         const SizedBox(height: 12),
         Obx(() {
-          // Counted here rather than inside `itemLabel`: that callback is run
-          // by the chip row's own builder, after this one has returned, so a
-          // count read in it registers with no observable and the figures sit
-          // stale until something else rebuilds the row.
           final Map<DefaulterState, int> counts = <DefaulterState, int>{
             for (final DefaulterState state in DefaulterState.values)
               state: controller.countOf(state),
           };
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: AppChipTabs<DefaulterState>(
               items: DefaulterState.values,
               itemLabel: (DefaulterState state) =>

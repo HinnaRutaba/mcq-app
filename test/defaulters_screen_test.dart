@@ -2,14 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+import 'package:go_router/go_router.dart';
+
+import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
+import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/core/utils/dialer.dart';
+import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
+import 'package:mcq_app/data/repositories/reporting_repository.dart';
+import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
+import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/defaulters/widgets/defaulter_tile.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/dashboard_fixtures.dart';
+import 'support/property_profile_fixtures.dart';
 
 /// Defaulters, end to end from the payload: the controller fetches, the screen
 /// lists what came back, and the two filters go where they belong — the bazaar
@@ -344,6 +353,148 @@ void main() {
       // because one call missed.
       expect(find.byType(AppAlert), findsOneWidget);
       expect(find.byType(DefaulterTile), findsNWidgets(6));
+    });
+  });
+
+  group('opening a shop', () {
+    testWidgets('a card takes the officer to that shop’s profile', (
+      WidgetTester tester,
+    ) async {
+      tester.view
+        ..physicalSize = const Size(420, 6000)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      Get.put<DefaultersController>(
+        DefaultersController(
+          defaultersRepository: defaulters,
+          dashboardRepository: dashboard,
+        ),
+      );
+      Get.put<ReportingRepository>(FakeReportingRepository(), permanent: true);
+      Get.put<EnforcementCaseRepository>(
+        FakeEnforcementCaseRepository(),
+        permanent: true,
+      );
+
+      // The two real routes, so the tap is answered by the app's own path and
+      // its `extra` rather than by a stand-in.
+      final GoRouter router = GoRouter(
+        initialLocation: AppRoutes.magistrateDefaulters,
+        routes: <RouteBase>[
+          GoRoute(
+            path: AppRoutes.magistrateDefaulters,
+            builder: (BuildContext context, GoRouterState state) =>
+                const DefaultersScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.propertyProfile,
+            builder: (BuildContext context, GoRouterState state) =>
+                PropertyProfileScreen(
+                  propertyId: int.parse(state.pathParameters['id']!),
+                  card: state.extra is DefaulterCard
+                      ? state.extra! as DefaulterCard
+                      : null,
+                ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await settle(tester);
+
+      await tester.tap(find.text('Muhammad Iqbal'));
+      await settle(tester);
+
+      // The profile of the shop that was tapped, drawn from all three of its
+      // own endpoints — the unit on the tab it opens on, and the case's
+      // timeline one tab over.
+      expect(find.text('S-22 · Liaquat Bazaar'), findsOneWidget);
+      expect(find.text('Register 949 · 949/JR/0118'), findsOneWidget);
+      expect(find.text('Case MCQ-EC-2627-00204'), findsOneWidget);
+
+      Get.find<PropertyProfileController>().showTab(ProfileTab.history);
+      await settle(tester);
+
+      expect(find.text('MCQ-EC-2627-00204'), findsOneWidget);
+      expect(find.text('Visited the shop'), findsOneWidget);
+    });
+  });
+
+  group('the header', () {
+    /// The sliver itself is not a box; measure the block it paints.
+    double headerHeight(WidgetTester tester) => tester
+        .getSize(
+          find
+              .descendant(
+                of: find.byType(AppSliverHeroHeader),
+                matching: find.byType(ClipRRect),
+              )
+              .first,
+        )
+        .height;
+
+    testWidgets('collapses to the title, and the search goes with it', (
+      WidgetTester tester,
+    ) async {
+      // A real handset's worth of screen, so there is something to scroll.
+      await pumpDefaulters(tester, height: 800);
+
+      final double expanded = headerHeight(tester);
+      expect(find.byType(AppSearchField), findsOneWidget);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await settle(tester);
+
+      // Pinned: still there, and down to a toolbar.
+      expect(headerHeight(tester), lessThan(expanded));
+      expect(headerHeight(tester), kToolbarHeight);
+      expect(find.text('Defaulters'), findsOneWidget);
+
+      final Finder box = find.byType(AppSearchField);
+      expect(
+        tester
+            .widget<Opacity>(
+              find.ancestor(of: box, matching: find.byType(Opacity)).first,
+            )
+            .opacity,
+        0,
+        reason: 'the search box is faded out, not ghosted over the bar',
+      );
+      expect(
+        tester
+            .widget<IgnorePointer>(
+              find
+                  .ancestor(of: box, matching: find.byType(IgnorePointer))
+                  .first,
+            )
+            .ignoring,
+        isTrue,
+        reason: 'a tap on the collapsed bar must not land on the hidden box',
+      );
+    });
+
+    testWidgets('leaves the filters pinned under it, and working', (
+      WidgetTester tester,
+    ) async {
+      await pumpDefaulters(tester, height: 800);
+
+      final Finder chips = find.byType(AppChipTabs<DefaulterState>);
+      final double before = tester.getTopLeft(chips).dy;
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
+      await settle(tester);
+
+      // Riding up with the header, but stopping under the collapsed bar
+      // rather than scrolling off with the rows.
+      final double after = tester.getTopLeft(chips).dy;
+      expect(after, lessThan(before));
+      expect(after, greaterThanOrEqualTo(kToolbarHeight));
+
+      // And still the filter, not a picture of one.
+      await tester.tap(find.text('Never paid · 2'));
+      await settle(tester);
+      expect(shopsOnScreen(tester), <String>['S-22', 'K-7']);
     });
   });
 

@@ -30,8 +30,8 @@ class _Header extends StatelessWidget {
   final AuthUser? officer;
   final FieldScope? scope;
 
-  static const double _withScope = 196;
-  static const double _nameOnly = 108;
+  static const double _withScope = 166;
+  static const double _nameOnly = 86;
 
   @override
   Widget build(BuildContext context) {

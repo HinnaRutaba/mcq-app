@@ -192,7 +192,9 @@ class AppTheme {
         titleTextStyle: AppTextTheme.dark.titleLarge,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.darkSurface,
+        // A step above the page, not the base surface: on near-black the two
+        // are close enough that the card had no edge to speak of.
+        color: AppColors.darkSurfaceContainer,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(

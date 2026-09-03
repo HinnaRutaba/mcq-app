@@ -5,12 +5,6 @@ import '../text/app_text.dart';
 import 'app_hero_ornament.dart';
 import '../../config/theme/app_radius.dart';
 
-/// The single header every screen should use instead of the plain default
-/// [AppBar] — a bold gradient block with rounded bottom corners.
-///
-/// Pass just [title] for a simple screen header (Payments, Profile, …), or
-/// add [subtitle]/[trailing]/[bottom] for a richer dashboard header (Home)
-/// that carries a headline stat or quick facts.
 class AppHeroHeader extends StatelessWidget {
   const AppHeroHeader({
     super.key,
@@ -19,25 +13,26 @@ class AppHeroHeader extends StatelessWidget {
     this.leading,
     this.trailing,
     this.bottom,
+    this.horizontalInset = 20,
   });
 
   final String title;
   final String? subtitle;
 
-  /// Sits before the title — a back arrow on a pushed screen. Screens reached
-  /// from the bottom bar leave it null; there is nothing to go back to.
   final Widget? leading;
 
   final Widget? trailing;
   final Widget? bottom;
 
+  /// How far the block is inset from the screen edges. The app's 20 by
+  /// default; a screen on a different horizontal rhythm passes its own, so the
+  /// header lines up with the content under it.
+  final double horizontalInset;
+
   @override
   Widget build(BuildContext context) {
     final brand = context.brand;
 
-    // Clipped rather than merely rounded: the ornament is pinned past the
-    // bottom-right corner, and a `BoxDecoration` radius shapes the paint, not
-    // the children drawn over it.
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(
         bottom: Radius.circular(AppRadius.xl),
@@ -56,9 +51,9 @@ class AppHeroHeader extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: EdgeInsets.fromLTRB(
-                20,
+                horizontalInset,
                 MediaQuery.paddingOf(context).top + 18,
-                20,
+                horizontalInset,
                 26,
               ),
               child: Column(
@@ -97,7 +92,7 @@ class AppHeroHeader extends StatelessWidget {
                       ?trailing,
                     ],
                   ),
-                  if (bottom != null) ...[const SizedBox(height: 20), bottom!],
+                  if (bottom != null) ...[const SizedBox(height: 6), bottom!],
                 ],
               ),
             ),

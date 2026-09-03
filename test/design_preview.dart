@@ -11,12 +11,17 @@ import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
+import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
+import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
+import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
+import 'package:mcq_app/models/property_profile.dart';
+import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/models/unit_card.dart';
 import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
 import 'package:mcq_app/views/magistrate/home/home_screen.dart';
@@ -25,13 +30,14 @@ import 'package:mcq_app/views/magistrate/more/more_screen.dart';
 import 'package:mcq_app/views/magistrate/more/profile_screen.dart';
 import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
 import 'package:mcq_app/views/magistrate/round/round_screen.dart';
-import 'package:mcq_app/views/magistrate/shared/collection_detail_screen.dart';
+import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
+import 'support/property_profile_fixtures.dart';
 
 /// Renders every screen to a PNG under `test/preview/` so a change can be
 /// looked at, not merely analysed. Run it deliberately:
@@ -49,6 +55,20 @@ const UnitCard _finedUnit = UnitCard(
   allotmentId: 12,
   allotteeName: 'Abdul Samad',
   outstanding: '4500.00',
+);
+
+/// The row the officer tapped to get to the profile. Passed to one entry so
+/// the header is previewed the way it actually arrives — with the beat's next
+/// visit on it, which none of the profile's own three calls returns.
+final DefaulterCard _tappedRow = DefaulterCard(
+  propertyId: fixturePropertyId,
+  shopNo: 'S-22',
+  marketName: 'Liaquat Bazaar',
+  allotteeName: 'Muhammad Iqbal',
+  outstanding: '187450.00',
+  monthsBehind: 14,
+  neverPaid: true,
+  nextVisitDate: DateTime(2026, 9, 12),
 );
 
 void main() {
@@ -134,6 +154,12 @@ void main() {
       _seedDefaulters().showState(DefaulterState.neverPaid);
       return const DefaultersScreen();
     },
+    // The header once the list has been scrolled: the title alone on a pinned
+    // bar, with the search box and the chips gone under it.
+    'defaulters_collapsed': () {
+      _seedDefaulters();
+      return const DefaultersScreen();
+    },
     'round': () => const RoundScreen(),
     'more': () => const MoreScreen(),
     'sealed': () => const SealedScreen(),
@@ -151,7 +177,52 @@ void main() {
       Get.find<ThemeController>().setColorScheme(AppColorScheme.indigo);
       return const MagistrateProfileScreen();
     },
-    'detail': () => const CollectionDetailScreen(recordId: '77'),
+    // The property profile: the shop the first row of the defaulter list
+    // opens, read from all three of its endpoints. One entry per tab, since
+    // the header and the actions on it ride above all four.
+    'property_profile': () {
+      _seedPropertyProfile();
+      return PropertyProfileScreen(
+        propertyId: fixturePropertyId,
+        card: _tappedRow,
+      );
+    },
+    // The header once the page has been scrolled: the figure owed on a bar,
+    // with the actions small under it.
+    'property_profile_collapsed': () {
+      _seedPropertyProfile();
+      return PropertyProfileScreen(
+        propertyId: fixturePropertyId,
+        card: _tappedRow,
+      );
+    },
+    // And caught half way down, which is where a page with little to scroll
+    // comes to rest: one block at a middle size, not two over each other.
+    'property_profile_half': () {
+      _seedPropertyProfile();
+      return PropertyProfileScreen(
+        propertyId: fixturePropertyId,
+        card: _tappedRow,
+      );
+    },
+    'property_profile_owed': () {
+      _seedPropertyProfile();
+      return const PropertyProfileScreen(propertyId: fixturePropertyId);
+    },
+    'property_profile_cases': () {
+      _seedPropertyProfile();
+      return const PropertyProfileScreen(propertyId: fixturePropertyId);
+    },
+    'property_profile_history': () {
+      _seedPropertyProfile();
+      return const PropertyProfileScreen(propertyId: fixturePropertyId);
+    },
+    // The same screen for a property nobody holds — no holder, no tenancy,
+    // nobody to call, and rent that may still be owed.
+    'property_profile_vacant': () {
+      _seedPropertyProfile(profile: vacantPropertyProfileFixture);
+      return const PropertyProfileScreen(propertyId: fixturePropertyId);
+    },
     'fine': () {
       // Reset the scheme: an earlier entry deliberately switches to indigo and
       // the controller is a permanent singleton, so without this the fine form
@@ -190,8 +261,17 @@ void main() {
     'home_arriving': 2900,
     'home_collapsed': 1400,
     'home_offline': 2100,
+    'property_profile': 2400,
+    'property_profile_owed': 2900,
+    'property_profile_collapsed': 1500,
+    'property_profile_half': 1500,
+    'property_profile_cases': 2600,
+    'property_profile_history': 4400,
+    'property_profile_vacant': 2200,
     'defaulters': 2900,
     'defaulters_never_paid': 2900,
+    // Short on purpose: the list has to outrun the viewport to be scrolled.
+    'defaulters_collapsed': 1400,
     'profile': 3900,
     'profile_indigo': 3900,
   };
@@ -199,12 +279,28 @@ void main() {
   /// Entries to drag before capturing, and by how much.
   const scrolled = <String, double>{
     'home_collapsed': 420,
+    'defaulters_collapsed': 420,
+    'property_profile_collapsed': 420,
+    // Enough to take the header to about the middle of its collapse.
+    'property_profile_half': 60,
     'fine_evidence': 700,
   };
 
   /// Entries caught part-way through their entrance instead of at rest. A
   /// still of a settled page proves nothing about how it arrives.
   const midFlight = <String, int>{'home_arriving': 330};
+
+  /// A nudge to give once the screen is up — a tab to open on a screen that
+  /// registers its own controller, which a builder cannot reach before the
+  /// widget it belongs to exists.
+  final nudge = <String, void Function()>{
+    'property_profile_owed': () =>
+        Get.find<PropertyProfileController>().showTab(ProfileTab.owed),
+    'property_profile_cases': () =>
+        Get.find<PropertyProfileController>().showTab(ProfileTab.cases),
+    'property_profile_history': () =>
+        Get.find<PropertyProfileController>().showTab(ProfileTab.history),
+  };
 
   for (final entry in screens.entries) {
     for (final mode in <String>['light', 'dark']) {
@@ -241,6 +337,14 @@ void main() {
           for (var elapsed = 0; elapsed < catchAt; elapsed += 16) {
             await tester.pump(const Duration(milliseconds: 16));
           }
+        }
+
+        final nudged = nudge[entry.key];
+        if (nudged != null) {
+          nudged();
+          await tester.pumpAndSettle();
+          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pumpAndSettle();
         }
 
         // A screen that wants to be seen mid-scroll says so, and the preview
@@ -311,6 +415,30 @@ DefaultersController _seedDefaulters() {
   // `fenix`, so the find below builds a fresh one over the fakes just put.
   Get.delete<DefaultersController>(force: true);
   return Get.find<DefaultersController>();
+}
+
+/// Puts one property's profile, cases and timeline over the fixtures.
+///
+/// The screen registers its own controller, so only the repositories under it
+/// are swapped.
+void _seedPropertyProfile({PropertyProfile? profile}) {
+  // An earlier entry deliberately switches to indigo and the theme controller
+  // is a permanent singleton, so without this the profile is previewed in
+  // somebody else's brand.
+  Get.find<ThemeController>().setColorScheme(AppColorScheme.balochistanGreen);
+  // `Get.put` is put-*if-absent*, so the screen would adopt the controller the
+  // previous entry left registered and never read these repositories.
+  Get.delete<PropertyProfileController>(force: true);
+  Get.delete<ReportingRepository>(force: true);
+  Get.put<ReportingRepository>(
+    FakeReportingRepository(profile: profile),
+    permanent: true,
+  );
+  Get.delete<EnforcementCaseRepository>(force: true);
+  Get.put<EnforcementCaseRepository>(
+    FakeEnforcementCaseRepository(),
+    permanent: true,
+  );
 }
 
 /// The app's theme asks `google_fonts` for Inter, which cannot be fetched in a

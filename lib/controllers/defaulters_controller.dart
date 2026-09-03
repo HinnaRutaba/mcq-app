@@ -127,6 +127,11 @@ class DefaultersController extends GetxController {
       if (area.id != null) area.id!,
   ];
 
+  /// Whether there is anything to pick between — nothing is, until the beat's
+  /// scope has landed. Asked here rather than counted off [areaOptions] twice:
+  /// the filter bar's height turns on it as well as the picker itself.
+  bool get hasAreaChoice => areaOptions.length > 1;
+
   String areaLabel(int id) {
     if (id == allAreas) return 'All bazaars';
     for (final FieldArea area in areas) {

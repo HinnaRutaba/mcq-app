@@ -1,15 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// The colours that change when the officer picks a different scheme.
-///
-/// Everything else in the theme — surfaces, text, the status palette — is
-/// deliberately *not* here. A scheme changes the app's own colour; it must
-/// never restate what red means.
-///
-/// Carried on the theme as an extension so a widget that needs the brand
-/// beyond the [ColorScheme] roles — the hero header's gradient, mostly — reads
-/// it from `context.brand` rather than reaching for a static constant, which
-/// is what made the app single-scheme in the first place.
 @immutable
 class AppBrandColors extends ThemeExtension<AppBrandColors> {
   const AppBrandColors({

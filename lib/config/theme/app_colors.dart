@@ -69,7 +69,10 @@ class AppColors {
   // ---------------------------------------------------------------------
   // Light theme — a warm off-white with the faintest green in it
   // ---------------------------------------------------------------------
-  static const Color lightBackground = Color(0xFFF4F7F4);
+  /// A step below the card plate, so a white card lifts off the page instead
+  /// of merging into it. The old ground was so close to white that the card's
+  /// hairline was doing all the work.
+  static const Color lightBackground = Color(0xFFEDF2ED);
   static const Color lightSurface = Color(0xFFFFFFFF);
 
   /// The Material 3 `surfaceContainer` family: four steps between the page

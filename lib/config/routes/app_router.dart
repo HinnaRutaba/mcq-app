@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/defaulter_card.dart';
 import '../../views/auth/change_password_screen.dart';
 import '../../views/auth/login_screen.dart';
 import '../../views/magistrate/defaulters/defaulters_screen.dart';
@@ -10,8 +11,8 @@ import '../../views/magistrate/more/more_screen.dart';
 import '../../views/magistrate/more/profile_screen.dart';
 import '../../views/magistrate/more/sealed_screen.dart';
 import '../../views/magistrate/round/round_screen.dart';
-import '../../views/magistrate/shared/collection_detail_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
+import '../../views/magistrate/property/property_profile_screen.dart';
 import '../../views/splash/splash_screen.dart';
 import 'app_routes.dart';
 
@@ -104,10 +105,16 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(
-      path: AppRoutes.collectionDetail,
+      path: AppRoutes.propertyProfile,
       parentNavigatorKey: rootNavigatorKey,
-      builder: (context, state) =>
-          CollectionDetailScreen(recordId: state.pathParameters['id']!),
+      builder: (context, state) => PropertyProfileScreen(
+        propertyId: int.parse(state.pathParameters['id']!),
+        // Present when the officer arrived from a list; null on a cold link,
+        // which the screen is built to survive.
+        card: state.extra is DefaulterCard
+            ? state.extra! as DefaulterCard
+            : null,
+      ),
     ),
   ],
 );

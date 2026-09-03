@@ -44,11 +44,16 @@ class AppRoutes {
   static String createFinePath({int? propertyId}) =>
       propertyId == null ? createFine : '$createFine?property=$propertyId';
 
-  /// The unit profile. Opened from Defaulters, from the Round and from Find,
-  /// which is why it lives in `views/magistrate/shared/` rather than under any
-  /// one tab.
-  static const String collectionDetail = '/magistrate/unit/:id';
+  /// The property profile — one shop read end to end. Pushed over the shell
+  /// from Defaulters, from the Round and from Find, which is why it has a
+  /// directory of its own (`views/magistrate/property/`) rather than sitting
+  /// under the tab that happened to open it.
+  ///
+  /// The row the officer tapped travels as the route's `extra`, so the profile
+  /// can draw its header before the three calls behind it answer. A cold link
+  /// carries none, and the screen loads from the id alone.
+  static const String propertyProfile = '/magistrate/property/:id';
 
-  static String collectionDetailPath(String recordId) =>
-      '/magistrate/unit/$recordId';
+  static String propertyProfilePath(int propertyId) =>
+      '/magistrate/property/$propertyId';
 }

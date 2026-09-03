@@ -7,7 +7,12 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../widgets/widgets.dart';
 
 class CreateFineButton extends StatelessWidget {
-  const CreateFineButton({super.key});
+  const CreateFineButton({super.key, this.propertyId});
+
+  /// The unit the fine is being imposed on, when the button is pressed from
+  /// that unit's own screen. Null on the shell's bar, where the officer picks
+  /// the shop on the form.
+  final int? propertyId;
 
   static const double size = 56;
 
@@ -26,7 +31,8 @@ class CreateFineButton extends StatelessWidget {
       size: size,
       color: context.brand.accent,
       foregroundColor: AppColors.onAccent,
-      onTap: () => context.push(AppRoutes.createFine),
+      onTap: () =>
+          context.push(AppRoutes.createFinePath(propertyId: propertyId)),
     );
   }
 }

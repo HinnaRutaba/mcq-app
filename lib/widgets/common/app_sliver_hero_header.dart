@@ -7,26 +7,16 @@ import '../text/app_text.dart';
 import 'app_hero_ornament.dart';
 import '../../config/theme/app_radius.dart';
 
-/// The collapsing counterpart to [AppHeroHeader], for a screen built out of
-/// slivers.
-///
-/// Expanded it is the full block — who is signed in, and whatever [bottom]
-/// carries. Scrolled, everything but [title] fades out and the bar shrinks to
-/// a pinned toolbar with the name on it, so the officer always knows which
-/// account the handset is acting under without giving up a fifth of the screen
-/// to say so.
-///
-/// [expandedHeight] is the caller's to give, because only the caller knows how
-/// tall [bottom] is: a persistent header has to state its extents up front and
-/// cannot measure a child to find out.
 class AppSliverHeroHeader extends StatelessWidget {
   const AppSliverHeroHeader({
     super.key,
     required this.title,
     required this.expandedHeight,
     this.subtitle,
+    this.leading,
     this.trailing,
     this.bottom,
+    this.compactTitle = false,
   });
 
   /// The one thing that survives the collapse.
@@ -34,11 +24,12 @@ class AppSliverHeroHeader extends StatelessWidget {
 
   final double expandedHeight;
   final String? subtitle;
+  final Widget? leading;
+
   final Widget? trailing;
 
-  /// The block under the title — a scope strip, a headline figure. Gone once
-  /// the bar is collapsed.
   final Widget? bottom;
+  final bool compactTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +38,10 @@ class AppSliverHeroHeader extends StatelessWidget {
       delegate: _HeroHeaderDelegate(
         title: title,
         subtitle: subtitle,
+        leading: leading,
         trailing: trailing,
         bottom: bottom,
+        compactTitle: compactTitle,
         expandedHeight: expandedHeight,
         topPadding: MediaQuery.paddingOf(context).top,
         brand: context.brand,
@@ -64,8 +57,10 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _HeroHeaderDelegate({
     required this.title,
     required this.subtitle,
+    required this.leading,
     required this.trailing,
     required this.bottom,
+    required this.compactTitle,
     required this.expandedHeight,
     required this.topPadding,
     required this.brand,
@@ -73,8 +68,10 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   final String title;
   final String? subtitle;
+  final Widget? leading;
   final Widget? trailing;
   final Widget? bottom;
+  final bool compactTitle;
   final double expandedHeight;
   final double topPadding;
   final AppBrandColors brand;
@@ -121,9 +118,9 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
             ),
             if (subtitle != null)
               Positioned(
-                left: 20,
+                left: leading == null ? 20 : 58,
                 right: 76,
-                top: topPadding + 18,
+                top: topPadding + 16,
                 child: Opacity(
                   opacity: fade,
                   child: AppText.body(
@@ -137,28 +134,36 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
               Positioned(
                 left: 20,
                 right: 20,
-                bottom: 22,
-                child: Opacity(opacity: fade, child: bottom!),
+                bottom: 20,
+                // Faded out it is still there, and `Opacity` does not stop a
+                // tap: without this, a press on the collapsed toolbar lands on
+                // an invisible search box and raises the keyboard.
+                child: IgnorePointer(
+                  ignoring: fade == 0,
+                  child: Opacity(opacity: fade, child: bottom!),
+                ),
               ),
-            // The name travels from under the subtitle up onto the toolbar
-            // line, and shrinks on the way rather than cutting between two
-            // sizes.
+            // Unless [compactTitle] says otherwise this is headline-sized,
+            // because expanded it is the hero's subject — who the handset is
+            // acting as — not an app-bar label. It travels from under the
+            // subtitle onto the toolbar line, shrinking to a title on the way
+            // rather than cutting between two sizes.
             Positioned(
               left: 20,
               right: 76,
               top: lerpDouble(
-                topPadding + (subtitle == null ? 18 : 41),
-                topPadding + 15,
+                topPadding + (subtitle == null ? 16 : 36),
+                topPadding + (compactTitle ? 16 : 17),
                 t,
               ),
-              child: Transform.scale(
-                scale: lerpDouble(1, 0.92, t)!,
-                alignment: Alignment.centerLeft,
-                child: AppText.titleLarge(
-                  title,
-                  color: Colors.white,
-                  maxLines: 1,
-                ),
+              child: Row(
+                children: <Widget>[
+                  if (leading != null) ...<Widget>[
+                    leading!,
+                    const SizedBox(width: 6),
+                  ],
+                  Expanded(child: _title(t)),
+                ],
               ),
             ),
             if (trailing != null)
@@ -169,11 +174,26 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
+  /// A compact title is already the size it collapses to, so it neither
+  /// scales nor moves — the bar shrinks around it.
+  Widget _title(double t) {
+    if (compactTitle) {
+      return AppText.titleLarge(title, color: Colors.white, maxLines: 1);
+    }
+    return Transform.scale(
+      scale: lerpDouble(1, 0.8, t)!,
+      alignment: Alignment.centerLeft,
+      child: AppText.headlineLarge(title, color: Colors.white, maxLines: 1),
+    );
+  }
+
   @override
   bool shouldRebuild(_HeroHeaderDelegate old) =>
       title != old.title ||
       subtitle != old.subtitle ||
+      leading != old.leading ||
       bottom != old.bottom ||
+      compactTitle != old.compactTitle ||
       trailing != old.trailing ||
       expandedHeight != old.expandedHeight ||
       topPadding != old.topPadding ||

@@ -27,8 +27,9 @@ class AppCard extends StatelessWidget {
   /// for a solid brand tile.
   final Gradient? gradient;
 
-  /// Defaults to the theme divider. Pass a tone-tinted border to go with
-  /// [color].
+  /// Defaults to the scheme's outline — a component's edge, which is a firmer
+  /// line than the divider this used to draw and the one `cardTheme.shape`
+  /// already names. Pass a tone-tinted border to go with [color].
   final Color? borderColor;
 
   @override
@@ -43,7 +44,7 @@ class AppCard extends StatelessWidget {
         padding: padding,
         decoration: BoxDecoration(
           borderRadius: radius,
-          border: Border.all(color: borderColor ?? theme.dividerColor),
+          border: Border.all(color: borderColor ?? theme.colorScheme.outline),
         ),
         child: child,
       ),

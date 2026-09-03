@@ -70,44 +70,22 @@ class OfficerCard extends StatelessWidget {
           const SizedBox(height: 12),
           // Only what the server actually sent — `employee_no` and `branch_id`
           // come back null for this officer, and a row reading "—" is noise.
-          _Detail(icon: Icons.badge_outlined, value: officer.username),
+          AppDetailRow(icon: Icons.badge_outlined, value: officer.username),
           if (officer.employeeNo != null)
-            _Detail(icon: Icons.tag_rounded, value: officer.employeeNo!),
+            AppDetailRow(icon: Icons.tag_rounded, value: officer.employeeNo!),
           if (officer.mobileNo != null)
-            _Detail(icon: Icons.call_outlined, value: officer.mobileNo!),
+            AppDetailRow(icon: Icons.call_outlined, value: officer.mobileNo!),
           if (officer.email != null)
-            _Detail(icon: Icons.mail_outline_rounded, value: officer.email!),
+            AppDetailRow(
+              icon: Icons.mail_outline_rounded,
+              value: officer.email!,
+            ),
           if (officer.lastLoginAt != null)
-            _Detail(
+            AppDetailRow(
               icon: Icons.schedule_rounded,
               value:
                   'Last signed in ${Formatters.dateTime(officer.lastLoginAt!.toLocal())}',
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Detail extends StatelessWidget {
-  const _Detail({required this.icon, required this.value});
-
-  final IconData icon;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = Theme.of(
-      context,
-    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: muted),
-          const SizedBox(width: 10),
-          Expanded(child: AppText.body(value, maxLines: 1)),
         ],
       ),
     );
