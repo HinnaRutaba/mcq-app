@@ -15,7 +15,6 @@ import 'widgets/licence_tile.dart';
 import 'widgets/lookup_answer.dart';
 import 'widgets/trade_filters.dart';
 
-
 class TradeLicencesScreen extends StatelessWidget {
   const TradeLicencesScreen({super.key});
 

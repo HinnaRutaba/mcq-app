@@ -5,31 +5,18 @@ import 'package:get/get.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
 import '../../../controllers/trade_capture_controller.dart';
-import '../../../core/capture/location_capture.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../models/field_beat.dart';
 import '../../../models/trade_application.dart';
 import '../../../models/trade_application_request.dart';
 import '../../../models/trade_tariff.dart';
 import '../../../widgets/widgets.dart';
-import '../shared/widgets/evidence_tile.dart';
+import '../shared/widgets/amount_field.dart';
+import '../shared/widgets/area_search_field.dart';
+import '../shared/widgets/still_needed_note.dart';
 import 'widgets/trade_captured_sheet.dart';
 import 'widgets/trade_category_sheet.dart';
 
-/// Capturing an unlicensed shop on the spot.
-///
-/// Three numbered blocks on one scroll — the trade, the shopkeeper, the shop —
-/// under a bar that stays on screen carrying the fee the server quoted and the
-/// button. One pass, not a wizard: an officer standing in front of a shopkeeper
-/// should see everything the capture will say without tapping "next".
-///
-/// The fee is never worked out here. It comes off the tariff for (trade x
-/// zone), is shown per year exactly as sent, and the server prices the licence
-/// when it raises the challan.
-///
-/// The write does four things at once — quotes the fee, raises the challan,
-/// issues a payment link and texts the shopkeeper — and carries no
-/// `client_action_uuid`, so a call that never came back may still have landed.
-/// That case sends the officer to their captures rather than offering a retry.
 class TradeCaptureScreen extends StatefulWidget {
   const TradeCaptureScreen({super.key, this.searched, this.areaId});
 
@@ -103,7 +90,11 @@ class _TradeCaptureScreenState extends State<TradeCaptureScreen> {
                     controller: controller,
                     onCheck: () => _leave(changed: true),
                   ),
+                  _AreaSection(controller: controller),
+                  const SizedBox(height: 20),
                   _TradeSection(controller: controller),
+                  const SizedBox(height: 20),
+                  _FeeSection(controller: controller),
                   const SizedBox(height: 20),
                   _ShopkeeperSection(controller: controller),
                   const SizedBox(height: 20),
@@ -238,6 +229,70 @@ class _Section extends StatelessWidget {
   }
 }
 
+/// Step 1: the bazaar, which nothing else on this form can be answered
+/// without — `tariff?area_id=` prices one bazaar and has to be told which.
+class _AreaSection extends StatelessWidget {
+  const _AreaSection({required this.controller});
+
+  final TradeCaptureController controller;
+
+  @override
+  Widget build(BuildContext context) => _Section(
+    step: '1',
+    title: 'The bazaar',
+    note: 'MCQ prices a trade by zone, so the bazaar decides the fee.',
+    child: Obx(() => _picker(context)),
+  );
+
+  /// Read inside the builder, not around this widget: a value read in a
+  /// child's own build registers with nothing.
+  Widget _picker(BuildContext context) {
+    final List<int> options = controller.areaOptions;
+    if (options.isEmpty && controller.isLoadingAreas.value) {
+      return const AppCard(child: AppText.body('Loading your bazaars…'));
+    }
+
+    // Nothing to search, so nothing can be priced. The message is the beat's
+    // own, and the button is the way back to it.
+    if (options.isEmpty) {
+      final String? error = controller.areasError.value;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppAlert(
+            message:
+                error ??
+                'Your bazaars have not loaded, so a trade cannot be priced '
+                    'yet.',
+          ),
+          const SizedBox(height: 12),
+          AppButton(
+            label: 'Load the bazaars',
+            icon: Icons.refresh_rounded,
+            variant: AppButtonVariant.outline,
+            fullWidth: false,
+            onPressed: controller.loadAreas,
+          ),
+        ],
+      );
+    }
+
+    // The matches belong to the box, not to the form: they open under it and
+    // close with it.
+    return AreaSearchField(
+      controller: controller.areaSearchController,
+      optionsFor: controller.areaMatchesFor,
+      onChanged: controller.searchArea,
+      onSelected: (FieldArea area) => controller.setArea(area.id),
+      selected: controller.chosenArea,
+      onCleared: controller.clearArea,
+      hint: 'Search the bazaar',
+      note: 'The licence is priced for this bazaar',
+    );
+  }
+}
+
+/// Step 2: the trade and the term, off the tariff for the bazaar above.
 class _TradeSection extends StatelessWidget {
   const _TradeSection({required this.controller});
 
@@ -254,71 +309,70 @@ class _TradeSection extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return _Section(
-      step: '1',
-      title: 'The trade',
-      note: 'MCQ prices a trade by zone, so the bazaar decides the fee.',
-      child: AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Obx(() {
-              if (controller.isLoadingTariff.value &&
-                  controller.tariff.value == null) {
-                return const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              if (controller.areaOptions.isEmpty) {
-                return AppButton(
-                  label: 'Load the tariff',
-                  icon: Icons.refresh_rounded,
-                  variant: AppButtonVariant.outline,
-                  onPressed: controller.loadTariff,
-                );
-              }
-              return AppDropdown<int>(
-                // Keyed on the value: the tariff answers with a bazaar when
-                // none was asked for, and an unkeyed form field would keep
-                // showing the hint over a choice that has already been made.
-                key: ValueKey<int?>(controller.areaId.value),
-                label: 'Bazaar',
-                items: controller.areaOptions,
-                itemLabel: controller.areaLabel,
-                value: controller.areaId.value,
-                onChanged: controller.setArea,
-                prefixIcon: Icons.place_outlined,
-                validator: (_) => controller.areaError,
-              );
-            }),
-            const SizedBox(height: 18),
-            Obx(
-              () => _TradePicker(
-                category: controller.category.value,
-                error: controller.categoryError,
-                enabled: controller.quotableGroups.isNotEmpty,
-                onTap: () => _pick(context),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Obx(
-              () => AppDropdown<int>(
-                key: ValueKey<int>(controller.years.value),
-                label: 'Licence term',
-                items: controller.termOptions,
-                itemLabel: (int year) =>
-                    '$year ${year == 1 ? 'year' : 'years'}',
-                value: controller.years.value,
-                onChanged: controller.setYears,
-                prefixIcon: Icons.event_repeat_outlined,
-                validator: (_) => controller.yearsError,
-              ),
-            ),
-          ],
+  Widget build(BuildContext context) => _Section(
+    step: '2',
+    title: 'The trade',
+    child: AppCard(child: Obx(() => _body(context))),
+  );
+
+  Widget _body(BuildContext context) {
+    final Color? muted = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+
+    if (controller.areaId.value == null) {
+      return AppText.body(
+        'Name the bazaar first — the prices are the ones MCQ charges there.',
+        color: muted,
+      );
+    }
+
+    if (controller.isLoadingTariff.value && controller.tariff.value == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // The banner at the top of the form already carries why. This is the way
+    // to ask again.
+    if (controller.tariff.value == null) {
+      return AppButton(
+        label: 'Load the prices',
+        icon: Icons.refresh_rounded,
+        variant: AppButtonVariant.outline,
+        onPressed: controller.loadTariff,
+      );
+    }
+
+    final TradeCategory? chosen = controller.category.value;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _TradePicker(
+          category: chosen,
+          error: controller.categoryError,
+          enabled: controller.quotableGroups.isNotEmpty,
+          onTap: () => _pick(context),
         ),
-      ),
+        if (chosen != null) ...<Widget>[
+          const SizedBox(height: 12),
+          _TradeDetails(
+            category: chosen,
+            group: controller.categoryGroup,
+            zoneName: controller.zoneName,
+          ),
+        ],
+        const SizedBox(height: 18),
+        // Stated, not asked: a year is the only term MCQ issues in the field.
+        const AppText.label('Licence term'),
+        const SizedBox(height: 8),
+        const AppDetailRow(
+          icon: Icons.event_repeat_outlined,
+          value: 'One year — the only term issued in the field',
+        ),
+      ],
     );
   }
 }
@@ -386,6 +440,104 @@ class _TradePicker extends StatelessWidget {
   }
 }
 
+/// Step 3: the fee, at the size it is read out at. Quoted off the tariff and
+/// the officer's to correct — the same block the fine's amount uses.
+class _FeeSection extends StatelessWidget {
+  const _FeeSection({required this.controller});
+
+  final TradeCaptureController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      step: '3',
+      title: 'The licence fee',
+      child: Obx(() {
+        // Re-read after a trade is chosen: the figure is prefilled off the
+        // tariff, and a text controller is not observable.
+        controller.revision.value;
+        return AmountField(
+          controller: controller.feeController,
+          suggestion: controller.annualFee,
+          source: "MCQ's tariff for this trade",
+          subject: 'fee',
+          validator: controller.validateFee,
+          onChanged: (_) => controller.markEdited(),
+        );
+      }),
+    );
+  }
+}
+
+/// Step 4: who the licence is issued to. The CNIC leads, because it is the
+/// one field a shopkeeper reads off a card rather than recites.
+/// Everything the tariff holds about the chosen trade — its Urdu wording, the
+/// heading it sits under, the register's own code for it, and the zone whose
+/// price it is.
+///
+/// Shown because an officer quoting a fee at a shopkeeper is reading it off
+/// this screen, and because the Urdu is what they will say out loud.
+class _TradeDetails extends StatelessWidget {
+  const _TradeDetails({
+    required this.category,
+    required this.group,
+    required this.zoneName,
+  });
+
+  final TradeCategory category;
+  final String? group;
+  final String? zoneName;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (category.categoryNameUr != null) ...<Widget>[
+            // Right to left, and larger than a caption: Urdu set small is not
+            // readable at arm's length in the sun.
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: AppText.titleMedium(category.categoryNameUr!),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (group != null)
+            AppDetailRow(icon: Icons.category_outlined, value: group!),
+          if (category.categoryCode != null)
+            AppDetailRow(
+              icon: Icons.tag_rounded,
+              value: category.categoryCode!,
+            ),
+          if (zoneName != null)
+            // The zone is the answer to "why that figure?" — MCQ prices a
+            // trade per zone and the bazaar inherits it.
+            AppDetailRow(
+              icon: Icons.map_outlined,
+              value: 'Priced for $zoneName',
+              maxLines: 2,
+            ),
+          if (category.annualFee != null)
+            AppDetailRow(
+              icon: Icons.payments_outlined,
+              value:
+                  '${Formatters.money(category.annualFee)} a year, as quoted',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ShopkeeperSection extends StatelessWidget {
   const _ShopkeeperSection({required this.controller});
 
@@ -394,7 +546,7 @@ class _ShopkeeperSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Section(
-      step: '2',
+      step: '4',
       title: 'The shopkeeper',
       note:
           'The mobile number is where the payment link is texted, so a wrong '
@@ -402,6 +554,21 @@ class _ShopkeeperSection extends StatelessWidget {
       child: AppCard(
         child: Column(
           children: <Widget>[
+            AppTextField(
+              label: 'CNIC',
+              hint: "e.g. 5440011223344",
+              controller: controller.cnicController,
+              keyboardType: TextInputType.number,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(
+                  TradeApplicationRequest.cnicLength,
+                ),
+              ],
+              validator: controller.validateCnic,
+              onChanged: (_) => controller.markEdited(),
+            ),
+            const SizedBox(height: 18),
             AppTextField(
               label: 'Name',
               controller: controller.applicantController,
@@ -427,34 +594,16 @@ class _ShopkeeperSection extends StatelessWidget {
                 FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(11),
               ],
-              prefixIcon: Icons.phone_outlined,
               validator: controller.validateMobile,
               onChanged: (_) => controller.markEdited(),
             ),
             const SizedBox(height: 18),
             AppTextField(
-              label: 'CNIC',
-              // Thirteen bare digits here, unlike the dashed form a fine takes.
-              hint: 'Optional · ${TradeApplicationRequest.cnicLength} digits',
-              controller: controller.cnicController,
-              keyboardType: TextInputType.number,
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(
-                  TradeApplicationRequest.cnicLength,
-                ),
-              ],
-              prefixIcon: Icons.badge_outlined,
-              validator: controller.validateCnic,
-              onChanged: (_) => controller.markEdited(),
-            ),
-            const SizedBox(height: 18),
-            AppTextField(
               label: 'Email',
-              hint: 'Optional',
+              optional: true,
+              hint: 'name@example.com',
               controller: controller.emailController,
               keyboardType: TextInputType.emailAddress,
-              prefixIcon: Icons.alternate_email_rounded,
               validator: controller.validateEmail,
               onChanged: (_) => controller.markEdited(),
             ),
@@ -470,39 +619,10 @@ class _ShopSection extends StatelessWidget {
 
   final TradeCaptureController controller;
 
-  Future<void> _location(BuildContext context) async {
-    final LocationOutcome outcome = await controller.attachLocation();
-    if (!context.mounted) return;
-    switch (outcome) {
-      case LocationOutcome.fixed:
-        break;
-      case LocationOutcome.serviceOff:
-        _say(context, 'Turn location on to record where the shop stands.');
-      case LocationOutcome.needsSettings:
-        _say(context, 'Allow location in Settings to record where you stood.');
-      case LocationOutcome.refused:
-      case LocationOutcome.unavailable:
-        _say(
-          context,
-          'No fix here. The capture can still be sent without one.',
-        );
-    }
-  }
-
-  static void _say(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: AppText.body(message)));
-  }
-
   @override
   Widget build(BuildContext context) {
-    final Color? muted = Theme.of(
-      context,
-    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
-
     return _Section(
-      step: '3',
+      step: '5',
       title: 'The shop',
       child: AppCard(
         child: Column(
@@ -525,64 +645,10 @@ class _ShopSection extends StatelessWidget {
               validator: controller.validateAddress,
               onChanged: (_) => controller.markEdited(),
             ),
-            const SizedBox(height: 18),
-            Obx(
-              () => Row(
-                children: <Widget>[
-                  SizedBox(
-                    width: 96,
-                    child: EvidenceTile(
-                      icon: Icons.location_on_outlined,
-                      label: 'Location',
-                      busy: controller.isFixingLocation.value,
-                      state: _locationState,
-                      detail: _locationDetail,
-                      onTap: () => _location(context),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: AppText.caption(
-                      'Optional, and it is what puts somebody at this '
-                      'shopfront if the capture is ever argued with.',
-                      color: muted,
-                      maxLines: 3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-            AppTextField(
-              label: 'Remarks',
-              hint: 'Optional',
-              controller: controller.remarksController,
-              maxLines: 3,
-              validator: controller.validateRemarks,
-              onChanged: (_) => controller.markEdited(),
-            ),
           ],
         ),
       ),
     );
-  }
-
-  EvidenceState get _locationState {
-    if (controller.locationFix.value != null) return EvidenceState.attached;
-    return switch (controller.locationOutcome.value) {
-      LocationOutcome.refused ||
-      LocationOutcome.needsSettings ||
-      LocationOutcome.serviceOff => EvidenceState.unavailable,
-      _ => EvidenceState.empty,
-    };
-  }
-
-  String? get _locationDetail {
-    final LocationFix? fix = controller.locationFix.value;
-    // The accuracy is the evidence. "Fixed" alone could mean 800 metres, which
-    // does not put anybody in front of a shop.
-    if (fix != null) return '${fix.accuracyM.round()} m';
-    return null;
   }
 }
 
@@ -613,39 +679,37 @@ class _SubmitBar extends StatelessWidget {
           child: Obx(() {
             // Re-read the text controllers whenever anything was edited.
             controller.revision.value;
-            final String? fee = Formatters.money(controller.annualFee);
+            final String fee = controller.fee;
             final List<String> missing = controller.missing;
 
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // A total line: the label on the left, the figure at the right
+                // edge where a reader looks for it.
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          AppText.caption('Licence fee', color: muted),
-                          const SizedBox(height: 2),
-                          // Per year, exactly as quoted. The server prices the
-                          // licence over the term when it raises the challan.
-                          AppText.titleLarge(fee == null ? '—' : '$fee / year'),
-                        ],
+                      // The term is on the label, not on the figure: "/ year"
+                      // beside a long fee runs the row off a narrow screen.
+                      child: AppText.caption(
+                        'Licence fee, per year',
+                        color: muted,
                       ),
                     ),
-                    if (missing.isNotEmpty)
-                      Flexible(
-                        child: AppText.caption(
-                          'Still needed: ${missing.take(2).join(', ')}'
-                          '${missing.length > 2 ? '…' : ''}',
-                          color: muted,
-                          textAlign: TextAlign.end,
-                          maxLines: 2,
-                        ),
-                      ),
+                    const SizedBox(width: 10),
+                    // Printed exactly as typed. Never parsed, never rounded,
+                    // never multiplied by the term.
+                    AppText.titleLarge(fee.isEmpty ? '—' : 'Rs $fee'),
                   ],
                 ),
+                // A row of its own, and every missing field named: a disabled
+                // button an officer cannot explain is the one they give up on.
+                if (missing.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  StillNeededNote(missing: missing),
+                ],
                 const SizedBox(height: 10),
                 AppButton(
                   label: controller.mayHaveLanded.value

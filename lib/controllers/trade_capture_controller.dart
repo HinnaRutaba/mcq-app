@@ -1,12 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
-import '../core/capture/location_capture.dart';
 import '../core/network/api_exception.dart';
 import '../data/repositories/trade_repository.dart';
 import '../models/field_beat.dart';
 import '../models/trade_application.dart';
 import '../models/trade_application_request.dart';
+import '../models/trade_beat.dart';
 import '../models/trade_tariff.dart';
 
 /// What came of pressing "Capture this shop".
@@ -26,50 +26,52 @@ enum CaptureOutcome {
   unconfirmed,
 }
 
-/// Capturing an unlicensed shop: the tariff the fee is quoted from, and the one
-/// call that writes it.
-///
-/// Two rules this controller exists to hold:
-///
-/// * **The app never prices a licence.** The fee comes off the tariff for
-///   (trade x zone) and only a [TradeCategory] whose `canQuote` is true may be
-///   picked. The annual fee is shown as the server sent it and is never
-///   multiplied by the term — the server prices the licence when it raises the
-///   challan.
-/// * **A resend is not safe.** Unlike every enforcement write this endpoint
-///   accepts no `client_action_uuid`, so a call that timed out may well have
-///   landed. [mayHaveLanded] turns the retry into a trip to
-///   `trade/field/pending` instead of a second shop on the register.
 class TradeCaptureController extends GetxController {
   TradeCaptureController({
     this.searched,
     this.initialAreaId,
     TradeRepository? tradeRepository,
-    LocationCapture? locationCapture,
-  }) : _trade = tradeRepository ?? Get.find<TradeRepository>(),
-       _locations = locationCapture ?? const LocationCapture();
+  }) : _trade = tradeRepository ?? Get.find<TradeRepository>();
 
-  /// What the officer looked up before finding nothing — a CNIC or a mobile
-  /// number. Prefilled into whichever field it is, because retyping the number
-  /// that just came back "not on the register" is how a wrong digit gets in.
   final String? searched;
 
   /// The bazaar the officer was filtering by, when they were.
   final int? initialAreaId;
 
   final TradeRepository _trade;
-  final LocationCapture _locations;
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
+  // --- The bazaar -------------------------------------------------------
+
+  /// The licensing beat, which is where the bazaars come from. The tariff
+  /// cannot supply them — it prices one bazaar and has to be told which.
+  final Rxn<TradeBeat> beat = Rxn<TradeBeat>();
+  final RxBool isLoadingAreas = RxBool(false);
+  final RxnString areasError = RxnString();
+
+  final RxnInt areaId = RxnInt();
+
+  /// The search over the officer's bazaars. Held here so a rebuild does not
+  /// lose what is being typed.
+  final TextEditingController areaSearchController = TextEditingController();
+  final RxString areaQuery = RxString('');
 
   // --- The tariff -------------------------------------------------------
   final Rxn<TradeTariff> tariff = Rxn<TradeTariff>();
   final RxBool isLoadingTariff = RxBool(false);
   final RxnString tariffError = RxnString();
 
-  final RxnInt areaId = RxnInt();
   final Rxn<TradeCategory> category = Rxn<TradeCategory>();
-  final RxInt years = RxInt(1);
+
+  /// The yearly fee, prefilled from the tariff when a trade is chosen and the
+  /// officer's to correct. A string from end to end.
+  final TextEditingController feeController = TextEditingController();
+
+  /// How long the licence runs. Fixed at a year: it is the only term MCQ
+  /// issues in the field for now, so the form states it rather than asking.
+  /// The server still reads `years`, and still prices the licence itself.
+  static const int years = 1;
 
   // --- The shopkeeper ---------------------------------------------------
   final TextEditingController applicantController = TextEditingController();
@@ -81,13 +83,6 @@ class TradeCaptureController extends GetxController {
   // --- The shop ---------------------------------------------------------
   final TextEditingController businessController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
-  final TextEditingController remarksController = TextEditingController();
-
-  final Rxn<LocationFix> locationFix = Rxn<LocationFix>();
-  final RxBool isFixingLocation = RxBool(false);
-  final Rx<LocationOutcome> locationOutcome = Rx<LocationOutcome>(
-    LocationOutcome.unavailable,
-  );
 
   // --- The write --------------------------------------------------------
   final RxBool isSubmitting = RxBool(false);
@@ -110,11 +105,16 @@ class TradeCaptureController extends GetxController {
     super.onInit();
     areaId.value = initialAreaId;
     _prefillSearched();
-    loadTariff();
+    loadAreas();
+    // The bazaar they were filtering by is already an answer to step one, so
+    // its prices are fetched without waiting for the beat behind the picker.
+    if (areaId.value != null) loadTariff();
   }
 
   @override
   void onClose() {
+    areaSearchController.dispose();
+    feeController.dispose();
     applicantController.dispose();
     fatherController.dispose();
     mobileController.dispose();
@@ -122,7 +122,6 @@ class TradeCaptureController extends GetxController {
     emailController.dispose();
     businessController.dispose();
     addressController.dispose();
-    remarksController.dispose();
     super.onClose();
   }
 
@@ -138,60 +137,130 @@ class TradeCaptureController extends GetxController {
     }
   }
 
-  // --- The tariff -------------------------------------------------------
+  // --- The bazaar -------------------------------------------------------
 
-  /// Every trade with its price in one bazaar. Re-read when the bazaar
-  /// changes: MCQ prices a trade per zone, and the bazaar inherits its zone's
-  /// prices.
-  Future<void> loadTariff() async {
-    isLoadingTariff.value = true;
-    tariffError.value = null;
+  /// The bazaars this officer may quote for, off `trade/field/beat`. The
+  /// tariff's own list is the fallback, for the bazaar arrived with: it comes
+  /// back with the prices, which is sooner than the beat lands.
+  Future<void> loadAreas() async {
+    isLoadingAreas.value = true;
+    areasError.value = null;
     try {
-      final TradeTariff priced = await _trade.tariff(areaId: areaId.value);
-      tariff.value = priced;
-      // The server answers for a bazaar even when none was asked for; adopt
-      // it, so the request carries the area the prices belong to.
-      areaId.value ??= priced.area?.id;
-      // A trade priced in the last zone may be unpriced in this one, and a
-      // stale choice would quote a fee this zone does not charge.
-      final TradeCategory? chosen = category.value;
-      if (chosen?.id != null) {
-        final TradeCategory? here = priced.category(chosen!.id!);
-        category.value = (here != null && here.canQuote) ? here : null;
-      }
-      if (!priced.terms.allows(years.value)) {
-        years.value = priced.terms.minYears;
-      }
+      beat.value = await _trade.beat();
+      _pickSoleArea();
     } on ApiException catch (error) {
-      tariffError.value = error.message;
+      areasError.value = error.message;
     } finally {
-      isLoadingTariff.value = false;
+      isLoadingAreas.value = false;
     }
   }
 
-  /// The bazaars this officer may quote for.
-  List<FieldArea> get areas => tariff.value?.areas ?? const <FieldArea>[];
+  List<FieldArea> get areas {
+    final List<FieldArea> onTheBeat =
+        beat.value?.scope.areas ?? const <FieldArea>[];
+    if (onTheBeat.isNotEmpty) return onTheBeat;
+    return tariff.value?.areas ?? const <FieldArea>[];
+  }
 
   List<int> get areaOptions => <int>[
     for (final FieldArea area in areas)
       if (area.id != null) area.id!,
   ];
 
-  String areaLabel(int id) {
+  /// One bazaar on the beat is not a choice worth asking about.
+  void _pickSoleArea() {
+    if (areaId.value != null) return;
+    if (areaOptions.length == 1) setArea(areaOptions.first);
+  }
+
+  /// The bazaars matching [term], by name or by code. An empty term offers the
+  /// whole beat, which is what a freshly opened suggestion box shows.
+  List<FieldArea> areaMatchesFor(String term) {
+    final String needle = term.trim().toLowerCase();
+    final Iterable<FieldArea> named = areas.where(
+      (FieldArea area) => area.id != null,
+    );
+    if (needle.isEmpty) return named.toList();
+    return named
+        .where(
+          (FieldArea area) =>
+              area.areaName.toLowerCase().contains(needle) ||
+              (area.areaCode?.toLowerCase().contains(needle) ?? false),
+        )
+        .toList();
+  }
+
+  void searchArea(String term) => areaQuery.value = term;
+
+  /// The chosen bazaar, named. Falls back to the one the tariff answered for,
+  /// so a bazaar arrived with is shown before the beat has landed.
+  FieldArea? get chosenArea {
+    final int? id = areaId.value;
+    if (id == null) return null;
     for (final FieldArea area in areas) {
-      if (area.id == id) return area.areaName;
+      if (area.id == id) return area;
     }
-    return 'Bazaar $id';
+    final FieldArea? priced = tariff.value?.area;
+    return priced?.id == id ? priced : null;
+  }
+
+  /// Naming a bazaar is what makes a quote possible, so its prices are fetched
+  /// on the spot.
+  Future<void> setArea(int? id) async {
+    if (id == null || id == areaId.value) return;
+    areaId.value = id;
+    areaSearchController.clear();
+    areaQuery.value = '';
+    markEdited();
+    await loadTariff();
+  }
+
+  /// Cancelling it. The prices go with it — they belonged to that bazaar.
+  void clearArea() {
+    areaId.value = null;
+    tariff.value = null;
+    tariffError.value = null;
+    category.value = null;
+    feeController.clear();
+    markEdited();
+  }
+
+  // --- The tariff -------------------------------------------------------
+
+  Future<void> loadTariff() async {
+    final int? id = areaId.value;
+    // The endpoint prices a bazaar. Without one there is nothing to ask it.
+    if (id == null) return;
+    isLoadingTariff.value = true;
+    tariffError.value = null;
+    try {
+      final TradeTariff priced = await _trade.tariff(areaId: id);
+      tariff.value = priced;
+      // A trade priced in the last zone may be unpriced in this one, and a
+      // stale choice would quote a fee this zone does not charge.
+      final TradeCategory? chosen = category.value;
+      if (chosen?.id != null) {
+        final TradeCategory? here = priced.category(chosen!.id!);
+        category.value = (here != null && here.canQuote) ? here : null;
+        // This zone's price for the same trade, or none — the last zone's
+        // figure is not a quote here.
+        feeController.text = category.value?.annualFee ?? '';
+      }
+    } on ApiException catch (error) {
+      tariffError.value = error.message;
+      // Whatever is on screen was priced for the bazaar this replaced, so it
+      // cannot be quoted at this one — a wrong figure read out to a shopkeeper
+      // is worse than none.
+      tariff.value = null;
+      category.value = null;
+      feeController.clear();
+    } finally {
+      isLoadingTariff.value = false;
+    }
   }
 
   /// The zone the prices actually hang off, for a line that says so.
   String? get zoneName => tariff.value?.zone?.zoneName;
-
-  TradeTerms get terms => tariff.value?.terms ?? const TradeTerms();
-
-  List<int> get termOptions => <int>[
-    for (int year = terms.minYears; year <= terms.maxYears; year++) year,
-  ];
 
   /// Only the trades this zone carries a price for. A trade with no price
   /// cannot raise a challan, so the picker must not offer it.
@@ -211,26 +280,33 @@ class TradeCaptureController extends GetxController {
   /// say so rather than look short.
   int get unpricedCount => tariff.value?.unpriced ?? 0;
 
-  /// The yearly fee for the chosen trade, exactly as the server quoted it.
-  /// Never multiplied by [years] — the server prices the licence.
+  /// What the tariff quotes for the chosen trade, exactly as the server sent
+  /// it. The suggestion behind [feeController], never multiplied by [years].
   String? get annualFee => category.value?.annualFee;
 
-  Future<void> setArea(int? id) async {
-    if (id == null || id == areaId.value) return;
-    areaId.value = id;
-    markEdited();
-    await loadTariff();
+  /// The figure that will be sent, as typed. Never parsed, never rounded.
+  String get fee => feeController.text.trim();
+
+  /// The heading the chosen trade sits under in the tariff. The group is on
+  /// the group, not on the category, so it is looked up rather than read off.
+  String? get categoryGroup {
+    final int? id = category.value?.id;
+    if (id == null) return null;
+    for (final TradeCategoryGroup group
+        in tariff.value?.groups ?? const <TradeCategoryGroup>[]) {
+      if (group.categories.any((TradeCategory row) => row.id == id)) {
+        return group.label;
+      }
+    }
+    return null;
   }
 
   void chooseCategory(TradeCategory chosen) {
     if (!chosen.canQuote) return;
     category.value = chosen;
-    markEdited();
-  }
-
-  void setYears(int? value) {
-    if (value == null || !terms.allows(value)) return;
-    years.value = value;
+    // The tariff's own figure, put in the field. An officer who has to type
+    // the fee MCQ already quoted is an officer who mistypes it.
+    feeController.text = chosen.annualFee ?? '';
     markEdited();
   }
 
@@ -239,23 +315,6 @@ class TradeCaptureController extends GetxController {
   void markEdited() {
     mayHaveLanded.value = false;
     revision.value++;
-  }
-
-  // --- Where the officer stood ------------------------------------------
-
-  Future<LocationOutcome> attachLocation() async {
-    isFixingLocation.value = true;
-    try {
-      final LocationResult result = await _locations.fix();
-      locationOutcome.value = result.outcome;
-      // Both coordinates or neither: a failed attempt clears the last fix
-      // rather than leaving a stale one attached to a different shop.
-      locationFix.value = result.fix;
-      markEdited();
-      return result.outcome;
-    } finally {
-      isFixingLocation.value = false;
-    }
   }
 
   // --- Validators, transcribed from the endpoint's own rules ------------
@@ -299,7 +358,9 @@ class TradeCaptureController extends GetxController {
     final String? fromServer = _serverErrors['cnic'];
     if (fromServer != null) return fromServer;
     final String cnic = value?.trim() ?? '';
-    if (cnic.isEmpty) return null;
+    // The endpoint would take a capture without one; MCQ will not. A licence
+    // is keyed on a CNIC, so a shop captured without it cannot be issued.
+    if (cnic.isEmpty) return "The shopkeeper's CNIC is required";
     if (!TradeApplicationRequest.cnicPattern.hasMatch(cnic)) {
       return '${TradeApplicationRequest.cnicLength} digits, no dashes';
     }
@@ -347,10 +408,18 @@ class TradeCaptureController extends GetxController {
     return null;
   }
 
-  String? validateRemarks(String? value) {
-    if ((value ?? '').length > TradeApplicationRequest.remarksMaxLength) {
-      return 'Keep remarks under '
-          '${TradeApplicationRequest.remarksMaxLength} characters';
+  String? validateFee(String? value) {
+    final String? fromServer = _serverErrors['fee_amount'];
+    if (fromServer != null) return fromServer;
+    final String amount = value?.trim() ?? '';
+    if (amount.isEmpty) return 'The licence fee is required';
+    // Shape only. The figure is sent as typed and the server decides what the
+    // licence is worth.
+    if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(amount)) {
+      return 'Enter a fee like 6000 or 6000.00';
+    }
+    if (RegExp(r'^0+(\.0{1,2})?$').hasMatch(amount)) {
+      return 'The fee must be at least 1';
     }
     return null;
   }
@@ -358,8 +427,6 @@ class TradeCaptureController extends GetxController {
   String? get categoryError => _serverErrors['trade_category_id'];
 
   String? get areaError => _serverErrors['area_id'];
-
-  String? get yearsError => _serverErrors['years'];
 
   // --- Whether it may be sent -------------------------------------------
 
@@ -369,7 +436,9 @@ class TradeCaptureController extends GetxController {
   List<String> get missing => <String>[
     if (areaId.value == null) 'the bazaar',
     if (category.value == null) 'the trade',
-    if (applicantController.text.trim().isEmpty) "the shopkeeper's name",
+    if (feeController.text.trim().isEmpty) 'the licence fee',
+    if (cnicController.text.trim().isEmpty) "the shopkeeper's CNIC",
+    if (applicantController.text.trim().isEmpty) 'their name',
     if (fatherController.text.trim().isEmpty) "their father's name",
     if (mobileController.text.trim().isEmpty) 'a mobile number',
     if (businessController.text.trim().isEmpty) 'the business name',
@@ -381,15 +450,14 @@ class TradeCaptureController extends GetxController {
   bool get isValid =>
       missing.isEmpty &&
       (category.value?.canQuote ?? false) &&
-      terms.allows(years.value) &&
+      validateFee(feeController.text) == null &&
       validateApplicant(applicantController.text) == null &&
       validateFather(fatherController.text) == null &&
       validateMobile(mobileController.text) == null &&
       validateCnic(cnicController.text) == null &&
       validateEmail(emailController.text) == null &&
       validateBusiness(businessController.text) == null &&
-      validateAddress(addressController.text) == null &&
-      validateRemarks(remarksController.text) == null;
+      validateAddress(addressController.text) == null;
 
   // --- The write --------------------------------------------------------
 
@@ -428,21 +496,18 @@ class TradeCaptureController extends GetxController {
   }
 
   TradeApplicationRequest _buildRequest() {
-    final LocationFix? fix = locationFix.value;
     return TradeApplicationRequest(
       tradeCategoryId: category.value!.id!,
       areaId: areaId.value!,
-      years: years.value,
+      years: years,
       applicantName: applicantController.text.trim(),
       fatherName: fatherController.text.trim(),
       mobileNo: mobileController.text.trim(),
       businessName: businessController.text.trim(),
       shopAddress: addressController.text.trim(),
-      cnic: _orNull(cnicController.text),
+      feeAmount: fee,
+      cnic: cnicController.text.trim(),
       email: _orNull(emailController.text),
-      latitude: fix?.latitude,
-      longitude: fix?.longitude,
-      remarks: _orNull(remarksController.text),
     );
   }
 
@@ -450,7 +515,7 @@ class TradeCaptureController extends GetxController {
     for (final String field in const <String>[
       'trade_category_id',
       'area_id',
-      'years',
+      'fee_amount',
       'applicant_name',
       'father_name',
       'mobile_no',

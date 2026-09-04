@@ -50,11 +50,14 @@ abstract class TradeRepository {
 
   /// Every trade with its price in one bazaar, grouped for a picker.
   ///
+  /// The bazaar is required — `tariff?area_id=` prices one, and the officer
+  /// names it before anything can be quoted.
+  ///
   /// Cache it — MCQ reprices a zone a few times a year. An unpriced trade comes
   /// back with a null fee and is counted in `TradeTariff.unpriced`; never
   /// render that as `0.00`. `TradeCategory.canQuote` is the flag to gate the
   /// picker on.
-  Future<TradeTariff> tariff({int? areaId});
+  Future<TradeTariff> tariff({required int areaId});
 
   /// The officer's own field captures that have not been paid.
   ///
@@ -64,10 +67,11 @@ abstract class TradeRepository {
 
   /// Captures an unlicensed shop on the spot.
   ///
-  /// The only write in this module, and it does four things at once: quotes the
-  /// fee from (trade x zone), raises the challan, issues a payment link and
-  /// texts the shopkeeper. So never compute the fee in the app — pick a
-  /// category whose `canQuote` is true and let the server price it.
+  /// The only write in this module, and it does four things at once: prices the
+  /// licence, raises the challan, issues a payment link and texts the
+  /// shopkeeper. Never *compute* the fee in the app — quote it off the tariff
+  /// for (trade x zone) and send it back as `fee_amount`, which is the figure
+  /// the officer stood in front of the shopkeeper and agreed.
   ///
   /// Unlike every enforcement write, this endpoint accepts no
   /// `client_action_uuid`, so a resend is **not** made safe by the server.
@@ -102,7 +106,7 @@ class ApiTradeRepository implements TradeRepository {
   }
 
   @override
-  Future<TradeTariff> tariff({int? areaId}) async {
+  Future<TradeTariff> tariff({required int areaId}) async {
     final response = await _api.get(
       ApiPaths.tradeTariff,
       query: <String, dynamic>{'area_id': areaId},

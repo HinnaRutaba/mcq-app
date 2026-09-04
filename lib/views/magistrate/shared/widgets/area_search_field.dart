@@ -13,6 +13,7 @@ class AreaSearchField extends StatefulWidget {
     required this.onChanged,
     required this.selected,
     required this.onCleared,
+    this.note,
     this.hint = 'Search the area',
   });
 
@@ -33,6 +34,10 @@ class AreaSearchField extends StatefulWidget {
   /// Cancelling it. The box takes the focus back, so the next one is one tap
   /// away rather than two.
   final VoidCallback onCleared;
+
+  /// What taking this area does, under its name on the card — a fine is
+  /// posted to one, a licence is priced for one.
+  final String? note;
 
   final String hint;
 
@@ -70,7 +75,11 @@ class _AreaSearchFieldState extends State<AreaSearchField> {
         _field(context),
         if (widget.selected != null) ...<Widget>[
           const SizedBox(height: 12),
-          _SelectedArea(area: widget.selected!, onCancel: _cancel),
+          _SelectedArea(
+            area: widget.selected!,
+            note: widget.note,
+            onCancel: _cancel,
+          ),
         ],
       ],
     );
@@ -185,9 +194,14 @@ class _Suggestions extends StatelessWidget {
 /// The area the fine will be posted against, with what the beat knows about
 /// it — and the way out of it.
 class _SelectedArea extends StatelessWidget {
-  const _SelectedArea({required this.area, required this.onCancel});
+  const _SelectedArea({
+    required this.area,
+    required this.note,
+    required this.onCancel,
+  });
 
   final FieldArea area;
+  final String? note;
   final VoidCallback onCancel;
 
   @override
@@ -212,11 +226,10 @@ class _SelectedArea extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     AppText.titleMedium(area.areaName),
-                    const SizedBox(height: 2),
-                    AppText.caption(
-                      'The fine will be posted here',
-                      color: muted,
-                    ),
+                    if (note != null) ...<Widget>[
+                      const SizedBox(height: 2),
+                      AppText.caption(note!, color: muted),
+                    ],
                   ],
                 ),
               ),

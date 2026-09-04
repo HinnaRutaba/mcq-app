@@ -471,7 +471,7 @@ class FakeTradeRepository implements TradeRepository {
   }
 
   @override
-  Future<TradeTariff> tariff({int? areaId}) async {
+  Future<TradeTariff> tariff({required int areaId}) async {
     lastTariffAreaId = areaId;
     if (failure != null) throw failure!;
     return _tariff;

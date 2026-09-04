@@ -5,23 +5,36 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_radius.dart';
 import '../../../../widgets/widgets.dart';
 
-class FineAmountField extends StatelessWidget {
-  const FineAmountField({
+/// The one money field on a form, at the size the figure is read out at.
+///
+/// Shared by the fine and the licence capture: both quote a figure the
+/// register suggests, let the officer change it, and send it as a string
+/// exactly as typed.
+class AmountField extends StatelessWidget {
+  const AmountField({
     super.key,
     required this.controller,
     required this.onChanged,
     this.validator,
     this.suggestion,
+    this.source = 'the register',
+    this.subject = 'fine',
   });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String? Function(String?)? validator;
 
-  /// What the register suggests for the chosen offence. Always said out loud
+  /// What the register suggests for the chosen row. Always said out loud
   /// underneath: an officer who does not know the figure is only a suggestion
-  /// will not change it, and a fine has to fit what they are looking at.
+  /// will not change it, and the figure has to fit what they are looking at.
   final String? suggestion;
+
+  /// Who suggested it — "the register" on a fine, MCQ's tariff on a licence.
+  final String source;
+
+  /// What the figure is, for the line under it: a fine, or a fee.
+  final String subject;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +99,8 @@ class FineAmountField extends StatelessWidget {
             const SizedBox(height: 12),
             _SuggestionChip(
               suggestion: suggestion!,
+              source: source,
+              subject: subject,
               // Whether the figure in the field is still the register's own.
               unchanged: controller.text.trim() == suggestion,
             ),
@@ -99,9 +114,16 @@ class FineAmountField extends StatelessWidget {
 /// The line under the amount: where the figure came from, and that it is the
 /// officer's to change.
 class _SuggestionChip extends StatelessWidget {
-  const _SuggestionChip({required this.suggestion, required this.unchanged});
+  const _SuggestionChip({
+    required this.suggestion,
+    required this.source,
+    required this.subject,
+    required this.unchanged,
+  });
 
   final String suggestion;
+  final String source;
+  final String subject;
   final bool unchanged;
 
   @override
@@ -122,9 +144,9 @@ class _SuggestionChip extends StatelessWidget {
           Expanded(
             child: AppText.caption(
               unchanged
-                  ? 'Rs $suggestion is what the register suggests for this '
-                        'offence. Change it if the fine should be more or less.'
-                  : "Changed from the register's Rs $suggestion.",
+                  ? 'Rs $suggestion is what $source suggests. Change it if '
+                        'the $subject should be more or less.'
+                  : 'Changed from the suggested Rs $suggestion.',
               color: ink,
               maxLines: 3,
             ),

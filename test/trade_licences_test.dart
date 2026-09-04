@@ -287,7 +287,7 @@ void main() {
         },
       });
 
-      final tariff = await trade.tariff();
+      final tariff = await trade.tariff(areaId: 1);
       final unpriced = tariff.category(134)!;
 
       // Rendering a null fee as 0.00 would quote a shopkeeper a free licence.

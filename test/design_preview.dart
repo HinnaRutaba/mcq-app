@@ -220,7 +220,7 @@ void main() {
     // it. Nothing here prices the licence — the fee is the tariff's.
     'trade_capture': () {
       _seedTradeCapture();
-      return const TradeCaptureScreen(searched: '03309999999', areaId: 1);
+      return const TradeCaptureScreen(searched: '03309999999');
     },
     'trade_capture_filled': () {
       _seedTradeCapture();
@@ -422,7 +422,7 @@ void main() {
     'trade_licences_unlicensed': 1300,
     'trade_licences_renewal': 1500,
     'trade_capture': 3000,
-    'trade_capture_filled': 3000,
+    'trade_capture_filled': 3600,
     'trade_capture_shop': 2200,
     'challans': 2900,
     'challans_collapsed': 1400,
@@ -517,8 +517,8 @@ void main() {
       fine.offenderCnicController.text = '5440011223344';
     },
     // The form as it looks once the officer has filled it in: a trade chosen
-    // off the tariff, and the fee on the bar quoted per year rather than
-    // multiplied by the term.
+    // off the tariff, and the fee on the bar quoted per year exactly as the
+    // server sent it.
     'trade_capture_filled': () {
       final TradeCaptureController capture = Get.find<TradeCaptureController>();
       capture
@@ -528,7 +528,6 @@ void main() {
         ..addressController.text = 'Shop 14, Circular Road, Quetta'
         ..cnicController.text = '5440112233445';
       capture.chooseCategory(tradeTariffFixture.category(40)!);
-      capture.setYears(3);
     },
   };
 

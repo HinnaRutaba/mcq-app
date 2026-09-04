@@ -29,6 +29,7 @@ class AppTextField extends StatefulWidget {
     this.inputFormatters,
     this.autofillHints,
     this.dense = false,
+    this.optional = false,
   });
 
   final String? label;
@@ -57,6 +58,10 @@ class AppTextField extends StatefulWidget {
   /// height is spent on chrome and not on the answer.
   final bool dense;
 
+  /// Says so beside the label. A form that marks what may be left out is
+  /// faster than one where every blank field looks like an unfinished one.
+  final bool optional;
+
   @override
   State<AppTextField> createState() => _AppTextFieldState();
 }
@@ -70,7 +75,20 @@ class _AppTextFieldState extends State<AppTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.label != null) ...[
-          AppText.label(widget.label!),
+          Row(
+            children: [
+              AppText.label(widget.label!),
+              if (widget.optional) ...[
+                const SizedBox(width: 6),
+                AppText.caption(
+                  'Optional',
+                  color: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+                ),
+              ],
+            ],
+          ),
           const SizedBox(height: 8),
         ],
         TextFormField(

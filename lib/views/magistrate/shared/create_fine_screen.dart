@@ -15,9 +15,10 @@ import '../../../models/unit_card.dart';
 import '../../../widgets/widgets.dart';
 import 'widgets/area_search_field.dart';
 import 'widgets/evidence_tile.dart';
-import 'widgets/fine_amount_field.dart';
+import 'widgets/amount_field.dart';
 import 'widgets/person_cnic_field.dart';
 import 'widgets/fine_imposed_sheet.dart';
+import 'widgets/still_needed_note.dart';
 import '../../../config/theme/app_radius.dart';
 
 class CreateFineScreen extends StatefulWidget {
@@ -326,6 +327,7 @@ class _AreaPicker extends StatelessWidget {
         onSelected: (FieldArea area) => controller.setArea(area.id),
         selected: controller.chosenArea,
         onCleared: controller.clearArea,
+        note: 'The fine will be posted here',
       );
     });
   }
@@ -572,7 +574,7 @@ class _AmountSection extends StatelessWidget {
         // Re-read after an offence is chosen: the figure is prefilled from the
         // register, and a text controller is not observable.
         controller.revision.value;
-        return FineAmountField(
+        return AmountField(
           controller: controller.amountController,
           suggestion: controller.suggestedAmount,
           validator: controller.validateAmount,
@@ -611,7 +613,7 @@ class _PayerSection extends StatelessWidget {
             PersonCnicField(
               controller: controller.personLookup,
               label: "Offender's CNIC",
-              hint: needsOffender ? 'e.g. 5440011223344' : 'Optional',
+              hint: "e.g. 5440011223344",
               validator: controller.validateOffenderCnic,
               onChanged: (_) => controller.markEdited(),
               onTaken: controller.takePerson,
@@ -787,7 +789,7 @@ class _SubmitBar extends StatelessWidget {
                 // without telling them what to do about it.
                 if (missing.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 10),
-                  _StillNeeded(missing: missing),
+                  StillNeededNote(missing: missing),
                 ],
                 const SizedBox(height: 10),
                 AppButton(
@@ -800,45 +802,6 @@ class _SubmitBar extends StatelessWidget {
             );
           }),
         ),
-      ),
-    );
-  }
-}
-
-/// What the fine is still short of, in the order the form asks for it.
-///
-/// The whole list, never an "and 3 more": a disabled button an officer cannot
-/// explain is the thing they give up on, and the two-item version sent them
-/// scrolling the form to find out which field was empty.
-class _StillNeeded extends StatelessWidget {
-  const _StillNeeded({required this.missing});
-
-  final List<String> missing;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color ink = AppTone.warning.on(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppTone.warning.container(context),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(Icons.error_outline_rounded, size: 16, color: ink),
-          const SizedBox(width: 8),
-          Expanded(
-            child: AppText.caption(
-              'Still needed: ${missing.join(', ')}',
-              color: ink,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -1,9 +1,10 @@
 /// Captures an unlicensed shop on the spot.
 ///
 /// The only write in the licensing module, and it does four things in one
-/// transaction: quotes the fee from (trade x zone), raises the challan, issues
-/// a payment link and texts the shopkeeper. So the app never computes a fee —
-/// pick a [TradeCategory] whose `canQuote` is true and let the server price it.
+/// transaction: prices the licence, raises the challan, issues a payment link
+/// and texts the shopkeeper. The fee is never *computed* on the handset — it is
+/// quoted off the tariff for (trade x zone) and travels back as [feeAmount],
+/// which the officer may correct before sending.
 ///
 /// Unlike the enforcement writes this carries no `client_action_uuid`: the
 /// endpoint does not accept one, so a resend on a weak signal is not made safe
@@ -25,6 +26,7 @@ class TradeApplicationRequest {
     required this.mobileNo,
     required this.businessName,
     required this.shopAddress,
+    this.feeAmount,
     this.cnic,
     this.email,
     this.marketId,
@@ -53,6 +55,11 @@ class TradeApplicationRequest {
 
   final String businessName;
   final String shopAddress;
+
+  /// The yearly fee, as a string from end to end — quoted off the tariff and
+  /// sent exactly as typed. Nothing here parses it into a number, and it is
+  /// never multiplied by [years].
+  final String? feeAmount;
 
   /// 13 digits, no dashes.
   final String? cnic;
@@ -106,6 +113,7 @@ class TradeApplicationRequest {
     'mobile_no': mobileNo,
     'business_name': businessName,
     'shop_address': shopAddress,
+    'fee_amount': feeAmount,
     'cnic': cnic,
     'email': email,
     'market_id': marketId,
