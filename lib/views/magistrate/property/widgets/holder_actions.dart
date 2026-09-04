@@ -20,8 +20,6 @@ class HolderActions extends StatelessWidget {
 
   static double heightFor({required bool compact}) => compact ? 30 : 36;
 
-
-
   final String? mobileNo;
 
   /// Where the shop stands, and what to search a map for without a fix.

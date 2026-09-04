@@ -12,6 +12,8 @@ import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
 import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
+import 'package:mcq_app/controllers/definitions_controller.dart';
+import 'package:mcq_app/controllers/fine_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
@@ -21,6 +23,7 @@ import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/challan_repository.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
+import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
@@ -49,6 +52,7 @@ import 'package:mcq_app/widgets/widgets.dart';
 import 'support/api_stub.dart';
 import 'support/challan_fixtures.dart';
 import 'support/dashboard_fixtures.dart';
+import 'support/definitions_fixtures.dart';
 import 'support/property_profile_fixtures.dart';
 import 'support/trade_fixtures.dart';
 
@@ -63,10 +67,15 @@ import 'support/trade_fixtures.dart';
 /// failing build.
 const UnitCard _finedUnit = UnitCard(
   propertyId: 77,
+  propertyCode: 'PR-LQ-077',
   shopNo: 'F-3',
-  marketName: 'Prince Road',
+  areaId: 2,
+  areaName: 'Prince Road',
+  marketName: 'Liaquat Bazaar',
   allotmentId: 12,
   allotteeName: 'Abdul Samad',
+  mobileNo: '03007654321',
+  cnic: '5440099887766',
   outstanding: '4500.00',
 );
 
@@ -323,6 +332,10 @@ void main() {
       Get.find<ThemeController>().setColorScheme(
         AppColorScheme.balochistanGreen,
       );
+      _seedDefinitions();
+      // The bazaars are the beat's, held by the controller the home
+      // screen builds — which a preview of this screen alone stands in for.
+      _seedDashboard();
       return const CreateFineScreen();
     },
     // The same form with a shop already chosen, which is how it is reached
@@ -331,6 +344,7 @@ void main() {
       Get.find<ThemeController>().setColorScheme(
         AppColorScheme.balochistanGreen,
       );
+      _seedDefinitions();
       return const CreateFineScreen(unit: _finedUnit);
     },
     // The lower half of the same form: who pays, and the evidence strip.
@@ -338,7 +352,44 @@ void main() {
       Get.find<ThemeController>().setColorScheme(
         AppColorScheme.balochistanGreen,
       );
+      _seedDefinitions();
       return const CreateFineScreen(unit: _finedUnit);
+    },
+    // The same form against a bazaar rather than a shop — a hawker, a
+    // handcart. The bazaars come off the officer's beat.
+    'fine_in_area': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions();
+      // The bazaars are the beat's, held by the controller the home
+      // screen builds — which a preview of this screen alone stands in for.
+      _seedDashboard();
+      return const CreateFineScreen();
+    },
+    // The route carried a property id and nothing else, so the shop's card
+    // and the person to bill are fetched before either can be shown.
+    'fine_from_property': () {
+      _seedDefinitions();
+      _seedPropertyProfile();
+      return const CreateFineScreen(propertyId: fixturePropertyId);
+    },
+    // The same block on a shop: filled in from the register, and the bazaar
+    // taken off the unit rather than asked for.
+    'fine_shop_payer': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions();
+      return const CreateFineScreen(unit: _finedUnit);
+    },
+    // Its "who pays" block, which an area fine always has to fill in.
+    'fine_in_area_payer': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions();
+      return const CreateFineScreen();
     },
   };
 
@@ -365,6 +416,10 @@ void main() {
     'fine': 2600,
     'fine_with_shop': 2600,
     'fine_evidence': 2600,
+    'fine_from_property': 2600,
+    'fine_shop_payer': 2800,
+    'fine_in_area': 2800,
+    'fine_in_area_payer': 2800,
     'home': 7000,
     'home_arriving': 2900,
     'home_collapsed': 1400,
@@ -393,6 +448,8 @@ void main() {
     // Enough to take the header to about the middle of its collapse.
     'property_profile_half': 60,
     'fine_evidence': 700,
+    'fine_in_area_payer': 620,
+    'fine_shop_payer': 700,
     'trade_capture_shop': 1500,
   };
 
@@ -419,6 +476,22 @@ void main() {
         Get.find<TradeLicencesController>().retryLookup(),
     'trade_licences_renewal': () =>
         Get.find<TradeLicencesController>().retryLookup(),
+    // The officer pressed the fine button with no shop in mind, so the fine is
+    // against somebody in a bazaar.
+    'fine_in_area': () {
+      final FineController fine = Get.find<FineController>()..setArea(2);
+      // Encroachment on the fixture's register — the amount and the section of
+      // law under it are the register's own, not typed.
+      fine.chooseFineType(fine.fineTypes.last);
+    },
+    'fine_in_area_payer': () {
+      final FineController fine = Get.find<FineController>()..setArea(2);
+      fine.offenderNameController.text = 'Noor Ahmed';
+      fine.offenderFatherController.text = 'Gul Khan';
+      fine.offenderMobileController.text = '03001234567';
+      fine.offenderCnicController.text = '5440011223344';
+      fine.offenderAddressController.text = 'Handcart, Circular Road';
+    },
     // The form as it looks once the officer has filled it in: a trade chosen
     // off the tariff, and the fee on the bar quoted per year rather than
     // multiplied by the term.
@@ -535,6 +608,19 @@ void _seedDashboard({Object? failure}) {
     permanent: true,
   );
   Get.delete<DashboardController>(force: true);
+}
+
+/// Puts the offence register over the fixture and rebuilds the controller that
+/// holds it, so the fine form's picker is drawn from rows rather than from a
+/// call the preview cannot make.
+void _seedDefinitions() {
+  Get.find<AuthController>().officer.value = officerFixture;
+  Get.delete<DefinitionsRepository>(force: true);
+  Get.put<DefinitionsRepository>(FakeDefinitionsRepository(), permanent: true);
+  // Permanent, which is what runs `onInit` — and with an officer already set,
+  // that loads the rows.
+  Get.delete<DefinitionsController>(force: true);
+  Get.put<DefinitionsController>(DefinitionsController(), permanent: true);
 }
 
 /// Puts the defaulter list and the officer's bazaars over the fixtures, and

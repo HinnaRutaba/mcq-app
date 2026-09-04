@@ -12,6 +12,7 @@ import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 
 import 'support/api_stub.dart';
+import 'support/definitions_fixtures.dart';
 
 /// When the enforcement module's drop-downs are fetched, and when they are
 /// thrown away.
@@ -572,83 +573,3 @@ Map<String, dynamic> loginResponse({bool mustChangePassword = false}) =>
         },
       },
     };
-
-const Map<String, dynamic> definitionsResponse = <String, dynamic>{
-  'data': <String, dynamic>{
-    'fine_types': <Map<String, dynamic>>[
-      <String, dynamic>{
-        'id': 3,
-        'code': 'unauthorised_use',
-        'name': 'Unauthorised use',
-        'name_ur': 'غیر مجاز استعمال',
-        'default_provision':
-            'Section 96, Balochistan Local Government Act 2010',
-        'suggested_amount': '10000.00',
-      },
-      <String, dynamic>{
-        'id': 4,
-        'code': 'encroachment',
-        'name': 'Encroachment',
-        'name_ur': 'تجاوزات',
-        'default_provision':
-            'Section 97, Balochistan Local Government Act 2010',
-        'suggested_amount': '3000.00',
-      },
-    ],
-    'action_types': <Map<String, dynamic>>[
-      <String, dynamic>{
-        'id': 1,
-        'code': 'site_visit',
-        'name': 'Site visit',
-        'fields': <String, dynamic>{
-          'promise_date': false,
-          'visit_date': false,
-          'amount': false,
-          'seal_no': false,
-        },
-      },
-      <String, dynamic>{
-        'id': 5,
-        'code': 'payment_promised',
-        'name': 'Payment promised',
-        'fields': <String, dynamic>{
-          'promise_date': true,
-          'visit_date': false,
-          'amount': false,
-          'seal_no': false,
-        },
-      },
-      <String, dynamic>{
-        'id': 7,
-        'code': 'fine_imposed',
-        'name': 'Fine imposed',
-        'fields': <String, dynamic>{
-          'promise_date': false,
-          'visit_date': false,
-          'amount': true,
-          'seal_no': false,
-        },
-      },
-    ],
-    'case_statuses': <Map<String, dynamic>>[
-      <String, dynamic>{
-        'value': 'warned',
-        'label': 'Warned',
-        'tone': 'warning',
-      },
-    ],
-    'case_priorities': <Map<String, dynamic>>[
-      <String, dynamic>{
-        'value': 'critical',
-        'label': 'Urgent',
-        'tone': 'danger',
-      },
-    ],
-    'seal_statuses': <Map<String, dynamic>>[
-      <String, dynamic>{'value': 'sealed', 'label': 'Sealed', 'tone': 'danger'},
-    ],
-    'fine_statuses': <Map<String, dynamic>>[
-      <String, dynamic>{'value': 'paid', 'label': 'Paid', 'tone': 'success'},
-    ],
-  },
-};

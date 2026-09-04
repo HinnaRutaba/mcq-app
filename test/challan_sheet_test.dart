@@ -116,12 +116,18 @@ void main() {
       await pumpSheet(tester, challanOffTheWire);
 
       expect(find.text('MCQ-CH-2627-0000593'), findsOneWidget);
-      expect(find.text('Everything owed · 2026-11 · 2026-2027'), findsOneWidget);
+      expect(
+        find.text('Everything owed · 2026-11 · 2026-2027'),
+        findsOneWidget,
+      );
       expect(find.text('Draft'), findsOneWidget);
 
       // What is due today, then the charge that makes it up.
       expect(find.text('Payable now'), findsOneWidget);
-      expect(find.text('Rs 62,222'), findsNWidgets(3)); // payable, total, balance
+      expect(
+        find.text('Rs 62,222'),
+        findsNWidgets(3),
+      ); // payable, total, balance
       expect(find.text('Rs 40,000'), findsOneWidget);
       expect(find.text('Rs 22,222'), findsOneWidget);
 

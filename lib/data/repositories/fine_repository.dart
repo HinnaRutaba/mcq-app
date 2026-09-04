@@ -4,7 +4,6 @@ import '../../models/fine.dart';
 import '../../models/fine_request.dart';
 
 abstract class FineRepository {
-
   Future<Fine> impose({required int propertyId, required FineRequest request});
 
   Future<Fine> imposeInArea({required FineRequest request});

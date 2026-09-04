@@ -155,8 +155,10 @@ void main() {
 
       // Scoped to the sheet: the tab behind it names some of the same parts
       // of the debt, and a bare `find.text` would match those too.
-      Finder inSheet(String text) =>
-          find.descendant(of: find.byType(ChallanSheet), matching: find.text(text));
+      Finder inSheet(String text) => find.descendant(
+        of: find.byType(ChallanSheet),
+        matching: find.text(text),
+      );
 
       // The breakdown the row could not carry, and the figure to quote.
       expect(inSheet('Payable now'), findsOneWidget);

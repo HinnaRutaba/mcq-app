@@ -15,6 +15,7 @@ class AppTextField extends StatefulWidget {
     this.label,
     this.hint,
     this.controller,
+    this.focusNode,
     this.obscureText = false,
     this.keyboardType,
     this.textInputAction,
@@ -33,6 +34,11 @@ class AppTextField extends StatefulWidget {
   final String? label;
   final String? hint;
   final TextEditingController? controller;
+
+  /// Passed in where something else owns the focus — a search box whose
+  /// suggestions open and close with it.
+  final FocusNode? focusNode;
+
   final bool obscureText;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -69,6 +75,7 @@ class _AppTextFieldState extends State<AppTextField> {
         ],
         TextFormField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
           obscureText: _obscure,
           keyboardType: widget.keyboardType,
           textInputAction: widget.textInputAction,

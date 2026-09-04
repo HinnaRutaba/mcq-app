@@ -286,7 +286,6 @@ void main() {
         request: FineRequest.inArea(
           areaId: 1,
           fineTypeId: 4,
-          fineType: 'encroachment',
           fineAmount: '3000.00',
           legalProvision: 'Section 97, Balochistan Local Government Act 2010',
           offender: const FineOffender(
@@ -303,19 +302,22 @@ void main() {
 
       expect(adapter.lastOptions!.path, '/api/v1/enforcement/fines');
 
+      // The published payload, key for key. Anything else on this body is a
+      // field the endpoint does not take.
       final body = adapter.lastOptions!.data as Map<String, dynamic>;
-      expect(body['area_id'], 1);
-      expect(body['fine_type'], 'encroachment');
-      expect(body['fine_type_id'], 4);
-      expect(body['offender_name'], 'Nadeem Hawker');
-      expect(body['offender_father_name'], 'Abdul Rasheed');
-      expect(body['offender_mobile_no'], '03001112233');
-      expect(body['client_action_uuid'], 'f1e2d3c4b5a69788');
-      expect(
-        body.containsKey('allotment_id'),
-        isFalse,
-        reason: 'there is no tenancy to bill',
-      );
+      expect(body, <String, dynamic>{
+        'area_id': 1,
+        'fine_type_id': 4,
+        'fine_amount': '3000.00',
+        'legal_provision': 'Section 97, Balochistan Local Government Act 2010',
+        'offender_name': 'Nadeem Hawker',
+        'offender_father_name': 'Abdul Rasheed',
+        'offender_mobile_no': '03001112233',
+        'offender_cnic': '5440011223344',
+        'offender_address': 'Handcart, Circular Road',
+        'photo_path': 'enforcement/photos/01J.jpg',
+        'client_action_uuid': 'f1e2d3c4b5a69788',
+      });
 
       expect(fine.fineNo, 'MCQ-FN-2627-00009');
       expect(fine.fineTypeId, 4);
@@ -323,17 +325,15 @@ void main() {
       expect(fine.challan!.balanceAmount, '5000.00');
     });
 
-    test('a fine on a unit sends the seal reference, not an area', () async {
+    test('a fine on a unit is scoped by its path, not by an area', () async {
       adapter.reply(_cityFineResponse, statusCode: 201);
 
       await ApiFineRepository(api: api).impose(
         propertyId: 8,
         request: FineRequest(
-          fineType: 'seal_violation',
+          fineTypeId: 2,
           fineAmount: '25000.00',
           legalProvision: 'Section 98, Balochistan Local Government Act 2010',
-          fineTypeId: 2,
-          propertySealId: 14,
         ),
       );
 
@@ -342,8 +342,11 @@ void main() {
         '/api/v1/enforcement/properties/8/fines',
       );
       final body = adapter.lastOptions!.data as Map<String, dynamic>;
-      expect(body['property_seal_id'], 14);
-      expect(body.containsKey('area_id'), isFalse);
+      expect(
+        body.containsKey('area_id'),
+        isFalse,
+        reason: 'the unit in the path is the scoping',
+      );
     });
   });
 

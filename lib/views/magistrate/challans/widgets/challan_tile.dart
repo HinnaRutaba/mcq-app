@@ -6,7 +6,6 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../models/challan.dart';
 import '../../../../widgets/widgets.dart';
 
-
 class ChallanTile extends StatelessWidget {
   const ChallanTile({
     super.key,

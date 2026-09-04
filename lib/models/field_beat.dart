@@ -144,10 +144,12 @@ class FieldArea {
   final int? zoneId;
   final String? zoneName;
 
+  /// Read from the beat's `scope` and from `GET enforcement/definitions`,
+  /// which name the same bazaar with and without the `area_` prefix.
   factory FieldArea.fromJson(Map<String, dynamic> json) => FieldArea(
     id: Json.integer(json['id']),
-    areaName: Json.stringOr(json['area_name']),
-    areaCode: Json.string(json['area_code']),
+    areaName: Json.stringOr(Json.pick(json, <String>['area_name', 'name'])),
+    areaCode: Json.string(Json.pick(json, <String>['area_code', 'code'])),
     zoneId: Json.integer(json['zone_id']),
     zoneName: Json.string(json['zone_name']),
   );

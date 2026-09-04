@@ -760,11 +760,9 @@ void main() {
       final fine = await ApiFineRepository(api: api).impose(
         propertyId: 2,
         request: FineRequest(
-          fineType: 'unauthorised_use',
+          fineTypeId: 3,
           fineAmount: '3000.00',
           legalProvision: 'Section 12(3) of the Local Government Act',
-          imposedOn: DateTime(2026, 8, 31),
-          remarks: 'Trading outside the permitted hours.',
           clientActionUuid: 'b2c3d4e5f6a7b8c9',
         ),
       );
@@ -774,10 +772,15 @@ void main() {
         '/api/v1/enforcement/properties/2/fines',
       );
       final body = adapter.lastOptions!.data as Map<String, dynamic>;
+      // The whole of what a fine sends. Anything else on this body is a field
+      // the endpoint does not take.
+      expect(body.keys.toSet(), <String>{
+        'fine_type_id',
+        'fine_amount',
+        'legal_provision',
+        'client_action_uuid',
+      });
       expect(body['fine_amount'], '3000.00');
-      expect(body['imposed_on'], '2026-08-31');
-      expect(body.containsKey('seal'), isFalse);
-      expect(body.containsKey('offender_name'), isFalse);
 
       expect(fine.fineNo, 'MCQ-FN-2627-00008');
       expect(fine.fineType!.label, 'Used the unit without permission');
@@ -802,15 +805,14 @@ void main() {
       final fine = await ApiFineRepository(api: api).impose(
         propertyId: 8,
         request: FineRequest(
-          fineType: 'encroachment',
+          fineTypeId: 4,
           fineAmount: '5000.00',
           legalProvision: 'Section 14 of the Local Government Act',
           offender: const FineOffender(
             name: 'Nadeem Ahmed',
             fatherName: 'Abdul Rasheed',
             mobileNo: '03001234567',
-            cnic: '54400-1234567-1',
-            business: 'Fruit stall, handcart',
+            cnic: '5440011223344',
             address: 'Footpath outside Shop 12, Liaquat Bazaar',
           ),
         ),
@@ -820,32 +822,11 @@ void main() {
       expect(body['offender_name'], 'Nadeem Ahmed');
       expect(body['offender_father_name'], 'Abdul Rasheed');
       expect(body['offender_mobile_no'], '03001234567');
+      expect(body['offender_cnic'], '5440011223344');
 
       expect(fine.payer!.isNamedOffender, isTrue);
       expect(fine.payer!.fatherName, 'Abdul Rasheed');
       expect(fine.allotment, isNull);
-    });
-
-    test('a fine with a seal nests the seal under its own key', () async {
-      adapter.reply(_fineCreatedResponse, statusCode: 201);
-
-      await ApiFineRepository(api: api).impose(
-        propertyId: 2,
-        request: FineRequest(
-          fineType: 'unauthorised_use',
-          fineAmount: '3000.00',
-          legalProvision: 'Section 12(3) of the Local Government Act',
-          seal: FineSealRequest(
-            sealReason: 'Arrears unpaid after final notice.',
-            sealedOn: DateTime(2026, 8, 31),
-          ),
-        ),
-      );
-
-      final body = adapter.lastOptions!.data as Map<String, dynamic>;
-      final seal = body['seal'] as Map<String, dynamic>;
-      expect(seal['seal_reason'], 'Arrears unpaid after final notice.');
-      expect(seal['sealed_on'], '2026-08-31');
     });
 
     test(

@@ -2,7 +2,6 @@ import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
 import 'trade_licence.dart';
 
-
 class PersonLookup {
   const PersonLookup({
     this.searched,

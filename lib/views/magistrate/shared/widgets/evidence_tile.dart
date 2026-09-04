@@ -4,13 +4,12 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../widgets/widgets.dart';
 import '../../../../config/theme/app_radius.dart';
 
-/// One of the three pieces of evidence a fine can carry — the photograph, the
-/// GPS fix, the witness signature — drawn as a square in a row of three.
+/// One piece of evidence attached to a form — a photograph, a GPS fix — drawn
+/// as a square rather than a full-width button.
 ///
-/// The three used to be full-width buttons stacked down the form, which put the
-/// submit button off the bottom of the screen. Side by side they are one glance
-/// instead of three, and the officer can see at a distance which of them is
-/// still missing.
+/// These used to be full-width buttons stacked down the form, which put the
+/// submit button off the bottom of the screen. As squares they are one glance,
+/// and the officer can see at a distance which of them is still missing.
 ///
 /// State is never carried by colour alone: every tile shows an icon, a word and
 /// a tick or a dash, because a magistrate may be colour-blind and is certainly

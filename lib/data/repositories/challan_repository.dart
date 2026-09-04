@@ -3,15 +3,12 @@ import '../../core/network/api_service.dart';
 import '../../models/api_response.dart';
 import '../../models/challan.dart';
 
-
 abstract class ChallanRepository {
-
   Future<Paginated<Challan>> challans({
     int? page,
     int? perPage,
     String? challanType,
   });
-
 
   static const String typeFine = 'fine';
 }

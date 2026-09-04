@@ -60,9 +60,7 @@ void main() {
       .widgetList<ChallanTile>(find.byType(ChallanTile))
       .map(
         (ChallanTile tile) =>
-            tile.challan.allottee?.fullName ??
-            tile.challan.payerName ??
-            '?',
+            tile.challan.allottee?.fullName ?? tile.challan.payerName ?? '?',
       )
       .toList();
 
@@ -210,12 +208,16 @@ void main() {
       // Faded out with the rest of the expanded block — the title alone rides
       // the collapsed bar.
       expect(
-        tester.widget<Opacity>(
-          find.ancestor(
-            of: find.text('challans · 25 showing'),
-            matching: find.byType(Opacity),
-          ).first,
-        ).opacity,
+        tester
+            .widget<Opacity>(
+              find
+                  .ancestor(
+                    of: find.text('challans · 25 showing'),
+                    matching: find.byType(Opacity),
+                  )
+                  .first,
+            )
+            .opacity,
         0.0,
       );
     });
@@ -302,9 +304,7 @@ void main() {
     testWidgets('the shop behind it is one more press', (
       WidgetTester tester,
     ) async {
-      billing = FakeChallanRepository(
-        challans: <Challan>[challanOffTheWire],
-      );
+      billing = FakeChallanRepository(challans: <Challan>[challanOffTheWire]);
       await pumpChallans(tester);
       await tester.tap(find.byType(ChallanTile).first);
       await tester.pumpAndSettle();

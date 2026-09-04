@@ -2,7 +2,6 @@ import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
 import 'challan.dart';
 
-
 class PropertyProfile {
   const PropertyProfile({
     required this.property,
@@ -58,6 +57,7 @@ class ProfileProperty {
     this.propertyCode,
     this.categoryName,
     this.zoneName,
+    this.areaId,
     this.areaName,
     this.marketName,
     this.shopNo,
@@ -77,6 +77,12 @@ class ProfileProperty {
   final String? categoryName;
 
   final String? zoneName;
+
+  /// The bazaar's id, for a write that has to name it — a fine sends it as
+  /// `area_id`. Null on a server that only labels the bazaar, which is why the
+  /// fine form falls back to matching [areaName] against the register.
+  final int? areaId;
+
   final String? areaName;
   final String? marketName;
   final String? shopNo;
@@ -104,6 +110,7 @@ class ProfileProperty {
         propertyCode: Json.string(json['property_code']),
         categoryName: Json.string(json['category_name']),
         zoneName: Json.string(json['zone_name']),
+        areaId: Json.integer(json['area_id']),
         areaName: Json.string(json['area_name']),
         marketName: Json.string(json['market_name']),
         shopNo: Json.string(json['shop_no']),

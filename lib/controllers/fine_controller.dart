@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../core/capture/location_capture.dart';
 import '../core/capture/photo_capture.dart';
 import '../core/network/api_exception.dart';
 import '../data/repositories/evidence_repository.dart';
 import '../data/repositories/fine_repository.dart';
-import '../data/repositories/units_repository.dart';
+import '../data/repositories/reporting_repository.dart';
+import '../models/api_refs.dart';
+import '../models/enforcement_definitions.dart';
+import '../models/field_beat.dart';
 import '../models/fine.dart';
 import '../models/fine_request.dart';
+import '../models/property_profile.dart';
 import '../models/unit_card.dart';
+import 'dashboard_controller.dart';
+import 'definitions_controller.dart';
 
 /// What came of pressing "Impose a fine".
 enum ImposeOutcome {
@@ -23,26 +28,6 @@ enum ImposeOutcome {
   /// The server refused it. See [FineController.errorMessage] and the field
   /// validators.
   failed,
-}
-
-/// The offence types the published API documents by example, with the wording
-/// to put in front of an officer.
-///
-/// The server's enum is the authority and its full set is not published, so
-/// this is a list of what is known to be accepted rather than a mirror of it.
-/// The labels are written here because the server sends none on the way *in* —
-/// it labels the type only on the fine that comes back, and that label is shown
-/// verbatim wherever it appears.
-class FineType {
-  const FineType(this.value, this.label);
-
-  final String value;
-  final String label;
-
-  static const List<FineType> all = <FineType>[
-    FineType('unauthorised_use', 'Unauthorised use'),
-    FineType('encroachment', 'Encroachment'),
-  ];
 }
 
 /// Imposing a fine: the form, the evidence attached to it, and the one call
@@ -67,14 +52,17 @@ class FineController extends GetxController {
     this.propertyId,
     FineRepository? fineRepository,
     EvidenceRepository? evidenceRepository,
-    UnitsRepository? unitsRepository,
+    ReportingRepository? reportingRepository,
+    DefinitionsController? definitionsController,
+    DashboardController? dashboardController,
     PhotoCapture? photoCapture,
-    LocationCapture? locationCapture,
   }) : _fines = fineRepository ?? Get.find<FineRepository>(),
+       _reportingOverride = reportingRepository,
        _evidence = evidenceRepository ?? Get.find<EvidenceRepository>(),
-       _units = unitsRepository ?? Get.find<UnitsRepository>(),
-       _photos = photoCapture ?? PhotoCapture(),
-       _locations = locationCapture ?? const LocationCapture();
+       _definitions =
+           definitionsController ?? Get.find<DefinitionsController>(),
+       _dashboardOverride = dashboardController,
+       _photos = photoCapture ?? PhotoCapture();
 
   /// The unit being fined, when the officer arrived from its profile. Null when
   /// they came from the "new fine" button with no shop in mind, in which case
@@ -86,45 +74,73 @@ class FineController extends GetxController {
 
   final FineRepository _fines;
   final EvidenceRepository _evidence;
-  final UnitsRepository _units;
+  final ReportingRepository? _reportingOverride;
+
+  /// Only for the profile behind a route that carried an id and nothing else.
+  /// Resolved on first use, because a fine on a shop the officer picked here
+  /// already has everything it needs.
+  late final ReportingRepository _reporting =
+      _reportingOverride ?? Get.find<ReportingRepository>();
+
+  /// The offences a fine may be raised for, with the amount and provision the
+  /// register suggests for each. Rows MCQ can edit, so they are read here and
+  /// never carried as a copy.
+  final DefinitionsController _definitions;
+
+  final DashboardController? _dashboardOverride;
+
+  /// The officer's beat, which is where the bazaars come from —
+  /// `enforcement/field/beat`, held by the controller the home screen already
+  /// built. Resolved on first use, so a fine against a shop, which takes its
+  /// bazaar off the unit, never asks for it.
+  late final DashboardController _dashboard =
+      _dashboardOverride ?? Get.find<DashboardController>();
+
   final PhotoCapture _photos;
-  final LocationCapture _locations;
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  // --- Which shop -------------------------------------------------------
-  final Rxn<UnitCard> selectedUnit = Rxn<UnitCard>();
-  final TextEditingController searchController = TextEditingController();
-  final RxList<UnitCard> searchResults = <UnitCard>[].obs;
-  final RxBool isSearching = false.obs;
+  // --- Which shop, or which bazaar --------------------------------------
+
+  /// The bazaar the officer picked. On a unit fine it is usually left null and
+  /// the unit's own bazaar is used — see [targetAreaId].
+  final RxnInt areaId = RxnInt();
+
+  /// The search over the bazaars on the register, and the id typed by hand
+  /// when the register lists none at all. `area_id` is required on every fine,
+  /// so there has to be a way to name one even then.
+  final TextEditingController areaSearchController = TextEditingController();
+  final RxString areaQuery = ''.obs;
+  final TextEditingController areaIdController = TextEditingController();
+
+  /// The unit's own record, fetched when the route carried an id and no card.
+  /// It is what the shop's details and the allottee's are drawn from.
+  final Rxn<PropertyProfile> profile = Rxn<PropertyProfile>();
+  final RxBool isLoadingProfile = false.obs;
+  final RxnString profileError = RxnString();
 
   // --- The offence ------------------------------------------------------
-  final Rxn<FineType> fineType = Rxn<FineType>();
+  final Rxn<FineTypeDefinition> fineType = Rxn<FineTypeDefinition>();
   final TextEditingController amountController = TextEditingController();
   final TextEditingController provisionController = TextEditingController();
-  final Rx<DateTime> imposedOn = DateTime.now().obs;
 
-  // --- Who pays, when nobody is on the register -------------------------
+  // --- Who pays ---------------------------------------------------------
   final TextEditingController offenderNameController = TextEditingController();
   final TextEditingController offenderFatherController =
       TextEditingController();
   final TextEditingController offenderMobileController =
       TextEditingController();
 
+  // Optional, and where nobody is on the register they are the only way back
+  // to the person: there is no unit to find them at.
+  final TextEditingController offenderCnicController = TextEditingController();
+  final TextEditingController offenderAddressController =
+      TextEditingController();
+
   // --- The evidence -----------------------------------------------------
   final RxnString photoLocalPath = RxnString();
   final RxnString photoUploadedPath = RxnString();
   final RxBool isUploadingPhoto = false.obs;
-
-  final Rxn<LocationFix> locationFix = Rxn<LocationFix>();
-  final RxBool isFixingLocation = false.obs;
-  final Rx<LocationOutcome> locationOutcome = LocationOutcome.unavailable.obs;
-
-  final RxnString signatureLocalPath = RxnString();
-  final RxnString signatureUploadedPath = RxnString();
-  final TextEditingController witnessController = TextEditingController();
-
-  final TextEditingController remarksController = TextEditingController();
 
   // --- Submission -------------------------------------------------------
   final RxBool isSubmitting = false.obs;
@@ -135,52 +151,211 @@ class FineController extends GetxController {
   /// survives it. Cleared whenever the officer edits the fine.
   FineRequest? _pending;
 
+  /// The last amount and provision put in the fields by [chooseFineType], so a
+  /// figure the officer typed themselves is never quietly replaced.
+  String? _suggestedAmount;
+  String? _suggestedProvision;
+
+  /// The same for the payer block, filled in from the allottee.
+  String? _suggestedName;
+  String? _suggestedFather;
+  String? _suggestedMobile;
+  String? _suggestedCnic;
+  String? _suggestedAddress;
+
   String? _amountServerError;
   String? _provisionServerError;
   String? _fineTypeServerError;
   String? _offenderNameServerError;
   String? _offenderFatherServerError;
   String? _offenderMobileServerError;
+  String? _offenderCnicServerError;
+  String? _areaServerError;
 
   @override
   void onInit() {
     super.onInit();
-    if (unit != null) selectedUnit.value = unit;
+    if (unit != null) {
+      _prefillPayer();
+    } else if (propertyId != null) {
+      // The route carried an id and nothing else, so the shop's details and
+      // the person to bill have to be fetched before either can be shown.
+      loadProfile();
+    }
+    // A form opened after a sign-in on a dead signal has no offences to offer;
+    // this is what fetches them.
+    _definitions.ensureLoaded();
+    // The bazaars come off the beat. Touching the controller builds it when
+    // the officer went straight here without the home screen, and its load is
+    // what the sole-bazaar case waits on.
+    _pickSoleArea();
+    if (isAreaFine && areas.isEmpty && !_dashboard.isLoading.value) {
+      _dashboard.load().then((_) => _pickSoleArea());
+    }
   }
 
   @override
   void onClose() {
-    searchController.dispose();
     amountController.dispose();
     provisionController.dispose();
     offenderNameController.dispose();
     offenderFatherController.dispose();
     offenderMobileController.dispose();
-    witnessController.dispose();
-    remarksController.dispose();
+    areaSearchController.dispose();
+    areaIdController.dispose();
+    offenderCnicController.dispose();
+    offenderAddressController.dispose();
     super.onClose();
   }
 
   /// The unit the fine will be posted against, whichever way the officer got
   /// here.
-  int? get targetPropertyId => selectedUnit.value?.propertyId ?? propertyId;
+  int? get targetPropertyId => unit?.propertyId ?? propertyId;
 
-  /// The server's own answer to "does this form need to name somebody?" — read,
-  /// never worked out from whether the unit looks vacant.
+  /// Whether this fine is against a bazaar rather than a unit — decided by how
+  /// the officer got here, not by a switch on the form. Arriving from a shop's
+  /// screen fines that shop; arriving from the fine button fines a person in a
+  /// bazaar.
+  bool get isAreaFine => targetPropertyId == null;
+
+  /// Whether the fine has to name a person. Always on an area fine — there is
+  /// no tenancy to bill. Otherwise the server's own answer, read and never
+  /// worked out from whether the unit looks vacant.
   bool get needsOffenderDetails =>
-      selectedUnit.value?.needsOffenderDetails ?? false;
+      isAreaFine || (unit?.needsOffenderDetails ?? false);
+
+  /// The picker's entries. Ids, with [areaLabel] naming them, so the dropdown
+  /// holds the value the request carries.
+  List<int> get areaOptions => <int>[
+    for (final FieldArea area in areas)
+      if (area.id != null) area.id!,
+  ];
+
+  String areaLabel(int id) {
+    for (final FieldArea area in areas) {
+      if (area.id == id) return area.areaName;
+    }
+    return 'Bazaar $id';
+  }
+
+  /// The offences on the register, in its own order and with its own wording.
+  /// Read inside an `Obx` builder — these follow the definitions controller.
+  List<FineTypeDefinition> get fineTypes => _definitions.fineTypes;
+
+  bool get isLoadingOffences => _definitions.isLoading.value;
+
+  String? get offencesError => _definitions.errorMessage.value;
+
+  /// The retry behind an offence picker that came up empty.
+  Future<void> reloadOffences() => _definitions.reload();
+
+  /// The bazaars the officer is posted to, off the beat the home screen
+  /// fetched. `FieldArea.id` is what travels as `area_id`.
+  List<FieldArea> get areas =>
+      _dashboard.beat.value?.scope.areas ?? const <FieldArea>[];
+
+  bool get isLoadingAreas => _dashboard.isLoading.value;
+
+  String? get areasError => _dashboard.errorMessage.value;
+
+  /// The retry behind a bazaar picker that came up empty. It re-fetches the
+  /// beat, which is the officer's own postings.
+  Future<void> reloadAreas() => _dashboard.load();
+
+  /// The shop this fine is against, whichever way the officer got here — the
+  /// card they arrived with, the one they searched for, or the profile fetched
+  /// behind a route that carried only an id.
+  ProfileProperty? get property => profile.value?.property;
+
+  /// Who the register says holds it. Null on a vacant unit, and on a unit card
+  /// that named nobody.
+  String? get allotteeName =>
+      unit?.allotteeName ?? profile.value?.allottee?.fullName;
+
+  /// Whether there is anything to draw a shop card from yet.
+  bool get hasUnitDetails => unit != null || property != null;
+
+  // --- The shop card, from whichever of the two records is in hand --------
+
+  String get unitTitle {
+    final UnitCard? card = unit;
+    final String? shopNo = card?.shopNo ?? property?.shopNo;
+    final String? market = card?.marketName ?? property?.marketName;
+    final parts = <String>[?shopNo, ?market];
+    if (parts.isNotEmpty) return parts.join(' · ');
+    return card?.propertyCode ??
+        property?.propertyCode ??
+        'The unit you opened';
+  }
+
+  String? get unitCode => unit?.propertyCode ?? property?.propertyCode;
+
+  String? get unitBazaar => unit?.areaName ?? property?.areaName;
+
+  /// Ready to print, and only the profile carries it.
+  String? get unitAddress => property?.streetAddress;
+
+  /// Rent arrears on the unit, as a string. A fine is a separate debt from
+  /// this — it is here so the officer sees what else is owed, never added to
+  /// the fine.
+  String? get unitOutstanding =>
+      unit?.outstanding ?? profile.value?.position.totalOutstanding;
+
+  bool get unitIsSealed =>
+      unit?.isSealed ?? profile.value?.enforcement.isSealed ?? false;
+
+  bool get unitIsVacant =>
+      unit?.isVacant ?? (property?.occupancyStatus == 'vacant');
+
+  String? get allotteeMobile =>
+      unit?.mobileNo ?? profile.value?.allottee?.mobileNo;
+
+  String? get allotteeCnic => unit?.cnic ?? profile.value?.allottee?.cnic;
+
+  /// The bazaar the fine will name — required on every fine.
+  ///
+  /// A unit carries its own, so the form does not ask; anything the officer
+  /// picked wins, which is what lets them name one when the unit's record has
+  /// no bazaar on it.
+  int? get targetAreaId {
+    final int? chosen = areaId.value;
+    if (chosen != null) return chosen;
+    if (isAreaFine) return null;
+    final int? fromUnit = unit?.areaId ?? property?.areaId;
+    if (fromUnit != null) return fromUnit;
+    // A server that labels the bazaar without naming its id: match the label
+    // against the register rather than send nothing.
+    final String? name = unit?.areaName ?? property?.areaName;
+    if (name == null) return null;
+    for (final FieldArea area in areas) {
+      if (area.areaName == name) return area.id;
+    }
+    return null;
+  }
+
+  /// The chosen bazaar's name, for the header. Null until one is chosen.
+  String? get areaName {
+    final int? id = targetAreaId;
+    return id == null ? null : areaLabel(id);
+  }
+
+  /// What the register suggests this offence is worth, so the amount field can
+  /// say where its figure came from.
+  String? get suggestedAmount => fineType.value?.suggestedAmount;
 
   /// Whether every required field is filled. Drives the submit button, so the
   /// officer can see the form is not ready before they reach the bottom of it.
   bool get isComplete =>
-      targetPropertyId != null &&
+      targetAreaId != null &&
+      (isAreaFine || targetPropertyId != null) &&
       fineType.value != null &&
       amountController.text.trim().isNotEmpty &&
       provisionController.text.trim().isNotEmpty &&
       (!needsOffenderDetails ||
           (offenderNameController.text.trim().isNotEmpty &&
               offenderFatherController.text.trim().isNotEmpty &&
-              offenderMobileController.text.trim().isNotEmpty));
+              offenderMobileController.text.trim().isNotEmpty &&
+              offenderCnicController.text.trim().isNotEmpty));
 
   /// Whether every field the server insists on passes its own validator.
   ///
@@ -188,20 +363,29 @@ class FineController extends GetxController {
   /// something in them: this one is the full set of rules, and it is what
   /// decides whether a fine is sent.
   bool get isValid =>
-      targetPropertyId != null &&
+      validateArea(targetAreaId) == null &&
+      (isAreaFine || targetPropertyId != null) &&
       validateFineType(fineType.value) == null &&
       validateAmount(amountController.text) == null &&
       validateProvision(provisionController.text) == null &&
       validateOffenderName(offenderNameController.text) == null &&
       validateOffenderFather(offenderFatherController.text) == null &&
       validateOffenderMobile(offenderMobileController.text) == null &&
-      validateRemarks(remarksController.text) == null;
+      validateOffenderCnic(offenderCnicController.text) == null;
 
   /// What is still missing, in the order the form asks for it. Shown beside the
   /// disabled button — a button that will not press and will not say why is the
   /// thing officers give up on.
+  /// The person the fine names, or null when the block is not complete enough
+  /// to send. Name, father's name and mobile go together or not at all.
+  FineOffender? get payer {
+    final FineOffender offender = _offender();
+    return offender.isComplete ? offender : null;
+  }
+
   List<String> get missing => <String>[
-    if (targetPropertyId == null) 'the shop',
+    if (targetAreaId == null) 'the bazaar',
+    if (!isAreaFine && targetPropertyId == null) 'the shop',
     if (fineType.value == null) 'the offence',
     if (amountController.text.trim().isEmpty) 'the amount',
     if (provisionController.text.trim().isEmpty) 'the provision of law',
@@ -211,6 +395,8 @@ class FineController extends GetxController {
       "their father's name",
     if (needsOffenderDetails && offenderMobileController.text.trim().isEmpty)
       'their mobile number',
+    if (needsOffenderDetails && offenderCnicController.text.trim().isEmpty)
+      'their CNIC',
   ];
 
   /// Bumped by [markEdited]. The completeness of the form is worked out from
@@ -225,37 +411,141 @@ class FineController extends GetxController {
     revision.value++;
   }
 
-  // --- Which shop -------------------------------------------------------
+  // --- Which shop, or which bazaar --------------------------------------
 
-  Future<void> search(String query) async {
-    final term = query.trim();
-    if (term.length < 2) {
-      searchResults.clear();
-      return;
+  /// One bazaar on the register is not a choice worth asking about.
+  void _pickSoleArea() {
+    if (!isAreaFine || areaId.value != null) return;
+    if (areaOptions.length == 1) areaId.value = areaOptions.first;
+  }
+
+  /// The bazaars matching what the officer typed, by name or by code.
+  List<FieldArea> get areaMatches {
+    final String term = areaQuery.value.trim().toLowerCase();
+    final Iterable<FieldArea> named = areas.where(
+      (FieldArea area) => area.id != null,
+    );
+    if (term.isEmpty) return named.toList();
+    return named
+        .where(
+          (FieldArea area) =>
+              area.areaName.toLowerCase().contains(term) ||
+              (area.areaCode?.toLowerCase().contains(term) ?? false),
+        )
+        .toList();
+  }
+
+  void searchArea(String term) => areaQuery.value = term;
+
+  void setArea(int? id) {
+    if (id == null || id == areaId.value) return;
+    areaId.value = id;
+    areaSearchController.clear();
+    areaQuery.value = '';
+    markEdited();
+  }
+
+  void clearArea() {
+    areaId.value = null;
+    markEdited();
+  }
+
+  /// The id typed by hand, for a handset whose register listed no bazaars at
+  /// all. The fine cannot be sent without one.
+  void setAreaFromText(String value) {
+    areaId.value = int.tryParse(value.trim());
+    markEdited();
+  }
+
+  /// The chosen bazaar, when it is one the register named.
+  FieldArea? get chosenArea {
+    final int? id = targetAreaId;
+    if (id == null) return null;
+    for (final FieldArea area in areas) {
+      if (area.id == id) return area;
     }
-    isSearching.value = true;
+    return null;
+  }
+
+  /// The unit behind a route that carried only its id: its details for the
+  /// card, its bazaar for `area_id`, and its allottee for the payer block.
+  /// Safe to call again — this is the retry behind a failed load.
+  Future<void> loadProfile() async {
+    final int? id = propertyId;
+    if (id == null) return;
+    isLoadingProfile.value = true;
+    profileError.value = null;
     try {
-      // Vacant units included: the shop somebody is trading out of without an
-      // allotment is exactly the one being fined.
-      searchResults.value = await _units.units(search: term, limit: 20);
+      profile.value = await _reporting.propertyProfile(id);
+      _prefillPayer();
     } on ApiException catch (error) {
-      errorMessage.value = error.message;
-      searchResults.clear();
+      profileError.value = error.message;
     } finally {
-      isSearching.value = false;
+      isLoadingProfile.value = false;
     }
   }
 
-  void chooseUnit(UnitCard chosen) {
-    selectedUnit.value = chosen;
-    searchResults.clear();
-    searchController.clear();
+  /// Fills the payer block in from whoever the register says holds the unit.
+  /// Nothing the officer typed is replaced — the person in front of them may
+  /// not be the person on the register, and their correction stands.
+  void _prefillPayer() {
+    // An area fine has no register behind it, so there is nobody to fill it in
+    // from and the block stays empty.
+    final UnitCard? card = unit;
+    final AllotteeRef? allottee = profile.value?.allottee;
+
+    final String? name = card?.allotteeName ?? allottee?.fullName;
+    final String? mobile = card?.mobileNo ?? allottee?.mobileNo;
+    final String? cnic = card?.cnic ?? allottee?.cnic;
+    // Ready to print, e.g. "Shop S-8, Liaquat Bazaar, Jinnah Road".
+    final String? address = property?.streetAddress;
+
+    _prefill(offenderNameController, name, _suggestedName);
+    _prefill(offenderFatherController, allottee?.fatherName, _suggestedFather);
+    _prefill(offenderMobileController, mobile, _suggestedMobile);
+    _prefill(offenderCnicController, cnic, _suggestedCnic);
+    _prefill(offenderAddressController, address, _suggestedAddress);
+
+    _suggestedName = name;
+    _suggestedFather = allottee?.fatherName;
+    _suggestedMobile = mobile;
+    _suggestedCnic = cnic;
+    _suggestedAddress = address;
     markEdited();
   }
 
-  void clearUnit() {
-    selectedUnit.value = null;
+  // --- The offence ------------------------------------------------------
+
+  /// The offence, and with it the amount and the section of law the register
+  /// suggests for it.
+  ///
+  /// Both are only prefilled while the officer has not typed over them: a
+  /// figure they entered themselves is never quietly replaced, and `other`
+  /// carries no provision at all, which is why the form still asks for one.
+  void chooseFineType(FineTypeDefinition? chosen) {
+    fineType.value = chosen;
+    if (chosen != null) {
+      _prefill(amountController, chosen.suggestedAmount, _suggestedAmount);
+      _prefill(
+        provisionController,
+        chosen.defaultProvision,
+        _suggestedProvision,
+      );
+      _suggestedAmount = chosen.suggestedAmount;
+      _suggestedProvision = chosen.defaultProvision;
+    }
     markEdited();
+  }
+
+  static void _prefill(
+    TextEditingController field,
+    String? suggestion,
+    String? previous,
+  ) {
+    final String current = field.text.trim();
+    // Anything the officer put there themselves stays.
+    if (current.isNotEmpty && current != previous) return;
+    field.text = suggestion ?? '';
   }
 
   // --- The evidence -----------------------------------------------------
@@ -304,43 +594,6 @@ class FineController extends GetxController {
     markEdited();
   }
 
-  Future<LocationOutcome> attachLocation() async {
-    isFixingLocation.value = true;
-    try {
-      final result = await _locations.fix();
-      locationOutcome.value = result.outcome;
-      // Both coordinates or neither: a failed attempt clears the last fix
-      // rather than leaving a stale one attached to a new shop.
-      locationFix.value = result.fix;
-      markEdited();
-      return result.outcome;
-    } finally {
-      isFixingLocation.value = false;
-    }
-  }
-
-  /// The signature is drawn on the handset and handed here as a PNG on disk.
-  Future<void> attachSignature(String localPath) async {
-    signatureLocalPath.value = localPath;
-    signatureUploadedPath.value = null;
-    markEdited();
-    try {
-      final upload = await _evidence.upload(
-        filePath: localPath,
-        kind: EvidenceRepository.kindSignature,
-      );
-      signatureUploadedPath.value = upload.path;
-    } on ApiException catch (error) {
-      errorMessage.value = error.message;
-    }
-  }
-
-  void removeSignature() {
-    signatureLocalPath.value = null;
-    signatureUploadedPath.value = null;
-    markEdited();
-  }
-
   // --- Validators -------------------------------------------------------
 
   String? validateAmount(String? value) {
@@ -360,17 +613,32 @@ class FineController extends GetxController {
 
   String? validateProvision(String? value) {
     if (_provisionServerError != null) return _provisionServerError;
-    if ((value?.trim() ?? '').isEmpty) {
+    final provision = value?.trim() ?? '';
+    if (provision.isEmpty) {
       // Not a formality: this is the sentence a magistrate reads out if the
       // fine is challenged.
       return 'Name the section of law. A fine without one cannot be enforced.';
     }
+    if (provision.length > FineRequest.legalProvisionMaxLength) {
+      return 'Keep it under ${FineRequest.legalProvisionMaxLength} characters';
+    }
     return null;
   }
 
-  String? validateFineType(FineType? value) {
+  String? validateArea(int? value) {
+    if (_areaServerError != null) return _areaServerError;
+    // `area_id` is required whatever the fine is against; a unit answers it
+    // without asking, and this is what catches the unit whose record cannot.
+    if (targetAreaId == null) return 'Name the bazaar the fine was issued in';
+    return null;
+  }
+
+  String? validateFineType(FineTypeDefinition? value) {
     if (_fineTypeServerError != null) return _fineTypeServerError;
     if (value == null) return 'Choose what the offence was';
+    // `fine_type_id` is the whole of what the server is told about the
+    // offence, so a row that arrived without one cannot be sent.
+    if (value.id == null) return 'This offence cannot be used — reload the app';
     return null;
   }
 
@@ -395,11 +663,13 @@ class FineController extends GetxController {
     return null;
   }
 
-  String? validateRemarks(String? value) {
-    final remarks = value ?? '';
-    if (remarks.length > FineRequest.remarksMaxLength) {
-      return 'Keep remarks under ${FineRequest.remarksMaxLength} characters';
-    }
+  /// Asked for wherever the officer has to name the person themselves. The
+  /// server does not insist on it — it is how the fine is traced back to
+  /// somebody with no unit and no tenancy on record.
+  String? validateOffenderCnic(String? value) {
+    if (_offenderCnicServerError != null) return _offenderCnicServerError;
+    if (!needsOffenderDetails) return null;
+    if ((value?.trim() ?? '').isEmpty) return 'A CNIC is required';
     return null;
   }
 
@@ -410,8 +680,12 @@ class FineController extends GetxController {
     errorMessage.value = null;
 
     final propertyId = targetPropertyId;
-    if (propertyId == null) {
+    if (!isAreaFine && propertyId == null) {
       errorMessage.value = 'Choose the shop this fine is against.';
+      return ImposeOutcome.invalidForm;
+    }
+    if (isAreaFine && areaId.value == null) {
+      errorMessage.value = 'Choose the bazaar this fine was issued in.';
       return ImposeOutcome.invalidForm;
     }
     // The Form is asked to paint the messages; whether the fine may be sent is
@@ -426,10 +700,11 @@ class FineController extends GetxController {
 
     isSubmitting.value = true;
     try {
-      imposed.value = await _fines.impose(
-        propertyId: propertyId,
-        request: request,
-      );
+      // Two endpoints behind one form: an area fine has no unit to be posted
+      // against, and the bazaar is the only scoping it carries.
+      imposed.value = isAreaFine
+          ? await _fines.imposeInArea(request: request)
+          : await _fines.impose(propertyId: propertyId!, request: request);
       _pending = null;
       return ImposeOutcome.success;
     } on ApiException catch (error) {
@@ -441,34 +716,40 @@ class FineController extends GetxController {
     }
   }
 
-  FineRequest _buildRequest() {
-    final fix = locationFix.value;
-    return FineRequest(
-      fineType: fineType.value!.value,
-      fineAmount: amountController.text.trim(),
-      legalProvision: provisionController.text.trim(),
-      imposedOn: imposedOn.value,
-      allotmentId: selectedUnit.value?.allotmentId,
-      enforcementCaseId: selectedUnit.value?.openCaseId,
-      offender: needsOffenderDetails
-          ? FineOffender(
-              name: offenderNameController.text.trim(),
-              fatherName: offenderFatherController.text.trim(),
-              mobileNo: offenderMobileController.text.trim(),
-            )
-          : null,
-      actionDate: imposedOn.value,
-      latitude: fix?.latitude,
-      longitude: fix?.longitude,
-      locationAccuracyM: fix?.accuracyM,
-      // The uploaded path, never the handset's own — the server has no idea
-      // what `/data/user/0/…` means.
-      photoPath: photoUploadedPath.value,
-      signaturePath: signatureUploadedPath.value,
-      witnessName: _trimmedOrNull(witnessController.text),
-      remarks: _trimmedOrNull(remarksController.text),
-    );
-  }
+  FineRequest _buildRequest() =>
+      isAreaFine ? _buildAreaRequest() : _buildUnitRequest();
+
+  FineRequest _buildUnitRequest() => FineRequest(
+    // Off the unit, so a fine against a shop still says which bazaar it stands
+    // in without asking the officer for it.
+    areaId: targetAreaId,
+    fineTypeId: fineType.value!.id!,
+    fineAmount: amountController.text.trim(),
+    legalProvision: provisionController.text.trim(),
+    offender: payer,
+    // The uploaded path, never the handset's own — the server has no idea what
+    // `/data/user/0/…` means.
+    photoPath: photoUploadedPath.value,
+  );
+
+  /// `POST enforcement/fines`: the bazaar is the only scoping, and the offender
+  /// is required because there is nobody on the register to bill.
+  FineRequest _buildAreaRequest() => FineRequest.inArea(
+    areaId: areaId.value!,
+    offender: _offender(),
+    fineTypeId: fineType.value!.id!,
+    fineAmount: amountController.text.trim(),
+    legalProvision: provisionController.text.trim(),
+    photoPath: photoUploadedPath.value,
+  );
+
+  FineOffender _offender() => FineOffender(
+    name: offenderNameController.text.trim(),
+    fatherName: offenderFatherController.text.trim(),
+    mobileNo: offenderMobileController.text.trim(),
+    cnic: _trimmedOrNull(offenderCnicController.text),
+    address: _trimmedOrNull(offenderAddressController.text),
+  );
 
   static String? _trimmedOrNull(String value) {
     final trimmed = value.trim();
@@ -479,20 +760,24 @@ class FineController extends GetxController {
     errorMessage.value = error.message;
     if (!error.isValidation) return;
 
+    _areaServerError = error.errorFor('area_id');
     _fineTypeServerError = error.errorFor('fine_type');
     _amountServerError = error.errorFor('fine_amount');
     _provisionServerError = error.errorFor('legal_provision');
     _offenderNameServerError = error.errorFor('offender_name');
     _offenderFatherServerError = error.errorFor('offender_father_name');
     _offenderMobileServerError = error.errorFor('offender_mobile_no');
+    _offenderCnicServerError = error.errorFor('offender_cnic');
   }
 
   void _clearServerErrors() {
+    _areaServerError = null;
     _fineTypeServerError = null;
     _amountServerError = null;
     _provisionServerError = null;
     _offenderNameServerError = null;
     _offenderFatherServerError = null;
     _offenderMobileServerError = null;
+    _offenderCnicServerError = null;
   }
 }

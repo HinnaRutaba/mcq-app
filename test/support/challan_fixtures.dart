@@ -328,7 +328,10 @@ class FakeChallanRepository implements ChallanRepository {
     final int from = (current - 1) * size;
     final List<Challan> slice = from >= rows.length
         ? const <Challan>[]
-        : rows.sublist(from, from + size > rows.length ? rows.length : from + size);
+        : rows.sublist(
+            from,
+            from + size > rows.length ? rows.length : from + size,
+          );
 
     return Paginated<Challan>(
       items: slice,

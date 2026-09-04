@@ -363,26 +363,25 @@ final TradeTariff tradeTariffFixture = TradeTariff.fromJson(<String, dynamic>{
 });
 
 /// `POST /api/v1/trade/applications/field` — the write's answer.
-final TradeApplication tradeCapturedFixture = TradeApplication.fromJson(
-  <String, dynamic>{
-    'id': 14,
-    'application_no': 'MCQ-TA-2627-00014',
-    'applicant_name': 'Abdul Karim',
-    'father_name': 'Muhammad Yousaf',
-    'mobile_no': '03001234567',
-    'business_name': 'Al Madina Naan Shop',
-    'shop_address': 'Shop 14, Circular Road, Quetta',
-    'trade': 'Naan Shop / Tandoor',
-    'area_name': 'Jinnah Road',
-    'status': 'pending',
-    'years': 1,
-    'fee_amount': '6000.00',
-    'challan_no': 'MCQ-CH-2627-0000410',
-    'consumer_no': 'K4M2PQTX',
-    'has_live_link': true,
-    'created_at': '2026-09-03T01:29:56+00:00',
-  },
-);
+final TradeApplication tradeCapturedFixture =
+    TradeApplication.fromJson(<String, dynamic>{
+      'id': 14,
+      'application_no': 'MCQ-TA-2627-00014',
+      'applicant_name': 'Abdul Karim',
+      'father_name': 'Muhammad Yousaf',
+      'mobile_no': '03001234567',
+      'business_name': 'Al Madina Naan Shop',
+      'shop_address': 'Shop 14, Circular Road, Quetta',
+      'trade': 'Naan Shop / Tandoor',
+      'area_name': 'Jinnah Road',
+      'status': 'pending',
+      'years': 1,
+      'fee_amount': '6000.00',
+      'challan_no': 'MCQ-CH-2627-0000410',
+      'consumer_no': 'K4M2PQTX',
+      'has_live_link': true,
+      'created_at': '2026-09-03T01:29:56+00:00',
+    });
 
 /// The licensing endpoints, from the fixtures above.
 ///

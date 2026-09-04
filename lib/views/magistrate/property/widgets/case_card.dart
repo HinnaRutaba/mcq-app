@@ -5,7 +5,6 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../models/enforcement_case.dart';
 import '../../../../widgets/widgets.dart';
 
-
 class CaseCard extends StatelessWidget {
   const CaseCard({
     super.key,
