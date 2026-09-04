@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
+import 'package:mcq_app/controllers/challans_controller.dart';
 import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
@@ -16,6 +17,7 @@ import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
+import 'package:mcq_app/data/repositories/challan_repository.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
@@ -23,6 +25,7 @@ import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
+import 'package:mcq_app/models/challan.dart';
 import 'package:mcq_app/models/property_profile.dart';
 import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/models/unit_card.dart';
@@ -42,6 +45,7 @@ import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart'
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/api_stub.dart';
+import 'support/challan_fixtures.dart';
 import 'support/dashboard_fixtures.dart';
 import 'support/property_profile_fixtures.dart';
 import 'support/trade_fixtures.dart';
@@ -215,7 +219,26 @@ void main() {
       _seedTradeCapture();
       return const TradeCaptureScreen(areaId: 1);
     },
-    'challans': () => const ChallansScreen(),
+    // The billing list: rent bills and penalties in one place, kept apart and
+    // never totalled.
+    'challans': () {
+      _seedChallans();
+      return const ChallansScreen();
+    },
+    'challans_collapsed': () {
+      _seedChallans(challans: challanRun(30));
+      return const ChallansScreen();
+    },
+    'challans_fines': () {
+      _seedChallans().showFilter(ChallanFilter.fines);
+      return const ChallansScreen();
+    },
+    // A list longer than a page: the plate leads with what the bazaar owes in
+    // total, and says underneath how far the scroll has got.
+    'challans_paged': () {
+      _seedChallans(challans: challanRun(30));
+      return const ChallansScreen();
+    },
     'more': () => const MoreScreen(),
     'sealed': () => const SealedScreen(),
     'profile': () {
@@ -318,7 +341,10 @@ void main() {
     'trade_capture': 3000,
     'trade_capture_filled': 3000,
     'trade_capture_shop': 2200,
-    'challans': 2100,
+    'challans': 2900,
+    'challans_collapsed': 1400,
+    'challans_fines': 1200,
+    'challans_paged': 1800,
     'fine': 2600,
     'fine_with_shop': 2600,
     'fine_evidence': 2600,
@@ -344,6 +370,7 @@ void main() {
   /// Entries to drag before capturing, and by how much.
   const scrolled = <String, double>{
     'home_collapsed': 420,
+    'challans_collapsed': 420,
     'defaulters_collapsed': 420,
     'property_profile_collapsed': 420,
     // Enough to take the header to about the middle of its collapse.
@@ -528,6 +555,20 @@ TradeLicencesController _seedTrade({Object? failure, String? query}) {
     controller.query.value = query;
   }
   return controller;
+}
+
+/// Puts the billing list over the fixtures and drops the controller so it is
+/// rebuilt over them. Returns it, so an entry can choose the filter it means to
+/// show.
+ChallansController _seedChallans({List<Challan>? challans}) {
+  Get.delete<ChallanRepository>(force: true);
+  Get.put<ChallanRepository>(
+    FakeChallanRepository(challans: challans),
+    permanent: true,
+  );
+  // `fenix`, so the find below builds a fresh one over the fake just put.
+  Get.delete<ChallansController>(force: true);
+  return Get.find<ChallansController>();
 }
 
 /// The capture form registers its own controller, so only the repository under

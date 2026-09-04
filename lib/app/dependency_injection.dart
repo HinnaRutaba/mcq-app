@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/challans_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
 import '../controllers/definitions_controller.dart';
@@ -108,4 +109,5 @@ void setupDependencies() {
     TradeLicencesController.new,
     fenix: true,
   );
+  Get.lazyPut<ChallansController>(ChallansController.new, fenix: true);
 }
