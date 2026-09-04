@@ -121,6 +121,11 @@ class PropertyProfileController extends GetxController {
 
   ProfileProperty? get property => profile.value?.property;
 
+  /// The tenancy the unit is held under — what a fine raised here is billed
+  /// to. Read inside an `Obx`: the card the officer arrived with answers it
+  /// before the profile lands, and null means nobody holds the unit.
+  int? get allotmentId => profile.value?.allotment?.id ?? card?.allotmentId;
+
   /// The holder, or the fact that there is none. Falls back to the card, then
   /// to silence while the call is still out.
   String get holder {

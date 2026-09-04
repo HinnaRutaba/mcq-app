@@ -7,8 +7,10 @@ class FineRequest {
     required this.fineAmount,
     required this.legalProvision,
     this.areaId,
+    this.allotmentId,
     this.offender,
     this.photoPath,
+    this.remarks,
     String? clientActionUuid,
   }) : clientActionUuid = clientActionUuid ?? ClientActionUuid.generate();
 
@@ -20,9 +22,17 @@ class FineRequest {
     required this.legalProvision,
     this.photoPath,
     String? clientActionUuid,
-  }) : clientActionUuid = clientActionUuid ?? ClientActionUuid.generate();
+  }) : allotmentId = null,
+       remarks = null,
+       clientActionUuid = clientActionUuid ?? ClientActionUuid.generate();
 
   final int? areaId;
+
+  /// The tenancy the fine is billed to, on a fine raised from a unit's own
+  /// profile. The unit itself travels in the path (`properties/{id}/fines`),
+  /// so this is what tells the server which allotment on it to bill — a fine
+  /// against a area names no allotment at all.
+  final int? allotmentId;
 
   /// The offence, as `FineTypeDefinition.id` off the same call.
   ///
@@ -39,9 +49,10 @@ class FineRequest {
   final String fineAmount;
 
   /// The law being applied, e.g. "Section 97, Balochistan Local Government Act
-  /// 2010". Goes on the paperwork the shopkeeper receives, so pre-fill it from
-  /// `FineTypeDefinition.defaultProvision` — which is null on `other`, the one
-  /// offence where the officer has to name the section themselves.
+  /// 2010". Goes on the paperwork the shopkeeper receives, and is always
+  /// `FineTypeDefinition.defaultProvision` for the offence — the field form
+  /// does not type one, so an offence the register publishes without a
+  /// provision cannot be fined at all.
   final String legalProvision;
 
   /// Who to bill when it is not the register's tenant.
@@ -53,24 +64,30 @@ class FineRequest {
   /// without it.
   final String? photoPath;
 
+  /// The officer's own words on the fine, e.g. "Refused to remove the display
+  /// after two warnings." Optional, and only asked for on a unit's fine.
+  final String? remarks;
+
   /// The idempotency key. Generated once, here, when the request is built, and
   /// reused on every retry — re-sending the same instance is what stops a fine
   /// sent twice on a weak signal becoming two fines.
   final String clientActionUuid;
 
   /// `legal_provision` is capped at 150 characters — shorter than a full
-  /// citation, so the form has to say so before it is typed.
+  /// citation, so a register row longer than this is refused by the server.
   static const int legalProvisionMaxLength = 150;
 
   /// The wire body. Nulls are dropped by the API service, so a field the
   /// officer left blank is simply not sent.
   Map<String, dynamic> toJson() => <String, dynamic>{
     'area_id': areaId,
+    'allotment_id': allotmentId,
     'fine_type_id': fineTypeId,
     'fine_amount': fineAmount,
     'legal_provision': legalProvision,
     ...?offender?.toJson(),
     'photo_path': photoPath,
+    'remarks': remarks,
     'client_action_uuid': clientActionUuid,
   };
 }

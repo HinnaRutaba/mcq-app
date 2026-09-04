@@ -431,11 +431,26 @@ class FakeTradeRepository implements TradeRepository {
   int lookupCalls = 0;
   int pendingCalls = 0;
 
+  /// How many times the beat actually reached the "wire" — the cache is real
+  /// here, so a test can assert that a warm beat costs nothing.
+  int beatCalls = 0;
+
+  TradeBeat? _cachedBeat;
+
   @override
-  Future<TradeBeat> beat() async {
+  TradeBeat? get cachedBeat => _cachedBeat;
+
+  @override
+  Future<TradeBeat> beat({bool refresh = false}) async {
+    final TradeBeat? held = _cachedBeat;
+    if (held != null && !refresh) return held;
+    beatCalls++;
     if (failure != null) throw failure!;
-    return _beat;
+    return _cachedBeat = _beat;
   }
+
+  @override
+  void forgetBeat() => _cachedBeat = null;
 
   @override
   Future<List<TradeLicence>> expiring() async {

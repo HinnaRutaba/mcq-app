@@ -12,6 +12,8 @@ import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/capture_tile.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/amount_field.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/still_needed_note.dart';
+import 'package:mcq_app/views/magistrate/trade/widgets/capture_sheet.dart';
+import 'package:mcq_app/views/magistrate/trade/widgets/licence_sheet.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/licence_tile.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/lookup_answer.dart';
 import 'package:mcq_app/widgets/widgets.dart';
@@ -91,8 +93,31 @@ void main() {
       ]);
       // The beat's own figure, which no list here repeats.
       expect(find.text('41 live licences'), findsOneWidget);
+      // "All", because the bazaar picker may narrow the rows under it and
+      // this figure never follows the filter.
+      expect(
+        find.textContaining('Across all your bazaars'),
+        findsOneWidget,
+      );
       // Said out loud, or the counts read as city-wide.
       expect(find.text('Jinnah Road and Prince Road'), findsOneWidget);
+      // The way onto the capture form, labelled: a bare glyph in the corner
+      // is the action officers never found.
+      expect(find.widgetWithText(AppHeroAction, 'Capture'), findsOneWidget);
+    });
+
+    testWidgets('the live count is not shown over the officer\'s own '
+        'captures', (WidgetTester tester) async {
+      final TradeLicencesController controller = await pumpLicences(tester);
+      expect(find.text('41 live licences'), findsOneWidget);
+
+      controller.showQueue(TradeQueue.captures);
+      await settle(tester);
+
+      // 41 live licences over two captures was read as a count of them. It is
+      // a figure about a different register, so it goes.
+      expect(find.text('41 live licences'), findsNothing);
+      expect(find.byType(CaptureTile), findsNWidgets(2));
     });
 
     testWidgets('the chips carry the count of each queue', (
@@ -148,6 +173,70 @@ void main() {
       expect(shopsOnScreen(tester), <String>['Al Madina Naan Shop']);
       expect(find.text('Expiring · 1'), findsOneWidget);
       expect(find.text('Lapsed · 1'), findsOneWidget);
+    });
+
+    testWidgets('a row opens the licence in full', (
+      WidgetTester tester,
+    ) async {
+      await pumpLicences(tester);
+
+      await tester.tap(find.byType(LicenceTile).first);
+      await settle(tester);
+
+      // Everything the row had no space for, off the record already in hand.
+      expect(find.byType(LicenceSheet), findsOneWidget);
+      expect(find.text('The licence'), findsOneWidget);
+      expect(find.text('MCQ-TL-000021'), findsOneWidget);
+      expect(find.text("Father's name: Abdul Ghani"), findsOneWidget);
+      expect(find.text('5440020000000'), findsOneWidget);
+      expect(find.text('Valid 28 May 2024 to 11 Sep 2026'), findsOneWidget);
+      // The server's own day count, never a subtraction of ours.
+      expect(find.text('8 days left'), findsWidgets);
+
+      await tester.tap(find.widgetWithText(AppButton, 'Done'));
+      await settle(tester);
+
+      expect(find.byType(LicenceSheet), findsNothing);
+    });
+
+    testWidgets('a capture opens in full too', (WidgetTester tester) async {
+      final TradeLicencesController controller = await pumpLicences(tester);
+      controller.showQueue(TradeQueue.captures);
+      await settle(tester);
+
+      await tester.tap(find.byType(CaptureTile).first);
+      await settle(tester);
+
+      expect(find.byType(CaptureSheet), findsOneWidget);
+      // What the row had no space for: the CNIC, the father's name and the
+      // address the officer wrote up.
+      expect(find.text('MCQ-TA-2627-00003'), findsWidgets);
+      expect(find.text("Father's name: Muhammad Yousaf"), findsOneWidget);
+      expect(find.text('5440112233445'), findsOneWidget);
+      expect(find.text('Shop 14, Circular Road, Quetta'), findsOneWidget);
+      // The server's quote, never a figure of ours.
+      expect(find.text('Rs 6,000'), findsWidgets);
+
+      await tester.tap(find.widgetWithText(AppButton, 'Done'));
+      await settle(tester);
+
+      expect(find.byType(CaptureSheet), findsNothing);
+    });
+
+    testWidgets('a lapsed row says so on the sheet as well as the row', (
+      WidgetTester tester,
+    ) async {
+      final TradeLicencesController controller = await pumpLicences(tester);
+      controller.showQueue(TradeQueue.lapsed);
+      await settle(tester);
+
+      await tester.tap(find.byType(LicenceTile).first);
+      await settle(tester);
+
+      // `is_valid` is the server's answer to "may this shop trade today", and
+      // the only thing this turns on.
+      expect(find.widgetWithText(AppStatusBadge, 'Lapsed'), findsWidgets);
+      expect(find.text('65 days over'), findsWidgets);
     });
 
     testWidgets('an empty queue offers the way out of its own dead end', (
@@ -341,17 +430,15 @@ void main() {
       // The zone is the answer to "why that figure?".
       expect(find.text('Priced for Zone 1 - Zarghoon'), findsOneWidget);
 
-      // The fee, prefilled off the tariff into the field the officer may
-      // correct — the same block the fine's amount uses.
-      expect(find.byType(AmountField), findsOneWidget);
-      expect(capture.feeController.text, '6000.00');
-      expect(
-        find.text(
-          "Rs 6000.00 is what MCQ's tariff for this trade suggests. Change "
-          'it if the fee should be more or less.',
-        ),
-        findsOneWidget,
-      );
+      // The fee is MCQ's quote and nothing on the form may change it: no
+      // amount field, and the figure is read off the tariff.
+      expect(find.byType(AmountField), findsNothing);
+      expect(capture.fee, '6000.00');
+      // Priced on the row it was chosen from, and on the bar exactly as it
+      // will be charged — nowhere is it a field.
+      expect(find.text('Rs 6,000 / yr'), findsOneWidget);
+      expect(find.text("Licence fee, per year — MCQ's quote"), findsOneWidget);
+      expect(find.text('Rs 6000.00'), findsOneWidget);
     });
 
     testWidgets('nothing is priced until a bazaar is named', (
@@ -431,7 +518,7 @@ void main() {
       expect(capture.cnicController.text, isEmpty);
     });
 
-    testWidgets('sends the trade, the term and the fee as typed', (
+    testWidgets('sends the trade, the term and the fee as quoted', (
       WidgetTester tester,
     ) async {
       final TradeCaptureController capture = await pumpCapture(tester);
@@ -456,7 +543,7 @@ void main() {
       expect(sent.applicantName, 'Abdul Karim');
       expect(sent.cnic, '5440112233445');
       expect(sent.mobileNo, '03001234567');
-      // Prefilled off the tariff and sent as a string, exactly as typed.
+      // The tariff's own figure, sent as a string exactly as it came.
       expect(sent.feeAmount, '6000.00');
       expect(sent.toJson()['fee_amount'], '6000.00');
       // What came back, in front of the shopkeeper.
@@ -464,43 +551,45 @@ void main() {
       expect(find.text('K4M2PQTX'), findsOneWidget);
     });
 
-    testWidgets('a corrected fee is the figure that travels', (
+    testWidgets('the fee follows the trade and nothing else', (
       WidgetTester tester,
     ) async {
       final TradeCaptureController capture = await pumpCapture(tester);
       fill(capture);
-      capture.feeController.text = '4500';
-      capture.markEdited();
       await settle(tester);
 
-      // Said out loud on the field, so nobody takes the tariff's figure for
-      // what the shopkeeper was quoted.
-      expect(
-        find.text('Changed from the suggested Rs 6000.00.'),
-        findsOneWidget,
-      );
-      expect(find.text('Rs 4500'), findsOneWidget);
+      expect(capture.fee, '6000.00');
+
+      // Another trade in the same bazaar re-quotes it; there is no field to
+      // leave the last figure behind in.
+      capture.chooseCategory(tradeTariffFixture.category(48)!);
+      await settle(tester);
+
+      expect(capture.fee, tradeTariffFixture.category(48)!.annualFee);
 
       await tester.tap(find.text('Capture this shop'));
       await settle(tester);
 
-      expect(trade.lastRequest!.feeAmount, '4500');
+      expect(trade.lastRequest!.feeAmount, capture.fee);
     });
 
-    testWidgets('a shop cannot be captured without a fee', (
+    testWidgets('no trade means no fee, and the button says so', (
       WidgetTester tester,
     ) async {
       final TradeCaptureController capture = await pumpCapture(tester);
       fill(capture);
-      capture.feeController.clear();
-      capture.markEdited();
+      capture.clearArea();
       await settle(tester);
 
-      // The whole list, highlighted, rather than a truncated line: a button
-      // that will not press has to say what it is waiting on.
-      expect(capture.missing, contains('the licence fee'));
+      // The fee is the trade's, so it is never the thing that is missing —
+      // the bazaar and the trade are, and the button names them.
+      expect(capture.fee, isEmpty);
+      expect(capture.missing, <String>['the bazaar', 'the trade']);
       expect(find.byType(StillNeededNote), findsOneWidget);
-      expect(find.text('Still needed: the licence fee'), findsOneWidget);
+      expect(
+        find.text('Still needed: the bazaar, the trade'),
+        findsOneWidget,
+      );
       expect(trade.lastRequest, isNull);
     });
 
@@ -560,6 +649,36 @@ void main() {
 
       expect(find.text('This number already holds a licence.'), findsOneWidget);
       expect(capture.mayHaveLanded.value, isFalse);
+    });
+
+    testWidgets('a refused fee is shown against the trade that priced it', (
+      WidgetTester tester,
+    ) async {
+      trade.captureFailure = const ApiException(
+        message: 'Please check the details and try again.',
+        failure: ApiFailure.validation,
+        statusCode: 422,
+        errors: <String, List<String>>{
+          'fee_amount': <String>['That is not what this trade is priced at.'],
+        },
+      );
+      final TradeCaptureController capture = await pumpCapture(tester);
+      fill(capture);
+      await settle(tester);
+
+      await tester.tap(find.text('Capture this shop'));
+      await settle(tester);
+
+      // There is no fee field to put it under, and the quote came with the
+      // trade — which is the only part of it the officer can change.
+      expect(
+        capture.categoryError,
+        'That is not what this trade is priced at.',
+      );
+      expect(
+        find.text('That is not what this trade is priced at.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a call that never came back is not offered a blind retry', (

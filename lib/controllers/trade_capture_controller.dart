@@ -46,7 +46,11 @@ class TradeCaptureController extends GetxController {
 
   /// The licensing beat, which is where the bazaars come from. The tariff
   /// cannot supply them — it prices one bazaar and has to be told which.
-  final Rxn<TradeBeat> beat = Rxn<TradeBeat>();
+  ///
+  /// Seeded from the repository's cache: [TradeBeatController] warms it at
+  /// sign-in, so a form opened in the field has its picker on the first frame
+  /// rather than after a call.
+  late final Rxn<TradeBeat> beat = Rxn<TradeBeat>(_trade.cachedBeat);
   final RxBool isLoadingAreas = RxBool(false);
   final RxnString areasError = RxnString();
 
@@ -64,9 +68,9 @@ class TradeCaptureController extends GetxController {
 
   final Rxn<TradeCategory> category = Rxn<TradeCategory>();
 
-  /// The yearly fee, prefilled from the tariff when a trade is chosen and the
-  /// officer's to correct. A string from end to end.
-  final TextEditingController feeController = TextEditingController();
+  // No fee field: the fee is MCQ's own quote for the chosen trade, read off
+  // the tariff and sent verbatim. Nothing on the handset may change what the
+  // shopkeeper is charged.
 
   /// How long the licence runs. Fixed at a year: it is the only term MCQ
   /// issues in the field for now, so the form states it rather than asking.
@@ -114,7 +118,6 @@ class TradeCaptureController extends GetxController {
   @override
   void onClose() {
     areaSearchController.dispose();
-    feeController.dispose();
     applicantController.dispose();
     fatherController.dispose();
     mobileController.dispose();
@@ -146,6 +149,8 @@ class TradeCaptureController extends GetxController {
     isLoadingAreas.value = true;
     areasError.value = null;
     try {
+      // Cached, so this is free once the beat has been warmed — a capture is
+      // written standing at a shopfront, where a call may not go through.
       beat.value = await _trade.beat();
       _pickSoleArea();
     } on ApiException catch (error) {
@@ -221,7 +226,6 @@ class TradeCaptureController extends GetxController {
     tariff.value = null;
     tariffError.value = null;
     category.value = null;
-    feeController.clear();
     markEdited();
   }
 
@@ -241,10 +245,9 @@ class TradeCaptureController extends GetxController {
       final TradeCategory? chosen = category.value;
       if (chosen?.id != null) {
         final TradeCategory? here = priced.category(chosen!.id!);
+        // The last zone's figure is not a quote here, and the fee follows the
+        // category — so dropping an unpriced one drops its price with it.
         category.value = (here != null && here.canQuote) ? here : null;
-        // This zone's price for the same trade, or none — the last zone's
-        // figure is not a quote here.
-        feeController.text = category.value?.annualFee ?? '';
       }
     } on ApiException catch (error) {
       tariffError.value = error.message;
@@ -253,7 +256,6 @@ class TradeCaptureController extends GetxController {
       // is worse than none.
       tariff.value = null;
       category.value = null;
-      feeController.clear();
     } finally {
       isLoadingTariff.value = false;
     }
@@ -281,11 +283,13 @@ class TradeCaptureController extends GetxController {
   int get unpricedCount => tariff.value?.unpriced ?? 0;
 
   /// What the tariff quotes for the chosen trade, exactly as the server sent
-  /// it. The suggestion behind [feeController], never multiplied by [years].
+  /// it. Never multiplied by [years].
   String? get annualFee => category.value?.annualFee;
 
-  /// The figure that will be sent, as typed. Never parsed, never rounded.
-  String get fee => feeController.text.trim();
+  /// The figure that will be sent. The tariff's own, never parsed, never
+  /// rounded — a trade that cannot be quoted cannot be chosen, so a chosen
+  /// trade always has one.
+  String get fee => annualFee ?? '';
 
   /// The heading the chosen trade sits under in the tariff. The group is on
   /// the group, not on the category, so it is looked up rather than read off.
@@ -303,10 +307,8 @@ class TradeCaptureController extends GetxController {
 
   void chooseCategory(TradeCategory chosen) {
     if (!chosen.canQuote) return;
+    // The fee comes with it: [fee] reads the tariff's quote off the category.
     category.value = chosen;
-    // The tariff's own figure, put in the field. An officer who has to type
-    // the fee MCQ already quoted is an officer who mistypes it.
-    feeController.text = chosen.annualFee ?? '';
     markEdited();
   }
 
@@ -408,23 +410,11 @@ class TradeCaptureController extends GetxController {
     return null;
   }
 
-  String? validateFee(String? value) {
-    final String? fromServer = _serverErrors['fee_amount'];
-    if (fromServer != null) return fromServer;
-    final String amount = value?.trim() ?? '';
-    if (amount.isEmpty) return 'The licence fee is required';
-    // Shape only. The figure is sent as typed and the server decides what the
-    // licence is worth.
-    if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(amount)) {
-      return 'Enter a fee like 6000 or 6000.00';
-    }
-    if (RegExp(r'^0+(\.0{1,2})?$').hasMatch(amount)) {
-      return 'The fee must be at least 1';
-    }
-    return null;
-  }
-
-  String? get categoryError => _serverErrors['trade_category_id'];
+  /// A refused fee is a refused quote, and the quote belongs to the trade —
+  /// so the message is shown against the trade, which is the only part of it
+  /// the officer can change.
+  String? get categoryError =>
+      _serverErrors['trade_category_id'] ?? _serverErrors['fee_amount'];
 
   String? get areaError => _serverErrors['area_id'];
 
@@ -436,7 +426,6 @@ class TradeCaptureController extends GetxController {
   List<String> get missing => <String>[
     if (areaId.value == null) 'the bazaar',
     if (category.value == null) 'the trade',
-    if (feeController.text.trim().isEmpty) 'the licence fee',
     if (cnicController.text.trim().isEmpty) "the shopkeeper's CNIC",
     if (applicantController.text.trim().isEmpty) 'their name',
     if (fatherController.text.trim().isEmpty) "their father's name",
@@ -450,7 +439,6 @@ class TradeCaptureController extends GetxController {
   bool get isValid =>
       missing.isEmpty &&
       (category.value?.canQuote ?? false) &&
-      validateFee(feeController.text) == null &&
       validateApplicant(applicantController.text) == null &&
       validateFather(fatherController.text) == null &&
       validateMobile(mobileController.text) == null &&

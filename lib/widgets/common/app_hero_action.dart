@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../text/app_text.dart';
+import '../../config/theme/app_brand.dart';
 import '../../config/theme/app_radius.dart';
 
 /// An action that belongs to whoever the hero header names — call the holder,
@@ -17,6 +18,7 @@ class AppHeroAction extends StatelessWidget {
     required this.label,
     this.onTap,
     this.compact = false,
+    this.solid = false,
   });
 
   final IconData icon;
@@ -32,40 +34,46 @@ class AppHeroAction extends StatelessWidget {
   /// [label]; only the pill around it shrinks.
   final bool compact;
 
+  /// Solid white with brand ink, for the one action a screen is really for.
+  /// The wash above reads as a chip beside two others; filled, it reads as the
+  /// button it is. Wins over [compact] — a page's main action is full size.
+  final bool solid;
+
   @override
   Widget build(BuildContext context) {
     final BorderRadius radius = BorderRadius.circular(AppRadius.pill);
 
+    // The gradient's own dark end, so the ink stays the brand's and is still
+    // guaranteed legible on white — that end is authored to carry white text.
+    final Color ink = solid ? context.brand.headerFrom : Colors.white;
+    final bool small = compact && !solid;
+
     return Material(
-      color: Colors.white.withValues(alpha: 0.16),
+      color: solid ? Colors.white : Colors.white.withValues(alpha: 0.16),
       borderRadius: radius,
       child: InkWell(
         onTap: onTap,
         borderRadius: radius,
         child: Container(
-          height: compact ? 30 : 36,
-          padding: EdgeInsets.symmetric(horizontal: compact ? 10 : 14),
+          height: small ? 30 : (solid ? 40 : 36),
+          padding: EdgeInsets.symmetric(
+            horizontal: small ? 10 : (solid ? 18 : 14),
+          ),
           decoration: BoxDecoration(
             borderRadius: radius,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+            border: solid
+                ? null
+                : Border.all(color: Colors.white.withValues(alpha: 0.28)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(icon, size: compact ? 14 : 16, color: Colors.white),
-              SizedBox(width: compact ? 6 : 8),
-              if (compact)
-                AppText.caption(
-                  label,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                )
+              Icon(icon, size: small ? 14 : (solid ? 19 : 16), color: ink),
+              SizedBox(width: small ? 6 : 8),
+              if (small)
+                AppText.caption(label, color: ink, fontWeight: FontWeight.w700)
               else
-                AppText.label(
-                  label,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
+                AppText.label(label, color: ink, fontWeight: FontWeight.w700),
             ],
           ),
         ),

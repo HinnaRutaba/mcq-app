@@ -57,7 +57,19 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: CreateFineButton(propertyId: controller.propertyId),
+      // A fine imposed here lands on this shop's own bills and can open a
+      // case on it, so the profile re-reads itself when one comes back.
+      //
+      // Wrapped, because the tenancy the fine is billed to arrives with the
+      // profile: read outside an `Obx` the button would carry the null it was
+      // first built with.
+      floatingActionButton: Obx(
+        () => CreateFineButton(
+          propertyId: controller.propertyId,
+          allotmentId: controller.allotmentId,
+          onImposed: controller.load,
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: controller.load,
         child: Obx(

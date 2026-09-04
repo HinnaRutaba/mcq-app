@@ -10,18 +10,48 @@ import '../../../models/trade_application.dart';
 import '../../../models/trade_licence.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/widgets/back_to_home_button.dart';
+import 'widgets/capture_sheet.dart';
 import 'widgets/capture_tile.dart';
+import 'widgets/licence_sheet.dart';
 import 'widgets/licence_tile.dart';
 import 'widgets/lookup_answer.dart';
 import 'widgets/trade_filters.dart';
 
-class TradeLicencesScreen extends StatelessWidget {
+class TradeLicencesScreen extends StatefulWidget {
   const TradeLicencesScreen({super.key});
 
   /// Two heights: the scope line only appears once the beat has landed, and a
   /// header sized for it before then leaves a gap under the title.
   static const double _headerHeight = 130;
   static const double _headerWithScope = 152;
+
+  @override
+  State<TradeLicencesScreen> createState() => _TradeLicencesScreenState();
+}
+
+class _TradeLicencesScreenState extends State<TradeLicencesScreen> {
+  /// Whether the tab was on screen last time dependencies changed. The branch
+  /// stays mounted inside the shell's `IndexedStack`, so this is the only
+  /// signal that the officer has come back to it — go_router mutes an inactive
+  /// branch's tickers, and that flips as the tab does.
+  bool _wasVisible = true;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final bool visible = TickerMode.valuesOf(context).enabled;
+    final bool returned = visible && !_wasVisible;
+    _wasVisible = visible;
+
+    // Quietly: the rows already up stay up and the thin bar on the filter row
+    // carries the work, so coming back to the tab never costs a spinner. The
+    // bazaars are not re-asked for — they are a posting, not a queue, and only
+    // a pull re-reads them.
+    if (returned) {
+      Get.find<TradeLicencesController>().load(refreshBeat: false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,13 +71,27 @@ class TradeLicencesScreen extends StatelessWidget {
                 title: 'Trade Licences',
                 subtitle: scope,
                 expandedHeight: scope == null
-                    ? _headerHeight
-                    : _headerWithScope,
+                    ? TradeLicencesScreen._headerHeight
+                    : TradeLicencesScreen._headerWithScope,
                 compactTitle: true,
+                // Room for the labelled button below, which is wider than the
+                // circle action the header reserves for by default.
+                trailingInset: 162,
                 leading: const BackToHomeButton(),
-                trailing: AppCircleIconButton(
-                  icon: Icons.add_business_outlined,
-                  onTap: () => _capture(context, controller),
+                trailing: SizedBox(
+                  // The height the header's own circle actions have, so the
+                  // button sits on the toolbar's centre line like them.
+                  height: 42,
+                  child: Center(
+                    child: AppHeroAction(
+                      icon: Icons.add_business_outlined,
+                      label: 'Capture',
+                      // Filled, not a wash: this is what the screen is for,
+                      // and a translucent pill up here read as a chip.
+                      solid: true,
+                      onTap: () => _capture(context, controller),
+                    ),
+                  ),
                 ),
                 bottom: AppSearchField(
                   controller: controller.searchController,
@@ -71,11 +115,6 @@ class TradeLicencesScreen extends StatelessWidget {
   }
 }
 
-/// Opens the capture form, carrying whatever was looked up so the number that
-/// just came back "not on the register" is not retyped.
-///
-/// Anything came back means the officer's own captures have moved — either one
-/// was written, or they went to check whether one had been.
 Future<void> _capture(
   BuildContext context,
   TradeLicencesController controller, {
@@ -203,7 +242,10 @@ List<Widget> _lookupSlivers(
             AppEntrance(
               key: ValueKey<Object>(licences[i].id ?? i),
               index: i + 1,
-              child: LicenceTile(licence: licences[i]),
+              child: LicenceTile(
+                licence: licences[i],
+                onTap: () => LicenceSheet.show(context, licence: licences[i]),
+              ),
             ),
           ],
         ],
@@ -253,7 +295,7 @@ List<Widget> _queueSlivers(
         tone: AppTone.warning,
         icon: Icons.wifi_off_rounded,
       ),
-    if (controller.liveCount != null)
+    if (controller.liveCount != null && queue != TradeQueue.captures)
       _LiveStrip(
         live: controller.liveCount!,
         generatedAt: controller.generatedAt,
@@ -290,8 +332,18 @@ List<Widget> _queueSlivers(
               ),
               index: index,
               child: row < licences.length
-                  ? LicenceTile(licence: licences[row])
-                  : CaptureTile(capture: captures[row - licences.length]),
+                  ? LicenceTile(
+                      licence: licences[row],
+                      onTap: () =>
+                          LicenceSheet.show(context, licence: licences[row]),
+                    )
+                  : CaptureTile(
+                      capture: captures[row - licences.length],
+                      onTap: () => CaptureSheet.show(
+                        context,
+                        application: captures[row - licences.length],
+                      ),
+                    ),
             ),
           );
         },
@@ -302,6 +354,9 @@ List<Widget> _queueSlivers(
 
 /// The one figure the beat carries that no list here repeats: how many
 /// licences are live in the officer's bazaars.
+///
+/// Only over the licence queues. The officer's own captures are a different
+/// register — a live-licence count above them was read as a count of them.
 class _LiveStrip extends StatelessWidget {
   const _LiveStrip({required this.live, required this.generatedAt});
 
@@ -331,9 +386,12 @@ class _LiveStrip extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 AppText.caption(
+                  // "All", because the bazaar picker above may have narrowed
+                  // the rows under this: the beat carries no per-bazaar figure
+                  // and this one never follows the filter.
                   generatedAt == null
-                      ? 'Across your bazaars'
-                      : 'Across your bazaars, as of '
+                      ? 'Across all your bazaars'
+                      : 'Across all your bazaars, as of '
                             '${Formatters.dateTime(generatedAt!.toLocal())}',
                   color: muted,
                   maxLines: 2,

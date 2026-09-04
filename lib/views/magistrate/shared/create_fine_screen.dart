@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../config/theme/app_colors.dart';
 import '../../../controllers/fine_controller.dart';
+import '../../../core/utils/dialer.dart';
+import '../../../core/utils/reveal_banner.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/capture/photo_capture.dart';
 import '../../../models/enforcement_definitions.dart';
@@ -22,7 +24,12 @@ import 'widgets/still_needed_note.dart';
 import '../../../config/theme/app_radius.dart';
 
 class CreateFineScreen extends StatefulWidget {
-  const CreateFineScreen({super.key, this.unit, this.propertyId});
+  const CreateFineScreen({
+    super.key,
+    this.unit,
+    this.propertyId,
+    this.allotmentId,
+  });
 
   /// The shop, when the officer came from its profile.
   final UnitCard? unit;
@@ -30,17 +37,29 @@ class CreateFineScreen extends StatefulWidget {
   /// Its id, when only that was carried on the route.
   final int? propertyId;
 
+  /// The tenancy on it, carried alongside the id from the shop's profile. It
+  /// is what the fine is billed to.
+  final int? allotmentId;
+
   @override
   State<CreateFineScreen> createState() => _CreateFineScreenState();
 }
 
 class _CreateFineScreenState extends State<CreateFineScreen> {
   late final FineController controller = Get.put(
-    FineController(unit: widget.unit, propertyId: widget.propertyId),
+    FineController(
+      unit: widget.unit,
+      propertyId: widget.propertyId,
+      allotmentId: widget.allotmentId,
+    ),
   );
+
+  /// The form's own scroll, so a refusal can be scrolled back to.
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
+    _scrollController.dispose();
     Get.delete<FineController>();
     super.dispose();
   }
@@ -55,9 +74,17 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
       if (fine == null) return;
       await FineImposedSheet.show(context, fine: fine);
       if (mounted) Navigator.of(context).pop(fine);
+      return;
     }
+
     // A refusal is already on the form: the banner carries the server's own
-    // sentence and the per-field messages are back under their fields.
+    // sentence and the per-field messages are back under their fields. Only
+    // the banner needs finding — it is at the top and the officer is at the
+    // bottom. A form that failed on its fields alone is left where it is,
+    // because the message they need is beside the field, not up there.
+    if (controller.errorMessage.value != null) {
+      _scrollController.revealBanner();
+    }
   }
 
   @override
@@ -87,6 +114,7 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
             child: Form(
               key: controller.formKey,
               child: ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
                 children: <Widget>[
                   Obx(() {
@@ -108,6 +136,10 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
                   _PayerSection(controller: controller),
                   const SizedBox(height: 20),
                   _EvidenceSection(controller: controller),
+                  if (controller.takesRemarks) ...<Widget>[
+                    const SizedBox(height: 20),
+                    _RemarksSection(controller: controller),
+                  ],
                 ],
               ),
             ),
@@ -421,31 +453,16 @@ class _OffenceSection extends StatelessWidget {
     return _Section(
       step: '2',
       title: 'The offence',
+      // The section of law is not asked for: it belongs to the offence, and
+      // the register's own is shown under the choice — see [_OffenceDetails].
       child: AppCard(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _OffencePicker(controller: controller),
-            const SizedBox(height: 18),
-            AppTextField(
-              label: 'Provision of law',
-              hint: 'e.g. Section 96, Balochistan LG Act 2010',
-              controller: controller.provisionController,
-              validator: controller.validateProvision,
-              onChanged: (_) => controller.markEdited(),
-              maxLines: 2,
-            ),
-          ],
-        ),
+        child: _OffencePicker(controller: controller),
       ),
     );
   }
 }
 
-/// The offences MCQ's register carries, with the amount and the section of law
-/// it suggests for each. Never a list written into the app: these are rows MCQ
-/// can rename, reprice and switch off.
 class _OffencePicker extends StatelessWidget {
   const _OffencePicker({required this.controller});
 
@@ -487,7 +504,7 @@ class _OffencePicker extends StatelessWidget {
         children: <Widget>[
           AppDropdown<FineTypeDefinition>(
             // The rows arrive after the first build, and the choice prefills
-            // two other fields — both need the field rebuilt on its value.
+            // the amount — both need the field rebuilt on its value.
             key: ValueKey<int?>(chosen?.id),
             label: 'What happened',
             hint: 'Choose an offence',
@@ -498,8 +515,26 @@ class _OffencePicker extends StatelessWidget {
             onChanged: controller.chooseFineType,
           ),
           if (chosen != null) ...<Widget>[
-            const SizedBox(height: 12),
-            _OffenceDetails(type: chosen),
+            // Only when the register holds something about it: an offence it
+            // carries nothing for would draw an empty panel.
+            if (_OffenceDetails.hasSomethingToSay(chosen)) ...<Widget>[
+              const SizedBox(height: 12),
+              _OffenceDetails(type: chosen),
+            ],
+            // The one offence that cannot be fined from the field. Said here
+            // rather than left to the disabled button, because the way out is
+            // to choose a different offence.
+            if (chosen.defaultProvision == null) ...<Widget>[
+              const SizedBox(height: 12),
+              const AppAlert(
+                tone: AppTone.warning,
+                icon: Icons.gavel_rounded,
+                message:
+                    'The register gives no section of law for this offence, '
+                    'and a fine without one cannot be enforced. Choose '
+                    'another offence.',
+              ),
+            ],
           ],
         ],
       );
@@ -516,6 +551,12 @@ class _OffenceDetails extends StatelessWidget {
   const _OffenceDetails({required this.type});
 
   final FineTypeDefinition type;
+
+  /// Whether the register holds anything about [type] worth a panel.
+  static bool hasSomethingToSay(FineTypeDefinition type) =>
+      type.nameUr != null ||
+      type.description != null ||
+      type.defaultProvision != null;
 
   @override
   Widget build(BuildContext context) {
@@ -545,10 +586,12 @@ class _OffenceDetails extends StatelessWidget {
           ],
           if (type.defaultProvision != null) ...<Widget>[
             const SizedBox(height: 10),
+            // Said as the fine will read, because this is the provision that
+            // travels — the form no longer asks anyone to type one.
             AppDetailRow(
               icon: Icons.gavel_rounded,
-              value: type.defaultProvision!,
-              maxLines: 2,
+              value: 'Raised under ${type.defaultProvision}',
+              maxLines: 3,
             ),
           ],
         ],
@@ -592,56 +635,155 @@ class _PayerSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The server's own answer, read and not recomputed: whether there is
-    // anybody on the register to bill is its judgement, not the handset's.
-    // Both are settled when the controller is built, so nothing here watches.
-    final needsOffender = controller.needsOffenderDetails;
+    return Obx(() {
+      // Read in the builder: behind a route that carried only an id, the
+      // person to bill arrives with the profile long after this is first drawn.
+      controller.profile.value;
 
-    return _Section(
-      step: '4',
-      title: 'Who pays',
-      note: needsOffender
-          ? 'CNIC, Name, father\'s name and mobile are required together.'
-          : 'Filled in from the register. Correct it if the person in front of '
-                'you is somebody else.',
-      // The same block whoever pays: on a shop it arrives filled in from
-      // the register, and on a hawker's fine it is the only record of who
-      // was fined.
-      child: AppCard(
-        child: Column(
-          children: <Widget>[
-            PersonCnicField(
-              controller: controller.personLookup,
-              label: "Offender's CNIC",
-              hint: "e.g. 5440011223344",
-              validator: controller.validateOffenderCnic,
-              onChanged: (_) => controller.markEdited(),
-              onTaken: controller.takePerson,
+      // The server's own answer, read and not recomputed: whether there is
+      // anybody on the register to bill is its judgement, not the handset's.
+      final bool needsOffender = controller.needsOffenderDetails;
+
+      final Widget child;
+      final String note;
+      if (controller.hasRegisteredPayer) {
+        child = _RegisteredPayerCard(controller: controller);
+        note = 'Billed to the tenancy, as the register holds it.';
+      } else if (!needsOffender && controller.isLoadingProfile.value) {
+        child = const AppCard(child: AppText.body('Reading the register…'));
+        note = 'Finding who holds this shop.';
+      } else {
+        child = _PayerFields(controller: controller);
+        note = needsOffender
+            ? 'CNIC, Name, father\'s name and mobile are required together.'
+            : 'Filled in from the register. Correct it if the person in front '
+                  'of you is somebody else.';
+      }
+
+      return _Section(step: '4', title: 'Who pays', note: note, child: child);
+    });
+  }
+}
+
+/// Who the register holds the shop under — shown, not asked for.
+///
+/// The fine is posted against the tenancy, so the identity behind it is a
+/// record to read back at the counter rather than four fields to retype.
+class _RegisteredPayerCard extends StatelessWidget {
+  const _RegisteredPayerCard({required this.controller});
+
+  final FineController controller;
+
+  static const Dialer _dialer = Dialer();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+
+    final String? father = controller.allotteeFatherName;
+    final String? cnic = controller.allotteeCnic;
+    final String? mobile = controller.allotteeMobile;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.person_outline_rounded,
+                color: theme.colorScheme.primary,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    AppText.titleMedium(
+                      controller.allotteeName ?? 'Held, allottee not named',
+                    ),
+                    const SizedBox(height: 2),
+                    AppText.caption('On the property register', color: muted),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (father != null)
+            AppDetailRow(
+              icon: Icons.people_outline_rounded,
+              value: 'S/O $father',
+              maxLines: 2,
             ),
-            const SizedBox(height: 18),
-            AppTextField(
-              label: "Offender's name",
-              controller: controller.offenderNameController,
-              validator: controller.validateOffenderName,
-              onChanged: (_) => controller.markEdited(),
+          if (cnic != null)
+            AppDetailRow(icon: Icons.credit_card_outlined, value: cnic),
+          if (mobile != null)
+            AppDetailRow(
+              icon: Icons.phone_outlined,
+              value: mobile,
+              // A number on screen is worth nothing without a way to dial it.
+              trailing: AppButton(
+                label: 'Call',
+                icon: Icons.phone_outlined,
+                variant: AppButtonVariant.outline,
+                fullWidth: false,
+                height: 34,
+                onPressed: () => _dialer.call(mobile),
+              ),
             ),
-            const SizedBox(height: 18),
-            AppTextField(
-              label: "Father's name",
-              controller: controller.offenderFatherController,
-              validator: controller.validateOffenderFather,
-              onChanged: (_) => controller.markEdited(),
-            ),
-            const SizedBox(height: 18),
-            AppTextField(
-              label: 'Mobile number',
-              controller: controller.offenderMobileController,
-              keyboardType: TextInputType.phone,
-              validator: controller.validateOffenderMobile,
-              onChanged: (_) => controller.markEdited(),
-            ),
-          ],
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The payer named by hand — a hawker, a handcart, somebody trading out of a
+/// unit nobody holds. On that fine this block is the only record of who was
+/// fined.
+class _PayerFields extends StatelessWidget {
+  const _PayerFields({required this.controller});
+
+  final FineController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        children: <Widget>[
+          PersonCnicField(
+            controller: controller.personLookup,
+            label: "Offender's CNIC",
+            hint: "e.g. 5440011223344",
+            validator: controller.validateOffenderCnic,
+            onChanged: (_) => controller.markEdited(),
+            onTaken: controller.takePerson,
+          ),
+          const SizedBox(height: 18),
+          AppTextField(
+            label: "Offender's name",
+            controller: controller.offenderNameController,
+            validator: controller.validateOffenderName,
+            onChanged: (_) => controller.markEdited(),
+          ),
+          const SizedBox(height: 18),
+          AppTextField(
+            label: "Father's name",
+            controller: controller.offenderFatherController,
+            validator: controller.validateOffenderFather,
+            onChanged: (_) => controller.markEdited(),
+          ),
+          const SizedBox(height: 18),
+          AppTextField(
+            label: 'Mobile number',
+            controller: controller.offenderMobileController,
+            keyboardType: TextInputType.phone,
+            validator: controller.validateOffenderMobile,
+            onChanged: (_) => controller.markEdited(),
+          ),
+        ],
       ),
     );
   }
@@ -672,8 +814,8 @@ class _EvidenceSection extends StatelessWidget {
       step: '5',
       title: 'The photograph',
       // The photograph is the only evidence this endpoint takes: a location
-      // fix, a signature, a witness and remarks are not fields on a fine, so
-      // the form does not collect what it cannot send.
+      // fix, a signature and a witness are not fields on a fine, so the form
+      // does not collect what it cannot send.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -737,6 +879,35 @@ class _EvidenceSection extends StatelessWidget {
     if (controller.photoUploadedPath.value != null) return 'Attached';
     if (controller.photoLocalPath.value != null) return 'Retry';
     return null;
+  }
+}
+
+/// The officer's own words, on a fine raised from a shop's profile. Optional,
+/// and last: a note is written after the offence, the amount and the person
+/// are settled, not before.
+class _RemarksSection extends StatelessWidget {
+  const _RemarksSection({required this.controller});
+
+  final FineController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Section(
+      step: '6',
+      title: 'Remarks',
+      note:
+          'Optional. Anything a clerk reading this fine later would need to '
+          'know.',
+      child: AppCard(
+        child: AppTextField(
+          hint: 'e.g. Refused to remove the display after two warnings',
+          controller: controller.remarksController,
+          maxLines: 3,
+          validator: controller.validateRemarks,
+          onChanged: (_) => controller.markEdited(),
+        ),
+      ),
+    );
   }
 }
 

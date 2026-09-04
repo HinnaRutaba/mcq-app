@@ -107,6 +107,17 @@ class ChallansController extends GetxController {
   /// The list from the top. Safe to call again — this is the pull-to-refresh.
   Future<void> load() => _fetch(pageNo: 1);
 
+  /// Re-reads the list after a challan was written somewhere else — a fine
+  /// imposed from another tab, or from a shop's own profile.
+  ///
+  /// Nothing to do until the tab has been opened: this controller is
+  /// registered lazily and fetches when it is first built, so a list nobody
+  /// has looked at is not stale.
+  static Future<void> reloadIfOpened() async {
+    if (!Get.isRegistered<ChallansController>()) return;
+    await Get.find<ChallansController>().load();
+  }
+
   /// Shows [which]. Only a change of server query fetches; rent and all are
   /// the same request.
   Future<void> showFilter(ChallanFilter which) async {

@@ -41,10 +41,19 @@ class AppRoutes {
   /// Imposing a fine. Reached from the add button on the shell with no shop in
   /// mind, and from a unit's profile with one — hence the optional
   /// `?property=` rather than a path parameter.
+  ///
+  /// A unit's profile carries the tenancy on it as `?allotment=` too — that is
+  /// what a fine raised there is billed to.
   static const String createFine = '/magistrate/fine/new';
 
-  static String createFinePath({int? propertyId}) =>
-      propertyId == null ? createFine : '$createFine?property=$propertyId';
+  static String createFinePath({int? propertyId, int? allotmentId}) {
+    final Map<String, String> query = <String, String>{
+      if (propertyId != null) 'property': '$propertyId',
+      if (allotmentId != null) 'allotment': '$allotmentId',
+    };
+    if (query.isEmpty) return createFine;
+    return Uri(path: createFine, queryParameters: query).toString();
+  }
 
   /// Capturing an unlicensed shop. Pushed over the shell from the licences
   /// tab: a form the officer should finish or abandon in front of the

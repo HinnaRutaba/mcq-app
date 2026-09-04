@@ -15,10 +15,15 @@ class LicenceTile extends StatelessWidget {
   const LicenceTile({
     super.key,
     required this.licence,
+    this.onTap,
     this.dialer = const Dialer(),
   });
 
   final TradeLicence licence;
+
+  /// Opens the licence in full. Every row has one: the record behind the tile
+  /// already carries the rest of it, so there is nothing to fetch.
+  final VoidCallback? onTap;
 
   final Dialer dialer;
 
@@ -32,6 +37,7 @@ class LicenceTile extends StatelessWidget {
     final AppTone tone = _tone;
 
     return AppCard(
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

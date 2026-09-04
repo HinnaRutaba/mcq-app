@@ -6,6 +6,7 @@ import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
 import '../controllers/definitions_controller.dart';
 import '../controllers/theme_controller.dart';
+import '../controllers/trade_beat_controller.dart';
 import '../controllers/trade_licences_controller.dart';
 import '../core/network/api_service.dart';
 import '../core/permissions/permission_service.dart';
@@ -98,6 +99,13 @@ void setupDependencies() {
   // [DefinitionsController] — so registering it eagerly is safe where the
   // fetching controllers below are not.
   Get.put(DefinitionsController(), permanent: true);
+
+  // The licensing module's own master data, and permanent for the same
+  // reasons: the officer's bazaars are what both licensing screens draw their
+  // picker from, they are fetched once a session rather than once a screen,
+  // and this watches `AuthController.officer` so nothing goes on the wire
+  // before an officer is signed in.
+  Get.put(TradeBeatController(), permanent: true);
 
   // Lazily, unlike the rest: these fetch in `onInit`, and building them here
   // would put authenticated calls on the wire before anyone has signed in.

@@ -17,10 +17,15 @@ class CaptureTile extends StatelessWidget {
   const CaptureTile({
     super.key,
     required this.capture,
+    this.onTap,
     this.dialer = const Dialer(),
   });
 
   final TradeApplication capture;
+
+  /// Opens the capture in full. Every row has one: the record behind the tile
+  /// already carries the rest of it, so there is nothing to fetch.
+  final VoidCallback? onTap;
 
   final Dialer dialer;
 
@@ -35,6 +40,7 @@ class CaptureTile extends StatelessWidget {
     final String? mobileNo = capture.mobileNo;
 
     return AppCard(
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

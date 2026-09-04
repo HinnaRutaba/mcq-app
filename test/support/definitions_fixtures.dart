@@ -89,7 +89,29 @@ const Map<String, dynamic> definitionsResponse = <String, dynamic>{
 
 /// Answers with the fixture instead of the network, for a screen whose pickers
 /// are drawn from the register.
+/// The same register plus `other` — the one offence MCQ publishes with no
+/// `default_provision`. The fine form reads the provision off the offence, so
+/// this is the row a fine cannot be raised under at all.
+Map<String, dynamic> definitionsDataWithOtherOffence() {
+  final Map<String, dynamic> data = definitionsData();
+  data['fine_types'] = <Map<String, dynamic>>[
+    ...(data['fine_types']! as List<dynamic>).cast<Map<String, dynamic>>(),
+    <String, dynamic>{'id': 9, 'code': 'other', 'name': 'Other'},
+  ];
+  return data;
+}
+
+/// The `data` block of [definitionsResponse], as a map a test may edit.
+Map<String, dynamic> definitionsData() =>
+    Map<String, dynamic>.from(definitionsResponse['data']! as Map);
+
 class FakeDefinitionsRepository implements DefinitionsRepository {
+  FakeDefinitionsRepository({Map<String, dynamic>? data})
+    : _data = data ?? definitionsData();
+
+  /// The `data` block to answer with. Defaults to the fixtures' own register.
+  final Map<String, dynamic> _data;
+
   EnforcementDefinitions? _cached;
 
   @override
@@ -97,9 +119,7 @@ class FakeDefinitionsRepository implements DefinitionsRepository {
 
   @override
   Future<EnforcementDefinitions> definitions({bool refresh = false}) async =>
-      _cached ??= EnforcementDefinitions.fromJson(
-        Map<String, dynamic>.from(definitionsResponse['data']! as Map),
-      );
+      _cached ??= EnforcementDefinitions.fromJson(_data);
 
   @override
   void forget() => _cached = null;

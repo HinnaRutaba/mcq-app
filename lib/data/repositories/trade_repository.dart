@@ -22,7 +22,21 @@ abstract class TradeRepository {
   /// Route each tile from its `FieldQueue.endpoint`, which arrives absolute
   /// here (`/api/v1/trade/field/expiring`) rather than relative as on the
   /// enforcement beat. `ApiPaths.resolve` reads both.
-  Future<TradeBeat> beat();
+  ///
+  /// Cached, like the enforcement definitions: the bazaars on it are what both
+  /// the licence picker and the capture form are drawn from, and an officer's
+  /// postings change between shifts, not between screens. Concurrent callers
+  /// share one call. Pass [refresh] for a pull-to-refresh.
+  Future<TradeBeat> beat({bool refresh});
+
+  /// The beat already in hand, without a call. Null before the first fetch, so
+  /// a screen can draw its bazaar picker on the first frame when it is warm and
+  /// tell "not asked yet" from "no bazaars".
+  TradeBeat? get cachedBeat;
+
+  /// Throws the beat away, for a sign-out: the next officer on this handset is
+  /// posted to their own bazaars, not the last one's.
+  void forgetBeat();
 
   /// Licences that ran out in the last 90 days and were not renewed — the
   /// round list.
@@ -84,10 +98,39 @@ class ApiTradeRepository implements TradeRepository {
 
   final ApiService _api;
 
+  TradeBeat? _cachedBeat;
+
+  /// The call in flight, so the licences screen and the capture form opening
+  /// together wait on one call rather than starting two.
+  Future<TradeBeat>? _beatInFlight;
+
   @override
-  Future<TradeBeat> beat() async {
-    final response = await _api.get(ApiPaths.tradeBeat);
-    return TradeBeat.fromJson(response.dataMap);
+  TradeBeat? get cachedBeat => _cachedBeat;
+
+  @override
+  Future<TradeBeat> beat({bool refresh = false}) {
+    final TradeBeat? held = _cachedBeat;
+    if (held != null && !refresh) return Future<TradeBeat>.value(held);
+    return _beatInFlight ??= _fetchBeat();
+  }
+
+  Future<TradeBeat> _fetchBeat() async {
+    try {
+      final response = await _api.get(ApiPaths.tradeBeat);
+      final TradeBeat beat = TradeBeat.fromJson(response.dataMap);
+      _cachedBeat = beat;
+      return beat;
+    } finally {
+      // Cleared whether or not it worked: a failed fetch must not leave a
+      // rejected future behind for every later caller to trip over.
+      _beatInFlight = null;
+    }
+  }
+
+  @override
+  void forgetBeat() {
+    _cachedBeat = null;
+    _beatInFlight = null;
   }
 
   @override

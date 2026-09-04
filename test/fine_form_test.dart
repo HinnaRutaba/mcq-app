@@ -64,14 +64,16 @@ void main() {
   late DefinitionsController definitions;
   late DashboardController dashboard;
 
-  FineController build({UnitCard unit = heldUnit}) => FineController(
-    unit: unit,
-    fineRepository: fines,
-    evidenceRepository: evidence,
-    definitionsController: definitions,
-    dashboardController: dashboard,
-    photoCapture: FakePhotoCapture(),
-  )..onInit();
+  FineController build({UnitCard unit = heldUnit, int? allotmentId}) =>
+      FineController(
+        unit: unit,
+        allotmentId: allotmentId,
+        fineRepository: fines,
+        evidenceRepository: evidence,
+        definitionsController: definitions,
+        dashboardController: dashboard,
+        photoCapture: FakePhotoCapture(),
+      )..onInit();
 
   /// The officer pressed the fine button with no shop in mind and switched to
   /// fining somebody in the area.
@@ -84,11 +86,10 @@ void main() {
   )..onInit();
 
   /// Fills in only what the server insists on. `encroachment` is id 4 on the
-  /// register the fixtures carry.
+  /// register the fixtures carry, and its own section of law travels with it.
   void fillRequired(FineController controller, {String amount = '4500'}) {
     controller.chooseFineType(controller.fineTypes[1]);
     controller.amountController.text = amount;
-    controller.provisionController.text = 'Section 96, Balochistan LG Act 2010';
   }
 
   setUp(() async {
@@ -147,7 +148,11 @@ void main() {
       // The id is the whole of what the server is told about the offence, and
       // it is not something the app can invent.
       expect(json['fine_type_id'], 4);
-      expect(json['legal_provision'], 'Section 96, Balochistan LG Act 2010');
+      // The register's own provision for that offence, not something typed.
+      expect(
+        json['legal_provision'],
+        'Section 97, Balochistan Local Government Act 2010',
+      );
       // The unit is the path, not a field.
       expect(fines.lastPropertyId, 77);
     });
@@ -159,16 +164,18 @@ void main() {
       await controller.impose();
 
       // The endpoint's whole vocabulary. A fine carries no date, no location
-      // fix, no signature, no witness and no remarks — if one appears here,
-      // the form is collecting something the server will not take.
+      // fix, no signature and no witness — if one appears here, the form is
+      // collecting something the server will not take.
       // The register named the allottee but not their father, so no person
       // is named on this one — see "a half-named person is not sent at all".
       expect(fines.lastRequest!.toJson().keys.toSet(), <String>{
         'area_id',
+        'allotment_id',
         'fine_type_id',
         'fine_amount',
         'legal_provision',
         'photo_path',
+        'remarks',
         'client_action_uuid',
       });
     });
@@ -208,6 +215,44 @@ void main() {
       // Nothing is required of them: there is a tenancy to bill.
       expect(controller.needsOffenderDetails, isFalse);
       expect(controller.missing, isNot(contains("the offender's name")));
+    });
+
+    test(
+      'the tenancy it is billed to travels, and the remark with it',
+      () async {
+        final controller = build();
+        fillRequired(controller);
+        controller.remarksController.text = '  Refused to move the display  ';
+
+        expect(await controller.impose(), ImposeOutcome.success);
+
+        final json = fines.lastRequest!.toJson();
+        // The unit is the path; the allotment on it is the tenancy billed.
+        expect(fines.lastPropertyId, 77);
+        expect(json['allotment_id'], 12);
+        expect(json['remarks'], 'Refused to move the display');
+      },
+    );
+
+    test('the allotment the profile handed over wins', () async {
+      // The route carries the tenancy off the shop's own profile, which is
+      // fresher than whatever the card the officer arrived with had on it.
+      final controller = build(allotmentId: 41);
+      fillRequired(controller);
+
+      expect(await controller.impose(), ImposeOutcome.success);
+      expect(fines.lastRequest!.toJson()['allotment_id'], 41);
+    });
+
+    test('a remark left blank is not sent', () async {
+      final controller = build();
+      fillRequired(controller);
+
+      expect(await controller.impose(), ImposeOutcome.success);
+      expect(fines.lastRequest!.toJson()['remarks'], isNull);
+      // Optional: it is not among the fields the button waits for.
+      expect(controller.takesRemarks, isTrue);
+      expect(controller.missing, isEmpty);
     });
 
     test('a shop whose record has no area asks for one', () {
@@ -275,21 +320,23 @@ void main() {
       );
     });
 
-    test('choosing one fills in its amount and its provision', () {
+    test('choosing one fills in its amount and names its provision', () {
       final controller = build();
       controller.chooseFineType(controller.fineTypes.first);
 
       expect(controller.amountController.text, '10000.00');
       expect(
-        controller.provisionController.text,
+        controller.provision,
         'Section 96, Balochistan Local Government Act 2010',
       );
 
-      // A second choice replaces a suggestion the officer left alone.
+      // A second choice replaces a suggestion the officer left alone, and
+      // takes the provision with it — that one is read off the offence rather
+      // than prefilled, so the two can never end up disagreeing.
       controller.chooseFineType(controller.fineTypes[1]);
       expect(controller.amountController.text, '3000.00');
       expect(
-        controller.provisionController.text,
+        controller.provision,
         'Section 97, Balochistan Local Government Act 2010',
       );
     });
@@ -302,9 +349,10 @@ void main() {
       controller.chooseFineType(controller.fineTypes[1]);
 
       expect(controller.amountController.text, '7500');
-      // The provision was left as the register suggested, so it still follows.
+      // The provision follows the offence regardless: it is not a field the
+      // officer could have typed over.
       expect(
-        controller.provisionController.text,
+        controller.provision,
         'Section 97, Balochistan Local Government Act 2010',
       );
     });
@@ -398,11 +446,24 @@ void main() {
       expect(controller.validateAmount('4500.50'), isNull);
     });
 
-    test('a fine with no section of law named', () {
+    test('an offence the register gives no section of law for', () {
       final controller = build();
-      final message = controller.validateProvision('  ');
-      expect(message, isNotNull);
-      expect(message, contains('enforced'));
+      // `other` is published without a `default_provision`. The form does not
+      // ask for one any more, so there is nothing to raise the fine under.
+      const FineTypeDefinition other = FineTypeDefinition(
+        id: 9,
+        code: 'other',
+        name: 'Other',
+      );
+      controller.chooseFineType(other);
+
+      expect(controller.provision, isNull);
+      expect(controller.isComplete, isFalse);
+      expect(
+        controller.missing,
+        contains('an offence the register gives a section of law for'),
+      );
+      expect(controller.validateFineType(other), contains('enforced'));
     });
 
     test('a vacant unit without the offender named', () {
@@ -505,8 +566,13 @@ void main() {
       expect(json['area_id'], 1);
       expect(json['fine_type_id'], 4);
       expect(json['offender_name'], 'Noor Ahmed');
+      // No tenancy behind it and no remark asked for: the two fields a fine
+      // raised from a shop's profile carries are left empty here.
+      expect(json['allotment_id'], isNull);
+      expect(json['remarks'], isNull);
       expect(json.keys.toSet(), <String>{
         'area_id',
+        'allotment_id',
         'fine_type_id',
         'fine_amount',
         'legal_provision',
@@ -515,8 +581,19 @@ void main() {
         'offender_mobile_no',
         'offender_cnic',
         'photo_path',
+        'remarks',
         'client_action_uuid',
       });
+    });
+
+    test('it names no tenancy and asks for no remark', () {
+      final controller = buildInArea();
+      controller.setArea(1);
+
+      // There is no unit behind it, so there is nothing to bill and nothing
+      // for a clerk to read the remark against.
+      expect(controller.targetAllotmentId, isNull);
+      expect(controller.takesRemarks, isFalse);
     });
 
     test('the person has to be named, and the area chosen', () async {
@@ -572,8 +649,10 @@ void main() {
         controller.validateAmount('4500'),
         'The fine amount may not exceed 50000.',
       );
+      // The provision belongs to the offence now, so a refusal about it lands
+      // on the field that chose it.
       expect(
-        controller.validateProvision('Section 96'),
+        controller.validateFineType(controller.fineType.value),
         'The legal provision field is required.',
       );
     });

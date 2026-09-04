@@ -53,6 +53,7 @@ class FineController extends GetxController {
   FineController({
     this.unit,
     this.propertyId,
+    this.allotmentId,
     FineRepository? fineRepository,
     EvidenceRepository? evidenceRepository,
     ReportingRepository? reportingRepository,
@@ -76,6 +77,11 @@ class FineController extends GetxController {
 
   /// The unit's id, for the case where only the id was carried on the route.
   final int? propertyId;
+
+  /// The tenancy on that unit, carried from the profile the officer pressed
+  /// the fine button on. It is what the fine is billed to — see
+  /// [targetAllotmentId].
+  final int? allotmentId;
 
   final FineRepository _fines;
   final EvidenceRepository _evidence;
@@ -135,7 +141,6 @@ class FineController extends GetxController {
   // --- The offence ------------------------------------------------------
   final Rxn<FineTypeDefinition> fineType = Rxn<FineTypeDefinition>();
   final TextEditingController amountController = TextEditingController();
-  final TextEditingController provisionController = TextEditingController();
 
   // --- Who pays ---------------------------------------------------------
   final TextEditingController offenderNameController = TextEditingController();
@@ -151,6 +156,11 @@ class FineController extends GetxController {
   // Optional, and where nobody is on the register they are the only way back
   // to the person: there is no unit to find them at.
 
+  // --- The officer's own note -------------------------------------------
+
+  /// Optional, and only asked for on a unit's fine — see [takesRemarks].
+  final TextEditingController remarksController = TextEditingController();
+
   // --- The evidence -----------------------------------------------------
   final RxnString photoLocalPath = RxnString();
   final RxnString photoUploadedPath = RxnString();
@@ -165,10 +175,9 @@ class FineController extends GetxController {
   /// survives it. Cleared whenever the officer edits the fine.
   FineRequest? _pending;
 
-  /// The last amount and provision put in the fields by [chooseFineType], so a
-  /// figure the officer typed themselves is never quietly replaced.
+  /// The last amount put in the field by [chooseFineType], so a figure the
+  /// officer typed themselves is never quietly replaced.
   String? _suggestedAmount;
-  String? _suggestedProvision;
 
   /// The same for the payer block, filled in from the allottee.
   String? _suggestedName;
@@ -184,6 +193,7 @@ class FineController extends GetxController {
   String? _offenderMobileServerError;
   String? _offenderCnicServerError;
   String? _areaServerError;
+  String? _remarksServerError;
 
   @override
   void onInit() {
@@ -210,12 +220,12 @@ class FineController extends GetxController {
   @override
   void onClose() {
     amountController.dispose();
-    provisionController.dispose();
     offenderNameController.dispose();
     offenderFatherController.dispose();
     offenderMobileController.dispose();
     areaSearchController.dispose();
     areaIdController.dispose();
+    remarksController.dispose();
     personLookup.onClose();
     super.onClose();
   }
@@ -223,6 +233,18 @@ class FineController extends GetxController {
   /// The unit the fine will be posted against, whichever way the officer got
   /// here.
   int? get targetPropertyId => unit?.propertyId ?? propertyId;
+
+  /// The tenancy the fine is billed to. The route carries it from the unit's
+  /// profile; the two fallbacks are for a form opened with a card or with an
+  /// id alone. Null where nobody holds the unit, and on a area fine, which
+  /// has no tenancy behind it at all.
+  int? get targetAllotmentId =>
+      allotmentId ?? unit?.allotmentId ?? profile.value?.allotment?.id;
+
+  /// Whether the form asks for the officer's own note. Only on a unit's fine —
+  /// the one raised from a shop's profile, where the remark is read back
+  /// against the tenancy it was billed to.
+  bool get takesRemarks => !isAreaFine;
 
   /// Whether this fine is against a area rather than a unit — decided by how
   /// the officer got here, not by a switch on the form. Arriving from a shop's
@@ -324,6 +346,16 @@ class FineController extends GetxController {
 
   String? get allotteeCnic => unit?.cnic ?? profile.value?.allottee?.cnic;
 
+  /// Only the profile carries it — a unit card names the holder and no more.
+  String? get allotteeFatherName => profile.value?.allottee?.fatherName;
+
+  /// Whether the register already names who pays, so the block is shown rather
+  /// than asked for. False on a area fine and on a unit the server says needs
+  /// the offender's own details — there is nobody to bill on either.
+  bool get hasRegisteredPayer =>
+      !needsOffenderDetails &&
+      (allotteeName != null || allotteeCnic != null || allotteeMobile != null);
+
   /// The area the fine will name — required on every fine.
   ///
   /// A unit carries its own, so the form does not ask; anything the officer
@@ -355,14 +387,21 @@ class FineController extends GetxController {
   /// say where its figure came from.
   String? get suggestedAmount => fineType.value?.suggestedAmount;
 
+  /// The section of law the fine is raised under — the register's own for the
+  /// chosen offence, and never typed here.
+  ///
+  /// Null on an offence MCQ publishes without one, which is a fine that cannot
+  /// be raised at all: see [validateFineType].
+  String? get provision => fineType.value?.defaultProvision;
+
   /// Whether every required field is filled. Drives the submit button, so the
   /// officer can see the form is not ready before they reach the bottom of it.
   bool get isComplete =>
       targetAreaId != null &&
       (isAreaFine || targetPropertyId != null) &&
       fineType.value != null &&
+      provision != null &&
       amountController.text.trim().isNotEmpty &&
-      provisionController.text.trim().isNotEmpty &&
       (!needsOffenderDetails ||
           (offenderNameController.text.trim().isNotEmpty &&
               offenderFatherController.text.trim().isNotEmpty &&
@@ -379,11 +418,11 @@ class FineController extends GetxController {
       (isAreaFine || targetPropertyId != null) &&
       validateFineType(fineType.value) == null &&
       validateAmount(amountController.text) == null &&
-      validateProvision(provisionController.text) == null &&
       validateOffenderName(offenderNameController.text) == null &&
       validateOffenderFather(offenderFatherController.text) == null &&
       validateOffenderMobile(offenderMobileController.text) == null &&
-      validateOffenderCnic(offenderCnicController.text) == null;
+      validateOffenderCnic(offenderCnicController.text) == null &&
+      validateRemarks(remarksController.text) == null;
 
   /// What is still missing, in the order the form asks for it. Shown beside the
   /// disabled button — a button that will not press and will not say why is the
@@ -399,8 +438,9 @@ class FineController extends GetxController {
     if (targetAreaId == null) 'the area',
     if (!isAreaFine && targetPropertyId == null) 'the shop',
     if (fineType.value == null) 'the offence',
+    if (fineType.value != null && provision == null)
+      'an offence the register gives a section of law for',
     if (amountController.text.trim().isEmpty) 'the amount',
-    if (provisionController.text.trim().isEmpty) 'the provision of law',
     if (needsOffenderDetails && offenderNameController.text.trim().isEmpty)
       "the offender's name",
     if (needsOffenderDetails && offenderFatherController.text.trim().isEmpty)
@@ -528,23 +568,17 @@ class FineController extends GetxController {
 
   // --- The offence ------------------------------------------------------
 
-  /// The offence, and with it the amount and the section of law the register
-  /// suggests for it.
+  /// The offence, and with it the amount and the section of law.
   ///
-  /// Both are only prefilled while the officer has not typed over them: a
-  /// figure they entered themselves is never quietly replaced, and `other`
-  /// carries no provision at all, which is why the form still asks for one.
+  /// The amount is only prefilled while the officer has not typed over it — a
+  /// figure they entered themselves is never quietly replaced. The provision
+  /// is not prefilled at all: it is read off the offence, so choosing another
+  /// offence changes it and nothing here can leave the two disagreeing.
   void chooseFineType(FineTypeDefinition? chosen) {
     fineType.value = chosen;
     if (chosen != null) {
       _prefill(amountController, chosen.suggestedAmount, _suggestedAmount);
-      _prefill(
-        provisionController,
-        chosen.defaultProvision,
-        _suggestedProvision,
-      );
       _suggestedAmount = chosen.suggestedAmount;
-      _suggestedProvision = chosen.defaultProvision;
     }
     markEdited();
   }
@@ -641,20 +675,6 @@ class FineController extends GetxController {
     return null;
   }
 
-  String? validateProvision(String? value) {
-    if (_provisionServerError != null) return _provisionServerError;
-    final provision = value?.trim() ?? '';
-    if (provision.isEmpty) {
-      // Not a formality: this is the sentence a magistrate reads out if the
-      // fine is challenged.
-      return 'Name the section of law. A fine without one cannot be enforced.';
-    }
-    if (provision.length > FineRequest.legalProvisionMaxLength) {
-      return 'Keep it under ${FineRequest.legalProvisionMaxLength} characters';
-    }
-    return null;
-  }
-
   String? validateArea(int? value) {
     if (_areaServerError != null) return _areaServerError;
     // `area_id` is required whatever the fine is against; a unit answers it
@@ -663,12 +683,22 @@ class FineController extends GetxController {
     return null;
   }
 
+  /// The offence answers for the section of law as well, now that the form
+  /// does not ask for one: both come off the same row of the register, so a
+  /// refusal about either belongs on this field.
   String? validateFineType(FineTypeDefinition? value) {
     if (_fineTypeServerError != null) return _fineTypeServerError;
+    if (_provisionServerError != null) return _provisionServerError;
     if (value == null) return 'Choose what the offence was';
     // `fine_type_id` is the whole of what the server is told about the
     // offence, so a row that arrived without one cannot be sent.
     if (value.id == null) return 'This offence cannot be used — reload the app';
+    // Not a formality: the provision is the sentence a magistrate reads out if
+    // the fine is challenged, and it is the register's to give.
+    if (value.defaultProvision == null) {
+      return 'The register gives no section of law for this offence, so a '
+          'fine raised under it could not be enforced.';
+    }
     return null;
   }
 
@@ -692,6 +722,10 @@ class FineController extends GetxController {
     if ((value?.trim() ?? '').isEmpty) return 'A mobile number is required';
     return null;
   }
+
+  /// Only ever the server's own refusal: the note is optional, so there is no
+  /// rule of ours for it to break.
+  String? validateRemarks(String? value) => _remarksServerError;
 
   /// Asked for wherever the officer has to name the person themselves. The
   /// server does not insist on it — it is how the fine is traced back to
@@ -753,13 +787,19 @@ class FineController extends GetxController {
     // Off the unit, so a fine against a shop still says which area it stands
     // in without asking the officer for it.
     areaId: targetAreaId,
+    // The unit itself travels in the path; this is the tenancy on it the fine
+    // is billed to, and a vacant shop sends none.
+    allotmentId: targetAllotmentId,
     fineTypeId: fineType.value!.id!,
     fineAmount: amountController.text.trim(),
-    legalProvision: provisionController.text.trim(),
+    // Off the offence, never typed — and [isValid] refused an offence the
+    // register gives none for.
+    legalProvision: provision!,
     offender: payer,
     // The uploaded path, never the handset's own — the server has no idea what
     // `/data/user/0/…` means.
     photoPath: photoUploadedPath.value,
+    remarks: _trimmedOrNull(remarksController.text),
   );
 
   /// `POST enforcement/fines`: the area is the only scoping, and the offender
@@ -769,7 +809,9 @@ class FineController extends GetxController {
     offender: _offender(),
     fineTypeId: fineType.value!.id!,
     fineAmount: amountController.text.trim(),
-    legalProvision: provisionController.text.trim(),
+    // Off the offence, never typed — and [isValid] refused an offence the
+    // register gives none for.
+    legalProvision: provision!,
     photoPath: photoUploadedPath.value,
   );
 
@@ -790,6 +832,10 @@ class FineController extends GetxController {
     if (!error.isValidation) return;
 
     _areaServerError = error.errorFor('area_id');
+    _remarksServerError = error.errorFor('remarks');
+    // No `allotment_id` here on purpose: the tenancy came off the unit's own
+    // record, so a refusal about it is nothing the officer can fix on this
+    // form and it stays on the banner.
     _fineTypeServerError = error.errorFor('fine_type');
     _amountServerError = error.errorFor('fine_amount');
     _provisionServerError = error.errorFor('legal_provision');
@@ -801,6 +847,7 @@ class FineController extends GetxController {
 
   void _clearServerErrors() {
     _areaServerError = null;
+    _remarksServerError = null;
     _fineTypeServerError = null;
     _amountServerError = null;
     _provisionServerError = null;

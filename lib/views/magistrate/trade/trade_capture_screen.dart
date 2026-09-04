@@ -6,15 +6,15 @@ import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
 import '../../../controllers/trade_capture_controller.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/reveal_banner.dart';
 import '../../../models/field_beat.dart';
 import '../../../models/trade_application.dart';
 import '../../../models/trade_application_request.dart';
 import '../../../models/trade_tariff.dart';
 import '../../../widgets/widgets.dart';
-import '../shared/widgets/amount_field.dart';
 import '../shared/widgets/area_search_field.dart';
 import '../shared/widgets/still_needed_note.dart';
-import 'widgets/trade_captured_sheet.dart';
+import 'widgets/capture_sheet.dart';
 import 'widgets/trade_category_sheet.dart';
 
 class TradeCaptureScreen extends StatefulWidget {
@@ -38,8 +38,12 @@ class _TradeCaptureScreenState extends State<TradeCaptureScreen> {
     ),
   );
 
+  /// The form's own scroll, so a refusal can be scrolled back to.
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void dispose() {
+    _scrollController.dispose();
     Get.delete<TradeCaptureController>();
     super.dispose();
   }
@@ -57,12 +61,20 @@ class _TradeCaptureScreenState extends State<TradeCaptureScreen> {
     if (outcome == CaptureOutcome.success) {
       final TradeApplication? application = controller.captured.value;
       if (application == null) return;
-      await TradeCapturedSheet.show(context, application: application);
+      await CaptureSheet.confirm(context, application: application);
       if (mounted) _leave(changed: true);
+      return;
     }
+
     // Everything else is already on the form: the banner carries the server's
     // own sentence, and a refusal's per-field messages are back under their
-    // fields.
+    // fields. Only the banner needs finding — it is at the top and the officer
+    // is at the bottom. A form that failed on its fields alone is left where it
+    // is, because the message they need is beside the field, not up there.
+    if (controller.errorMessage.value != null ||
+        controller.mayHaveLanded.value) {
+      _scrollController.revealBanner();
+    }
   }
 
   @override
@@ -84,6 +96,7 @@ class _TradeCaptureScreenState extends State<TradeCaptureScreen> {
             child: Form(
               key: controller.formKey,
               child: ListView(
+                controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
                 children: <Widget>[
                   _Banner(
@@ -93,8 +106,6 @@ class _TradeCaptureScreenState extends State<TradeCaptureScreen> {
                   _AreaSection(controller: controller),
                   const SizedBox(height: 20),
                   _TradeSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _FeeSection(controller: controller),
                   const SizedBox(height: 20),
                   _ShopkeeperSection(controller: controller),
                   const SizedBox(height: 20),
@@ -292,7 +303,8 @@ class _AreaSection extends StatelessWidget {
   }
 }
 
-/// Step 2: the trade and the term, off the tariff for the bazaar above.
+/// Step 2: the trade, and with it the fee and the term — all three off the
+/// tariff for the bazaar above, none of them typed.
 class _TradeSection extends StatelessWidget {
   const _TradeSection({required this.controller});
 
@@ -312,6 +324,10 @@ class _TradeSection extends StatelessWidget {
   Widget build(BuildContext context) => _Section(
     step: '2',
     title: 'The trade',
+    note:
+        'MCQ prices the trade, so choosing it sets the fee — the figure on '
+        'the bar below is what the shopkeeper is charged, and it cannot be '
+        'changed here.',
     child: AppCard(child: Obx(() => _body(context))),
   );
 
@@ -440,43 +456,6 @@ class _TradePicker extends StatelessWidget {
   }
 }
 
-/// Step 3: the fee, at the size it is read out at. Quoted off the tariff and
-/// the officer's to correct — the same block the fine's amount uses.
-class _FeeSection extends StatelessWidget {
-  const _FeeSection({required this.controller});
-
-  final TradeCaptureController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return _Section(
-      step: '3',
-      title: 'The licence fee',
-      child: Obx(() {
-        // Re-read after a trade is chosen: the figure is prefilled off the
-        // tariff, and a text controller is not observable.
-        controller.revision.value;
-        return AmountField(
-          controller: controller.feeController,
-          suggestion: controller.annualFee,
-          source: "MCQ's tariff for this trade",
-          subject: 'fee',
-          validator: controller.validateFee,
-          onChanged: (_) => controller.markEdited(),
-        );
-      }),
-    );
-  }
-}
-
-/// Step 4: who the licence is issued to. The CNIC leads, because it is the
-/// one field a shopkeeper reads off a card rather than recites.
-/// Everything the tariff holds about the chosen trade — its Urdu wording, the
-/// heading it sits under, the register's own code for it, and the zone whose
-/// price it is.
-///
-/// Shown because an officer quoting a fee at a shopkeeper is reading it off
-/// this screen, and because the Urdu is what they will say out loud.
 class _TradeDetails extends StatelessWidget {
   const _TradeDetails({
     required this.category,
@@ -526,12 +505,6 @@ class _TradeDetails extends StatelessWidget {
               value: 'Priced for $zoneName',
               maxLines: 2,
             ),
-          if (category.annualFee != null)
-            AppDetailRow(
-              icon: Icons.payments_outlined,
-              value:
-                  '${Formatters.money(category.annualFee)} a year, as quoted',
-            ),
         ],
       ),
     );
@@ -546,7 +519,7 @@ class _ShopkeeperSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Section(
-      step: '4',
+      step: '3',
       title: 'The shopkeeper',
       note:
           'The mobile number is where the payment link is texted, so a wrong '
@@ -622,7 +595,7 @@ class _ShopSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _Section(
-      step: '5',
+      step: '4',
       title: 'The shop',
       child: AppCard(
         child: Column(
@@ -694,13 +667,13 @@ class _SubmitBar extends StatelessWidget {
                       // The term is on the label, not on the figure: "/ year"
                       // beside a long fee runs the row off a narrow screen.
                       child: AppText.caption(
-                        'Licence fee, per year',
+                        "Licence fee, per year — MCQ's quote",
                         color: muted,
                       ),
                     ),
                     const SizedBox(width: 10),
-                    // Printed exactly as typed. Never parsed, never rounded,
-                    // never multiplied by the term.
+                    // Printed as the tariff quoted it. Never parsed, never
+                    // rounded, never multiplied by the term.
                     AppText.titleLarge(fee.isEmpty ? '—' : 'Rs $fee'),
                   ],
                 ),

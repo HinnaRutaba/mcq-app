@@ -30,10 +30,12 @@ import 'support/property_profile_fixtures.dart';
 /// taken, and open again when the choice is cancelled.
 void main() {
   late FakePersonRepository people;
+  late StubbedApi api;
+  late DefinitionsController definitions;
 
   setUp(() async {
     Get.reset();
-    final StubbedApi api = StubbedApi();
+    api = StubbedApi();
     api.stub.reply(definitionsResponse);
 
     final AuthController auth = AuthController(
@@ -41,7 +43,7 @@ void main() {
     );
     Get.put<AuthController>(auth, permanent: true);
 
-    final DefinitionsController definitions = DefinitionsController(
+    definitions = DefinitionsController(
       definitionsRepository: ApiDefinitionsRepository(api: api.service),
       authController: auth,
     );
@@ -68,6 +70,7 @@ void main() {
   Future<FineController> pumpForm(
     WidgetTester tester, {
     int? propertyId,
+    int? allotmentId,
   }) async {
     tester.view
       ..physicalSize = const Size(400, 1400)
@@ -75,7 +78,12 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      MaterialApp(home: CreateFineScreen(propertyId: propertyId)),
+      MaterialApp(
+        home: CreateFineScreen(
+          propertyId: propertyId,
+          allotmentId: allotmentId,
+        ),
+      ),
     );
     await tester.pumpAndSettle();
     return Get.find<FineController>();
@@ -194,6 +202,91 @@ void main() {
     // And it was not mistaken for something the officer typed: no lookup went
     // out behind their back.
     expect(people.searched, isEmpty);
+  });
+
+  testWidgets('the section of law is the offence\'s, and is never typed', (
+    WidgetTester tester,
+  ) async {
+    // Through `runAsync`: the call behind the register is a real one over the
+    // stubbed adapter, and a widget test's fake clock never advances it.
+    await tester.runAsync(() async {
+      api.stub.reply(<String, dynamic>{
+        'data': definitionsDataWithOtherOffence(),
+      });
+      await definitions.reload();
+    });
+    final FineController controller = await pumpForm(tester);
+
+    // No field for it: the provision is a fact about the offence, so there is
+    // nothing on the form to type it into.
+    expect(find.widgetWithText(AppTextField, 'Provision of law'), findsNothing);
+
+    controller.chooseFineType(definitions.fineType('encroachment'));
+    await tester.pumpAndSettle();
+
+    // Read off the register's row, and shown as the fine will read.
+    expect(
+      controller.provision,
+      'Section 97, Balochistan Local Government Act 2010',
+    );
+    expect(
+      find.text(
+        'Raised under Section 97, Balochistan Local Government Act 2010',
+      ),
+      findsOneWidget,
+    );
+
+    // And the offence that carries none says so where the choice was made,
+    // rather than leaving the officer at a button that will not press.
+    controller.chooseFineType(definitions.fineType('other'));
+    await tester.pumpAndSettle();
+
+    expect(controller.provision, isNull);
+    expect(
+      find.textContaining('no section of law for this offence'),
+      findsOneWidget,
+    );
+    expect(
+      controller.missing,
+      contains('an offence the register gives a section of law for'),
+    );
+  });
+
+  testWidgets('a shop\'s fine takes a remark', (WidgetTester tester) async {
+    final FineController controller = await pumpForm(
+      tester,
+      propertyId: fixturePropertyId,
+      allotmentId: 41,
+    );
+
+    // Last on the form and optional: the officer's own words on the fine,
+    // read back later against the tenancy it was billed to.
+    await tester.scrollUntilVisible(
+      find.text('Remarks'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Remarks'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(
+        AppTextField,
+        'e.g. Refused to remove the display after two warnings',
+      ),
+      'Display back on the footpath',
+    );
+    await tester.pumpAndSettle();
+    expect(controller.remarksController.text, 'Display back on the footpath');
+    // Nothing was made compulsory by asking for it.
+    expect(controller.missing, isNot(contains('remarks')));
+  });
+
+  testWidgets('a area\'s fine is not asked for a remark', (
+    WidgetTester tester,
+  ) async {
+    // No tenancy behind it, so there is nothing for the remark to be read
+    // against later and the form does not ask for one.
+    await pumpForm(tester);
+    expect(find.text('Remarks'), findsNothing);
   });
 
   testWidgets('cancelling the area puts the officer back in the box', (

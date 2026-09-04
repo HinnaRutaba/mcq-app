@@ -43,6 +43,8 @@ import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
 import 'package:mcq_app/views/magistrate/round/round_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_capture_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
+import 'package:mcq_app/views/magistrate/trade/widgets/capture_sheet.dart';
+import 'package:mcq_app/views/magistrate/trade/widgets/licence_sheet.dart';
 import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
@@ -216,6 +218,20 @@ void main() {
       _seedTrade(query: '5440112233445');
       return const TradeLicencesScreen();
     },
+    // One licence read end to end, the sheet a row on the round list opens.
+    // A live one and a lapsed one: the colour, the badge and the days line are
+    // the whole difference, so both are worth seeing.
+    'licence_sheet': () =>
+        _sheet(LicenceSheet(licence: tradeExpiringFixture.first)),
+    'licence_sheet_lapsed': () =>
+        _sheet(LicenceSheet(licence: tradeLapsedFixture.first)),
+    // One capture read end to end — the sheet a row on the captures queue
+    // opens, and the receipt the capture form ends on.
+    'capture_sheet': () =>
+        _sheet(CaptureSheet(application: tradePendingFixture.first)),
+    'capture_sheet_captured': () => _sheet(
+      CaptureSheet(application: tradeCapturedFixture, justCaptured: true),
+    ),
     // The capture form, reached from that answer with the number already in
     // it. Nothing here prices the licence — the fee is the tariff's.
     'trade_capture': () {
@@ -357,6 +373,15 @@ void main() {
       _seedDefinitions();
       return const CreateFineScreen(unit: _finedUnit);
     },
+    // The foot of that form: the photograph, and the remark a shop's fine
+    // takes — optional, and the last thing asked for.
+    'fine_remarks': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions();
+      return const CreateFineScreen(unit: _finedUnit, allotmentId: 12);
+    },
     // The same form against a area rather than a shop — a hawker, a
     // handcart. The areas come off the officer's beat.
     'fine_in_area': () {
@@ -366,6 +391,17 @@ void main() {
       _seedDefinitions();
       // The areas are the beat's, held by the controller the home
       // screen builds — which a preview of this screen alone stands in for.
+      _seedDashboard();
+      return const CreateFineScreen();
+    },
+    // The offence MCQ publishes with no section of law. The form reads the
+    // provision off the offence rather than asking for one, so this is the
+    // fine that cannot be raised — said where the choice was made.
+    'fine_no_provision': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions(register: definitionsDataWithOtherOffence());
       _seedDashboard();
       return const CreateFineScreen();
     },
@@ -433,11 +469,13 @@ void main() {
     'fine': 2600,
     'fine_with_shop': 2600,
     'fine_evidence': 2600,
+    'fine_remarks': 2600,
     'fine_from_property': 2600,
     'fine_person_lookup': 3000,
     'fine_shop_payer': 2800,
     'fine_in_area': 2800,
     'fine_in_area_payer': 2800,
+    'fine_no_provision': 2800,
     'home': 7000,
     'home_arriving': 2900,
     'home_collapsed': 1400,
@@ -466,6 +504,7 @@ void main() {
     // Enough to take the header to about the middle of its collapse.
     'property_profile_half': 60,
     'fine_evidence': 700,
+    'fine_remarks': 1500,
     'fine_in_area_payer': 620,
     'fine_shop_payer': 700,
     'fine_person_lookup': 900,
@@ -502,6 +541,19 @@ void main() {
       // Encroachment on the fixture's register — the amount and the section of
       // law under it are the register's own, not typed.
       fine.chooseFineType(fine.fineTypes.last);
+    },
+    // `other` is last on that register, and the one row published without a
+    // provision.
+    'fine_no_provision': () {
+      final FineController fine = Get.find<FineController>()..setArea(2);
+      fine.chooseFineType(fine.fineTypes.last);
+    },
+    // A remark in the officer's own words, which is what the field is for.
+    'fine_remarks': () {
+      final FineController fine = Get.find<FineController>();
+      fine.chooseFineType(fine.fineTypes.last);
+      fine.remarksController.text =
+          'Display back on the footpath after two warnings this week.';
     },
     'fine_person_lookup': () {
       final FineController fine = Get.find<FineController>()..setArea(2);
@@ -636,10 +688,13 @@ void _seedDashboard({Object? failure}) {
 /// Puts the offence register over the fixture and rebuilds the controller that
 /// holds it, so the fine form's picker is drawn from rows rather than from a
 /// call the preview cannot make.
-void _seedDefinitions() {
+void _seedDefinitions({Map<String, dynamic>? register}) {
   Get.find<AuthController>().officer.value = officerFixture;
   Get.delete<DefinitionsRepository>(force: true);
-  Get.put<DefinitionsRepository>(FakeDefinitionsRepository(), permanent: true);
+  Get.put<DefinitionsRepository>(
+    FakeDefinitionsRepository(data: register),
+    permanent: true,
+  );
   // Permanent, which is what runs `onInit` — and with an officer already set,
   // that loads the rows.
   Get.delete<DefinitionsController>(force: true);

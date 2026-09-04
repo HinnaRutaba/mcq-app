@@ -122,6 +122,7 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => CreateFineScreen(
         propertyId: int.tryParse(state.uri.queryParameters['property'] ?? ''),
+        allotmentId: int.tryParse(state.uri.queryParameters['allotment'] ?? ''),
       ),
     ),
     GoRoute(

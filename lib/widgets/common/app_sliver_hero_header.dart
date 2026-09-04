@@ -18,7 +18,11 @@ class AppSliverHeroHeader extends StatelessWidget {
     this.bottom,
     this.bottomSpacing,
     this.compactTitle = false,
+    this.trailingInset = _circleInset,
   });
+
+  /// Room for a circle action, which is what [trailing] usually is.
+  static const double _circleInset = 76;
 
   /// The one thing that survives the collapse.
   final String title;
@@ -28,6 +32,11 @@ class AppSliverHeroHeader extends StatelessWidget {
   final Widget? leading;
 
   final Widget? trailing;
+
+  /// How much room the title and the subtitle leave on the right for
+  /// [trailing]. The default fits a circle button; a labelled pill is wider,
+  /// and without telling the header so the title runs under it.
+  final double trailingInset;
 
   final Widget? bottom;
 
@@ -52,6 +61,7 @@ class AppSliverHeroHeader extends StatelessWidget {
         bottom: bottom,
         bottomSpacing: bottomSpacing,
         compactTitle: compactTitle,
+        trailingInset: trailingInset,
         expandedHeight: expandedHeight,
         topPadding: MediaQuery.paddingOf(context).top,
         brand: context.brand,
@@ -72,6 +82,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.bottom,
     required this.bottomSpacing,
     required this.compactTitle,
+    required this.trailingInset,
     required this.expandedHeight,
     required this.topPadding,
     required this.brand,
@@ -84,6 +95,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget? bottom;
   final double? bottomSpacing;
   final bool compactTitle;
+  final double trailingInset;
   final double expandedHeight;
   final double topPadding;
   final AppBrandColors brand;
@@ -144,7 +156,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
             if (subtitle != null)
               Positioned(
                 left: leading == null ? 20 : 58,
-                right: 76,
+                right: trailingInset,
                 top: topPadding + 16,
                 child: Opacity(
                   opacity: fade,
@@ -166,7 +178,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
               left: 20,
               // Stacked, the block runs the full width and the title keeps the
               // trailing button's corner clear on its own.
-              right: stacked ? 20 : 76,
+              right: stacked ? 20 : trailingInset,
               top: lerpDouble(
                 topPadding + (subtitle == null ? 16 : 36),
                 topPadding + (compactTitle ? 16 : 17),
@@ -176,7 +188,9 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Padding(
-                    padding: EdgeInsets.only(right: stacked ? 56 : 0),
+                    padding: EdgeInsets.only(
+                      right: stacked ? trailingInset - 20 : 0,
+                    ),
                     child: Row(
                       children: <Widget>[
                         if (leading != null) ...<Widget>[
@@ -224,6 +238,7 @@ class _HeroHeaderDelegate extends SliverPersistentHeaderDelegate {
       bottomSpacing != old.bottomSpacing ||
       compactTitle != old.compactTitle ||
       trailing != old.trailing ||
+      trailingInset != old.trailingInset ||
       expandedHeight != old.expandedHeight ||
       topPadding != old.topPadding ||
       brand != old.brand;

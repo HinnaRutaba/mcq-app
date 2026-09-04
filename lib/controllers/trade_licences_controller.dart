@@ -56,7 +56,10 @@ class TradeLicencesController extends GetxController {
   /// mid-type, and a call would answer "not on the register" about it.
   static const int minQueryLength = 4;
 
-  final Rxn<TradeBeat> beat = Rxn<TradeBeat>();
+  /// Seeded from the repository's cache, so a screen opened after the beat has
+  /// been warmed draws its bazaar picker on the first frame instead of over a
+  /// spinner. See [TradeBeatController], which warms it at sign-in.
+  late final Rxn<TradeBeat> beat = Rxn<TradeBeat>(_trade.cachedBeat);
 
   final RxList<TradeLicence> expiring = RxList<TradeLicence>();
   final RxList<TradeLicence> lapsed = RxList<TradeLicence>();
@@ -91,7 +94,7 @@ class TradeLicencesController extends GetxController {
   void onInit() {
     super.onInit();
     debounce<String>(query, (_) => _lookup(), time: searchDebounce);
-    load();
+    load(refreshBeat: false);
   }
 
   @override
@@ -211,12 +214,16 @@ class TradeLicencesController extends GetxController {
   // --- What the officer does --------------------------------------------
 
   /// Everything the screen shows. Safe to call again — this is the
-  /// pull-to-refresh.
-  Future<void> load() async {
+  /// pull-to-refresh, which is the one place the bazaars are asked for again.
+  ///
+  /// Never blocks on the beat: with it already in hand [hasData] is true from
+  /// the first frame, so the queues land under the thin bar on the filter row
+  /// rather than behind a full-screen spinner.
+  Future<void> load({bool refreshBeat = true}) async {
     isLoading.value = true;
     errorMessage.value = null;
     await Future.wait(<Future<void>>[
-      _loadBeat(),
+      _loadBeat(refresh: refreshBeat),
       _loadExpiring(),
       _loadLapsed(),
       _loadCaptures(),
@@ -251,9 +258,9 @@ class TradeLicencesController extends GetxController {
   /// an officer finds out whether a submission that timed out actually landed.
   Future<void> reloadCaptures() => _loadCaptures();
 
-  Future<void> _loadBeat() async {
+  Future<void> _loadBeat({bool refresh = false}) async {
     try {
-      beat.value = await _trade.beat();
+      beat.value = await _trade.beat(refresh: refresh);
     } on ApiException catch (error) {
       _report(error);
     }

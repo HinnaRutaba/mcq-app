@@ -7,9 +7,9 @@ import '../../../../widgets/widgets.dart';
 
 /// The one money field on a form, at the size the figure is read out at.
 ///
-/// Shared by the fine and the licence capture: both quote a figure the
-/// register suggests, let the officer change it, and send it as a string
-/// exactly as typed.
+/// The fine's amount: the register suggests a figure, the officer may change
+/// it, and it is sent as a string exactly as typed. A licence fee is not one
+/// of these — MCQ's tariff prices it and the officer cannot alter it.
 class AmountField extends StatelessWidget {
   const AmountField({
     super.key,
@@ -30,7 +30,7 @@ class AmountField extends StatelessWidget {
   /// will not change it, and the figure has to fit what they are looking at.
   final String? suggestion;
 
-  /// Who suggested it — "the register" on a fine, MCQ's tariff on a licence.
+  /// Who suggested it — the register the row was read off.
   final String source;
 
   /// What the figure is, for the line under it: a fine, or a fee.
