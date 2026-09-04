@@ -13,12 +13,18 @@ class AppSearchField extends StatefulWidget {
   const AppSearchField({
     super.key,
     this.controller,
+    this.focusNode,
     this.hint = 'Search',
     this.onChanged,
     this.onSubmitted,
   });
 
   final TextEditingController? controller;
+
+  /// Passed in where something else owns the focus — a box whose suggestions
+  /// open and close with it.
+  final FocusNode? focusNode;
+
   final String hint;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
@@ -60,6 +66,7 @@ class _AppSearchFieldState extends State<AppSearchField> {
   Widget build(BuildContext context) {
     return AppTextField(
       controller: _controller,
+      focusNode: widget.focusNode,
       hint: widget.hint,
       prefixIcon: Icons.search_rounded,
       textInputAction: TextInputAction.search,

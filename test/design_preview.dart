@@ -136,7 +136,7 @@ void main() {
       _seedDashboard();
       return const MagistrateHomeScreen();
     },
-    // The state a bazaar with no signal produces, which the happy path never
+    // The state a area with no signal produces, which the happy path never
     // shows and which is where a dashboard usually falls apart.
     'home_offline': () {
       _seedDashboard(
@@ -183,7 +183,7 @@ void main() {
       return const DefaultersScreen();
     },
     'round': () => const RoundScreen(),
-    // The licence round: three queues over the officer's own bazaars, and the
+    // The licence round: three queues over the officer's own areas, and the
     // doorway lookup that takes the screen over when anything is typed.
     'trade_licences': () {
       _seedTrade();
@@ -244,7 +244,7 @@ void main() {
       _seedChallans().showFilter(ChallanFilter.fines);
       return const ChallansScreen();
     },
-    // A list longer than a page: the plate leads with what the bazaar owes in
+    // A list longer than a page: the plate leads with what the area owes in
     // total, and says underneath how far the scroll has got.
     'challans_paged': () {
       _seedChallans(challans: challanRun(30));
@@ -333,7 +333,7 @@ void main() {
         AppColorScheme.balochistanGreen,
       );
       _seedDefinitions();
-      // The bazaars are the beat's, held by the controller the home
+      // The areas are the beat's, held by the controller the home
       // screen builds — which a preview of this screen alone stands in for.
       _seedDashboard();
       return const CreateFineScreen();
@@ -355,14 +355,14 @@ void main() {
       _seedDefinitions();
       return const CreateFineScreen(unit: _finedUnit);
     },
-    // The same form against a bazaar rather than a shop — a hawker, a
-    // handcart. The bazaars come off the officer's beat.
+    // The same form against a area rather than a shop — a hawker, a
+    // handcart. The areas come off the officer's beat.
     'fine_in_area': () {
       Get.find<ThemeController>().setColorScheme(
         AppColorScheme.balochistanGreen,
       );
       _seedDefinitions();
-      // The bazaars are the beat's, held by the controller the home
+      // The areas are the beat's, held by the controller the home
       // screen builds — which a preview of this screen alone stands in for.
       _seedDashboard();
       return const CreateFineScreen();
@@ -374,7 +374,7 @@ void main() {
       _seedPropertyProfile();
       return const CreateFineScreen(propertyId: fixturePropertyId);
     },
-    // The same block on a shop: filled in from the register, and the bazaar
+    // The same block on a shop: filled in from the register, and the area
     // taken off the unit rather than asked for.
     'fine_shop_payer': () {
       Get.find<ThemeController>().setColorScheme(
@@ -477,7 +477,7 @@ void main() {
     'trade_licences_renewal': () =>
         Get.find<TradeLicencesController>().retryLookup(),
     // The officer pressed the fine button with no shop in mind, so the fine is
-    // against somebody in a bazaar.
+    // against somebody in a area.
     'fine_in_area': () {
       final FineController fine = Get.find<FineController>()..setArea(2);
       // Encroachment on the fixture's register — the amount and the section of
@@ -623,7 +623,7 @@ void _seedDefinitions() {
   Get.put<DefinitionsController>(DefinitionsController(), permanent: true);
 }
 
-/// Puts the defaulter list and the officer's bazaars over the fixtures, and
+/// Puts the defaulter list and the officer's areas over the fixtures, and
 /// drops the controller so it is rebuilt over them. Returns it, so an entry
 /// can set the filter it means to show.
 DefaultersController _seedDefaulters() {

@@ -26,7 +26,7 @@ import 'support/definitions_fixtures.dart';
 
 /// The fine form, from what the officer types to what goes on the wire.
 ///
-/// These are the assertions that matter on a bazaar's signal: the amount is
+/// These are the assertions that matter on a area's signal: the amount is
 /// never turned into a number, the photograph goes up before the fine does, a
 /// retry is the *same* fine and not a second one, and the server's refusal
 /// lands under the field it names.
@@ -74,7 +74,7 @@ void main() {
   )..onInit();
 
   /// The officer pressed the fine button with no shop in mind and switched to
-  /// fining somebody in the bazaar.
+  /// fining somebody in the area.
   FineController buildInArea() => FineController(
     fineRepository: fines,
     evidenceRepository: evidence,
@@ -96,7 +96,7 @@ void main() {
     fines = FakeFineRepository();
     evidence = FakeEvidenceRepository();
 
-    // The real definitions controller over a stubbed wire: both the bazaars
+    // The real definitions controller over a stubbed wire: both the areas
     // and the offences an officer picks from are the register's rows, and a
     // fine carries the ids of the ones they chose.
     final StubbedApi api = StubbedApi();
@@ -110,7 +110,7 @@ void main() {
     );
     await definitions.load();
 
-    // The bazaars come off `enforcement/field/beat`, which the home screen has
+    // The areas come off `enforcement/field/beat`, which the home screen has
     // already fetched by the time an officer reaches this form — so the
     // controller holding it is handed over rather than rebuilt here.
     dashboard = DashboardController(
@@ -210,7 +210,7 @@ void main() {
       expect(controller.missing, isNot(contains("the offender's name")));
     });
 
-    test('a shop whose record has no bazaar asks for one', () {
+    test('a shop whose record has no area asks for one', () {
       // `area_id` is required on every fine, so a unit the register cannot
       // place has to be placed by the officer.
       const UnitCard unplaced = UnitCard(propertyId: 79, outstanding: '0.00');
@@ -218,7 +218,7 @@ void main() {
       fillRequired(controller);
 
       expect(controller.targetAreaId, isNull);
-      expect(controller.missing, contains('the bazaar'));
+      expect(controller.missing, contains('the area'));
       expect(controller.isComplete, isFalse);
 
       controller.setArea(1);
@@ -226,7 +226,7 @@ void main() {
       expect(controller.targetAreaId, 1);
     });
 
-    test('the bazaar comes off the unit, not off a picker', () async {
+    test('the area comes off the unit, not off a picker', () async {
       final controller = build();
       fillRequired(controller);
 
@@ -382,7 +382,7 @@ void main() {
       expect(controller.photoLocalPath.value, isNotNull);
       expect(controller.photoUploadedPath.value, isNull);
       // A shopkeeper does not walk away unfined because a picture would not go
-      // up over a bazaar's uplink.
+      // up over a area's uplink.
       expect(await controller.impose(), ImposeOutcome.success);
       expect(fines.lastRequest!.toJson()['photo_path'], isNull);
     });
@@ -442,7 +442,7 @@ void main() {
   });
 
   group('a fine on somebody with no shop', () {
-    test('the bazaar is searched for by name or code', () {
+    test('the area is searched for by name or code', () {
       final controller = buildInArea();
 
       controller.searchArea('prince');
@@ -461,21 +461,21 @@ void main() {
       expect(controller.areaQuery.value, isEmpty);
     });
 
-    test('with no bazaars on the beat, the id is typed', () {
+    test('with no areas on the beat, the id is typed', () {
       // The offences arrived; the beat did not.
       dashboard.beat.value = null;
       final controller = buildInArea();
       fillRequired(controller);
 
       expect(controller.areaOptions, isEmpty);
-      expect(controller.missing, contains('the bazaar'));
+      expect(controller.missing, contains('the area'));
 
       controller.setAreaFromText('14');
       expect(controller.targetAreaId, 14);
       expect(controller.validateArea(controller.targetAreaId), isNull);
     });
 
-    test('the bazaars come off the beat, by id', () {
+    test('the areas come off the beat, by id', () {
       final controller = buildInArea();
 
       // `GET enforcement/definitions` is the only place an `area_id` may come
@@ -502,7 +502,7 @@ void main() {
       // against a unit.
       expect(fines.lastPropertyId, isNull);
       final json = fines.lastRequest!.toJson();
-      // Both ids off the register: the bazaar and the offence.
+      // Both ids off the register: the area and the offence.
       expect(json['area_id'], 1);
       expect(json['fine_type_id'], 4);
       expect(json['offender_name'], 'Noor Ahmed');
@@ -522,18 +522,18 @@ void main() {
       });
     });
 
-    test('the person has to be named, and the bazaar chosen', () async {
+    test('the person has to be named, and the area chosen', () async {
       final controller = buildInArea();
       fillRequired(controller);
 
-      expect(controller.missing, contains('the bazaar'));
+      expect(controller.missing, contains('the area'));
       expect(controller.needsOffenderDetails, isTrue);
       expect(controller.missing, contains("the offender's name"));
       expect(await controller.impose(), ImposeOutcome.invalidForm);
       expect(fines.calls, 0);
     });
 
-    test('one bazaar on the beat is chosen rather than asked about', () {
+    test('one area on the beat is chosen rather than asked about', () {
       dashboard.beat.value = FieldBeat.fromJson(<String, dynamic>{
         'officer': <String, dynamic>{'name': 'Inspector'},
         'scope': <String, dynamic>{
@@ -585,13 +585,13 @@ void main() {
       final controller = build();
       fillRequired(controller);
       fines.failWith = const ApiExceptionFixture.forbidden(
-        'This unit is outside the bazaars you are posted to.',
+        'This unit is outside the areas you are posted to.',
       );
 
       expect(await controller.impose(), ImposeOutcome.failed);
       expect(
         controller.errorMessage.value,
-        'This unit is outside the bazaars you are posted to.',
+        'This unit is outside the areas you are posted to.',
       );
     });
   });

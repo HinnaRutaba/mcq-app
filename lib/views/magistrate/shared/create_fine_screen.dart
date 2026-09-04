@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../config/theme/app_colors.dart';
 import '../../../controllers/fine_controller.dart';
@@ -12,6 +13,7 @@ import '../../../models/enforcement_definitions.dart';
 import '../../../models/field_beat.dart';
 import '../../../models/unit_card.dart';
 import '../../../widgets/widgets.dart';
+import 'widgets/area_search_field.dart';
 import 'widgets/evidence_tile.dart';
 import 'widgets/fine_amount_field.dart';
 import 'widgets/fine_imposed_sheet.dart';
@@ -63,19 +65,19 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
         children: <Widget>[
           Obx(() {
             // Watched, not merely read: the line under the title changes when
-            // the officer picks a bazaar, and when a shop fetched by id lands.
+            // the officer picks a area, and when a shop fetched by id lands.
             controller.areaId.value;
             controller.profile.value;
             return AppHeroHeader(
               title: 'Impose a fine',
               subtitle: controller.isAreaFine
-                  ? (controller.areaName ?? 'Choose the bazaar first')
+                  ? (controller.areaName ?? 'Choose the area first')
                   : (controller.hasUnitDetails
                         ? controller.unitTitle
                         : 'Choose the shop first'),
               leading: AppCircleIconButton(
                 icon: Icons.arrow_back_rounded,
-                onTap: () => Navigator.of(context).maybePop(),
+                onTap: () => context.pop(),
               ),
             );
           }),
@@ -182,9 +184,9 @@ class _Section extends StatelessWidget {
 /// Step 1: what the fine is against, which the officer never chooses here.
 ///
 /// Arriving from a shop's screen fines that shop, and its card is filled in
-/// from the register — including the bazaar, which is what travels as
-/// `area_id`. Arriving from the fine button fines a person in a bazaar, and
-/// the bazaar is the one thing to pick.
+/// from the register — including the area, which is what travels as
+/// `area_id`. Arriving from the fine button fines a person in a area, and
+/// the area is the one thing to pick.
 class _TargetSection extends StatelessWidget {
   const _TargetSection({required this.controller});
 
@@ -198,7 +200,7 @@ class _TargetSection extends StatelessWidget {
 
     return _Section(
       step: '1',
-      title: areaFine ? 'The bazaar' : 'The shop',
+      title: areaFine ? 'The area' : 'The shop',
       child: areaFine
           ? _AreaPicker(controller: controller)
           : _ShopField(controller: controller),
@@ -224,7 +226,7 @@ class _ShopField extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _ShopCard(controller: controller),
-            // Every fine names a bazaar. The unit's own answers for it, and
+            // Every fine names a area. The unit's own answers for it, and
             // this is the shop whose record cannot.
             if (controller.targetAreaId == null) ...<Widget>[
               const SizedBox(height: 12),
@@ -266,11 +268,6 @@ class _ShopField extends StatelessWidget {
   }
 }
 
-/// The bazaar the fine names, searched for by name or code among the ones the
-/// register lists for this officer.
-///
-/// `area_id` is required on every fine, so when the register lists none at all
-/// the officer types the id rather than being stopped here.
 class _AreaPicker extends StatelessWidget {
   const _AreaPicker({required this.controller});
 
@@ -279,15 +276,12 @@ class _AreaPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final FieldArea? chosen = controller.chosenArea;
-      if (chosen != null) return _ChosenArea(controller: controller);
-
       final List<int> options = controller.areaOptions;
       if (options.isEmpty && controller.isLoadingAreas) {
-        return const AppCard(child: AppText.body('Loading your bazaars…'));
+        return const AppCard(child: AppText.body('Loading your areas…'));
       }
 
-      // No rows to search: the officer names the bazaar by its id, and the
+      // No rows to search: the officer names the area by its id, and the
       // retry is there for the beat that would not load behind it.
       if (options.isEmpty) {
         final String? error = controller.areasError;
@@ -299,7 +293,7 @@ class _AreaPicker extends StatelessWidget {
               const SizedBox(height: 12),
             ],
             AppTextField(
-              label: 'Bazaar id',
+              label: 'Area id',
               hint: 'e.g. 1',
               controller: controller.areaIdController,
               keyboardType: TextInputType.number,
@@ -313,7 +307,7 @@ class _AreaPicker extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             AppButton(
-              label: 'Load the bazaars',
+              label: 'Load the areas',
               icon: Icons.refresh_rounded,
               fullWidth: false,
               onPressed: controller.reloadAreas,
@@ -322,80 +316,22 @@ class _AreaPicker extends StatelessWidget {
         );
       }
 
-      final List<FieldArea> matches = controller.areaMatches;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          AppSearchField(
-            controller: controller.areaSearchController,
-            hint: 'Search the bazaar',
-            onChanged: controller.searchArea,
-          ),
-          const SizedBox(height: 10),
-          if (matches.isEmpty)
-            const AppText.caption('No bazaar of yours matches that.')
-          else
-            for (final FieldArea area in matches.take(6))
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: AppCard(
-                  onTap: () => controller.setArea(area.id),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(child: AppText.body(area.areaName)),
-                      if (area.zoneName != null)
-                        AppText.caption(area.zoneName!),
-                    ],
-                  ),
-                ),
-              ),
-        ],
+      // The matches belong to the box, not to the form: they open under it
+      // and close with it.
+      return AreaSearchField(
+        controller: controller.areaSearchController,
+        optionsFor: controller.areaMatchesFor,
+        onChanged: controller.searchArea,
+        onSelected: (FieldArea area) => controller.setArea(area.id),
+        selected: controller.chosenArea,
+        onCleared: controller.clearArea,
       );
     });
   }
 }
 
-/// The bazaar once it is settled — one line, and the way back to the search.
-class _ChosenArea extends StatelessWidget {
-  const _ChosenArea({required this.controller});
-
-  final FineController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final FieldArea? area = controller.chosenArea;
-
-    return AppCard(
-      child: Row(
-        children: <Widget>[
-          Icon(
-            Icons.location_on_outlined,
-            color: theme.colorScheme.primary,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: AppText.titleMedium(
-              area?.areaName ?? controller.areaLabel(controller.targetAreaId!),
-            ),
-          ),
-          TextButton(
-            onPressed: controller.clearArea,
-            child: const AppText.label('Change'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// The shop the fine is against, as the register has it: which unit, which
-/// bazaar — the one that becomes `area_id` — and who holds it.
+/// area — the one that becomes `area_id` — and who holds it.
 ///
 /// Drawn from the unit card the officer arrived with, or from the profile
 /// fetched behind a route that carried only an id.
@@ -409,7 +345,7 @@ class _ShopCard extends StatelessWidget {
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
 
-    final String? bazaar = controller.unitBazaar;
+    final String? area = controller.unitArea;
     final String? code = controller.unitCode;
     final String? address = controller.unitAddress;
     final String? outstanding = controller.unitOutstanding;
@@ -450,8 +386,8 @@ class _ShopCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           if (code != null) AppDetailRow(icon: Icons.tag_rounded, value: code),
-          if (bazaar != null)
-            AppDetailRow(icon: Icons.location_on_outlined, value: bazaar),
+          if (area != null)
+            AppDetailRow(icon: Icons.location_on_outlined, value: area),
           if (address != null)
             AppDetailRow(
               icon: Icons.place_outlined,
@@ -844,34 +780,25 @@ class _SubmitBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
+                // A total line: the label on the left, the figure at the
+                // right edge where a reader looks for it.
                 Row(
                   children: <Widget>[
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          AppText.caption('Fine amount', color: muted),
-                          const SizedBox(height: 2),
-                          // Printed exactly as typed. Never parsed, never
-                          // rounded, never added to anything.
-                          AppText.titleLarge(
-                            amount.isEmpty ? '—' : 'Rs $amount',
-                          ),
-                        ],
-                      ),
+                      child: AppText.caption('Fine amount', color: muted),
                     ),
-                    if (missing.isNotEmpty)
-                      Flexible(
-                        child: AppText.caption(
-                          'Still needed: ${missing.take(2).join(', ')}'
-                          '${missing.length > 2 ? '…' : ''}',
-                          color: muted,
-                          textAlign: TextAlign.end,
-                          maxLines: 2,
-                        ),
-                      ),
+                    // Printed exactly as typed. Never parsed, never rounded,
+                    // never added to anything.
+                    AppText.titleLarge(amount.isEmpty ? '—' : 'Rs $amount'),
                   ],
                 ),
+                // A row of its own, and every missing field named: the
+                // shortened version told an officer the button would not press
+                // without telling them what to do about it.
+                if (missing.isNotEmpty) ...<Widget>[
+                  const SizedBox(height: 10),
+                  _StillNeeded(missing: missing),
+                ],
                 const SizedBox(height: 10),
                 AppButton(
                   label: 'Impose a fine',
@@ -883,6 +810,45 @@ class _SubmitBar extends StatelessWidget {
             );
           }),
         ),
+      ),
+    );
+  }
+}
+
+/// What the fine is still short of, in the order the form asks for it.
+///
+/// The whole list, never an "and 3 more": a disabled button an officer cannot
+/// explain is the thing they give up on, and the two-item version sent them
+/// scrolling the form to find out which field was empty.
+class _StillNeeded extends StatelessWidget {
+  const _StillNeeded({required this.missing});
+
+  final List<String> missing;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color ink = AppTone.warning.on(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTone.warning.container(context),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.error_outline_rounded, size: 16, color: ink),
+          const SizedBox(width: 8),
+          Expanded(
+            child: AppText.caption(
+              'Still needed: ${missing.join(', ')}',
+              color: ink,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

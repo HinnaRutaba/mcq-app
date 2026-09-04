@@ -42,7 +42,7 @@ enum ImposeOutcome {
 ///   fine.
 /// * **Evidence is uploaded before the write.** The photograph and the
 ///   signature go up through [EvidenceRepository] and only their returned paths
-///   travel on the fine — so the image goes over a bazaar's uplink once, and the
+///   travel on the fine — so the image goes over a area's uplink once, and the
 ///   fine behind it can be retried as many times as it takes.
 /// * **The amount is a string from end to end.** It is typed as a string, held
 ///   as a string and sent as a string. Nothing here parses it into a number.
@@ -89,10 +89,10 @@ class FineController extends GetxController {
 
   final DashboardController? _dashboardOverride;
 
-  /// The officer's beat, which is where the bazaars come from —
+  /// The officer's beat, which is where the areas come from —
   /// `enforcement/field/beat`, held by the controller the home screen already
   /// built. Resolved on first use, so a fine against a shop, which takes its
-  /// bazaar off the unit, never asks for it.
+  /// area off the unit, never asks for it.
   late final DashboardController _dashboard =
       _dashboardOverride ?? Get.find<DashboardController>();
 
@@ -100,13 +100,13 @@ class FineController extends GetxController {
 
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  // --- Which shop, or which bazaar --------------------------------------
+  // --- Which shop, or which area --------------------------------------
 
-  /// The bazaar the officer picked. On a unit fine it is usually left null and
-  /// the unit's own bazaar is used — see [targetAreaId].
+  /// The area the officer picked. On a unit fine it is usually left null and
+  /// the unit's own area is used — see [targetAreaId].
   final RxnInt areaId = RxnInt();
 
-  /// The search over the bazaars on the register, and the id typed by hand
+  /// The search over the areas on the register, and the id typed by hand
   /// when the register lists none at all. `area_id` is required on every fine,
   /// so there has to be a way to name one even then.
   final TextEditingController areaSearchController = TextEditingController();
@@ -185,9 +185,9 @@ class FineController extends GetxController {
     // A form opened after a sign-in on a dead signal has no offences to offer;
     // this is what fetches them.
     _definitions.ensureLoaded();
-    // The bazaars come off the beat. Touching the controller builds it when
+    // The areas come off the beat. Touching the controller builds it when
     // the officer went straight here without the home screen, and its load is
-    // what the sole-bazaar case waits on.
+    // what the sole-area case waits on.
     _pickSoleArea();
     if (isAreaFine && areas.isEmpty && !_dashboard.isLoading.value) {
       _dashboard.load().then((_) => _pickSoleArea());
@@ -212,10 +212,10 @@ class FineController extends GetxController {
   /// here.
   int? get targetPropertyId => unit?.propertyId ?? propertyId;
 
-  /// Whether this fine is against a bazaar rather than a unit — decided by how
+  /// Whether this fine is against a area rather than a unit — decided by how
   /// the officer got here, not by a switch on the form. Arriving from a shop's
   /// screen fines that shop; arriving from the fine button fines a person in a
-  /// bazaar.
+  /// area.
   bool get isAreaFine => targetPropertyId == null;
 
   /// Whether the fine has to name a person. Always on an area fine — there is
@@ -235,7 +235,7 @@ class FineController extends GetxController {
     for (final FieldArea area in areas) {
       if (area.id == id) return area.areaName;
     }
-    return 'Bazaar $id';
+    return 'Area $id';
   }
 
   /// The offences on the register, in its own order and with its own wording.
@@ -249,7 +249,7 @@ class FineController extends GetxController {
   /// The retry behind an offence picker that came up empty.
   Future<void> reloadOffences() => _definitions.reload();
 
-  /// The bazaars the officer is posted to, off the beat the home screen
+  /// The areas the officer is posted to, off the beat the home screen
   /// fetched. `FieldArea.id` is what travels as `area_id`.
   List<FieldArea> get areas =>
       _dashboard.beat.value?.scope.areas ?? const <FieldArea>[];
@@ -258,7 +258,7 @@ class FineController extends GetxController {
 
   String? get areasError => _dashboard.errorMessage.value;
 
-  /// The retry behind a bazaar picker that came up empty. It re-fetches the
+  /// The retry behind a area picker that came up empty. It re-fetches the
   /// beat, which is the officer's own postings.
   Future<void> reloadAreas() => _dashboard.load();
 
@@ -290,7 +290,7 @@ class FineController extends GetxController {
 
   String? get unitCode => unit?.propertyCode ?? property?.propertyCode;
 
-  String? get unitBazaar => unit?.areaName ?? property?.areaName;
+  String? get unitArea => unit?.areaName ?? property?.areaName;
 
   /// Ready to print, and only the profile carries it.
   String? get unitAddress => property?.streetAddress;
@@ -312,18 +312,18 @@ class FineController extends GetxController {
 
   String? get allotteeCnic => unit?.cnic ?? profile.value?.allottee?.cnic;
 
-  /// The bazaar the fine will name — required on every fine.
+  /// The area the fine will name — required on every fine.
   ///
   /// A unit carries its own, so the form does not ask; anything the officer
   /// picked wins, which is what lets them name one when the unit's record has
-  /// no bazaar on it.
+  /// no area on it.
   int? get targetAreaId {
     final int? chosen = areaId.value;
     if (chosen != null) return chosen;
     if (isAreaFine) return null;
     final int? fromUnit = unit?.areaId ?? property?.areaId;
     if (fromUnit != null) return fromUnit;
-    // A server that labels the bazaar without naming its id: match the label
+    // A server that labels the area without naming its id: match the label
     // against the register rather than send nothing.
     final String? name = unit?.areaName ?? property?.areaName;
     if (name == null) return null;
@@ -333,7 +333,7 @@ class FineController extends GetxController {
     return null;
   }
 
-  /// The chosen bazaar's name, for the header. Null until one is chosen.
+  /// The chosen area's name, for the header. Null until one is chosen.
   String? get areaName {
     final int? id = targetAreaId;
     return id == null ? null : areaLabel(id);
@@ -384,7 +384,7 @@ class FineController extends GetxController {
   }
 
   List<String> get missing => <String>[
-    if (targetAreaId == null) 'the bazaar',
+    if (targetAreaId == null) 'the area',
     if (!isAreaFine && targetPropertyId == null) 'the shop',
     if (fineType.value == null) 'the offence',
     if (amountController.text.trim().isEmpty) 'the amount',
@@ -411,29 +411,33 @@ class FineController extends GetxController {
     revision.value++;
   }
 
-  // --- Which shop, or which bazaar --------------------------------------
+  // --- Which shop, or which area --------------------------------------
 
-  /// One bazaar on the register is not a choice worth asking about.
+  /// One area on the register is not a choice worth asking about.
   void _pickSoleArea() {
     if (!isAreaFine || areaId.value != null) return;
     if (areaOptions.length == 1) areaId.value = areaOptions.first;
   }
 
-  /// The bazaars matching what the officer typed, by name or by code.
-  List<FieldArea> get areaMatches {
-    final String term = areaQuery.value.trim().toLowerCase();
+  /// The areas matching [term], by name or by code. An empty term offers the
+  /// whole beat, which is what a freshly opened suggestion box shows.
+  List<FieldArea> areaMatchesFor(String term) {
+    final String needle = term.trim().toLowerCase();
     final Iterable<FieldArea> named = areas.where(
       (FieldArea area) => area.id != null,
     );
-    if (term.isEmpty) return named.toList();
+    if (needle.isEmpty) return named.toList();
     return named
         .where(
           (FieldArea area) =>
-              area.areaName.toLowerCase().contains(term) ||
-              (area.areaCode?.toLowerCase().contains(term) ?? false),
+              area.areaName.toLowerCase().contains(needle) ||
+              (area.areaCode?.toLowerCase().contains(needle) ?? false),
         )
         .toList();
   }
+
+  /// The matches for what is in the search box now.
+  List<FieldArea> get areaMatches => areaMatchesFor(areaQuery.value);
 
   void searchArea(String term) => areaQuery.value = term;
 
@@ -450,14 +454,14 @@ class FineController extends GetxController {
     markEdited();
   }
 
-  /// The id typed by hand, for a handset whose register listed no bazaars at
+  /// The id typed by hand, for a handset whose register listed no areas at
   /// all. The fine cannot be sent without one.
   void setAreaFromText(String value) {
     areaId.value = int.tryParse(value.trim());
     markEdited();
   }
 
-  /// The chosen bazaar, when it is one the register named.
+  /// The chosen area, when it is one the register named.
   FieldArea? get chosenArea {
     final int? id = targetAreaId;
     if (id == null) return null;
@@ -468,7 +472,7 @@ class FineController extends GetxController {
   }
 
   /// The unit behind a route that carried only its id: its details for the
-  /// card, its bazaar for `area_id`, and its allottee for the payer block.
+  /// card, its area for `area_id`, and its allottee for the payer block.
   /// Safe to call again — this is the retry behind a failed load.
   Future<void> loadProfile() async {
     final int? id = propertyId;
@@ -629,7 +633,7 @@ class FineController extends GetxController {
     if (_areaServerError != null) return _areaServerError;
     // `area_id` is required whatever the fine is against; a unit answers it
     // without asking, and this is what catches the unit whose record cannot.
-    if (targetAreaId == null) return 'Name the bazaar the fine was issued in';
+    if (targetAreaId == null) return 'Name the area the fine was issued in';
     return null;
   }
 
@@ -685,7 +689,7 @@ class FineController extends GetxController {
       return ImposeOutcome.invalidForm;
     }
     if (isAreaFine && areaId.value == null) {
-      errorMessage.value = 'Choose the bazaar this fine was issued in.';
+      errorMessage.value = 'Choose the area this fine was issued in.';
       return ImposeOutcome.invalidForm;
     }
     // The Form is asked to paint the messages; whether the fine may be sent is
@@ -701,7 +705,7 @@ class FineController extends GetxController {
     isSubmitting.value = true;
     try {
       // Two endpoints behind one form: an area fine has no unit to be posted
-      // against, and the bazaar is the only scoping it carries.
+      // against, and the area is the only scoping it carries.
       imposed.value = isAreaFine
           ? await _fines.imposeInArea(request: request)
           : await _fines.impose(propertyId: propertyId!, request: request);
@@ -720,7 +724,7 @@ class FineController extends GetxController {
       isAreaFine ? _buildAreaRequest() : _buildUnitRequest();
 
   FineRequest _buildUnitRequest() => FineRequest(
-    // Off the unit, so a fine against a shop still says which bazaar it stands
+    // Off the unit, so a fine against a shop still says which area it stands
     // in without asking the officer for it.
     areaId: targetAreaId,
     fineTypeId: fineType.value!.id!,
@@ -732,7 +736,7 @@ class FineController extends GetxController {
     photoPath: photoUploadedPath.value,
   );
 
-  /// `POST enforcement/fines`: the bazaar is the only scoping, and the offender
+  /// `POST enforcement/fines`: the area is the only scoping, and the offender
   /// is required because there is nobody on the register to bill.
   FineRequest _buildAreaRequest() => FineRequest.inArea(
     areaId: areaId.value!,

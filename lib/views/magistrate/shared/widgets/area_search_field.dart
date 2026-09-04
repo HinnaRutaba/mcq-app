@@ -4,12 +4,6 @@ import '../../../../config/theme/app_radius.dart';
 import '../../../../models/field_beat.dart';
 import '../../../../widgets/widgets.dart';
 
-/// A search box for the officer's bazaars, with the matches offered under the
-/// box itself rather than laid out down the form.
-///
-/// The list belongs to the field: on a form with four other blocks on it, a
-/// run of tiles under a search box reads as content, and an officer scrolling
-/// past it loses the box they were typing in.
 class AreaSearchField extends StatefulWidget {
   const AreaSearchField({
     super.key,
@@ -17,19 +11,29 @@ class AreaSearchField extends StatefulWidget {
     required this.optionsFor,
     required this.onSelected,
     required this.onChanged,
-    this.hint = 'Search the bazaar',
+    required this.selected,
+    required this.onCleared,
+    this.hint = 'Search the area',
   });
 
   /// The text being searched with, held by the fine's own controller so a
   /// rebuild does not lose it.
   final TextEditingController controller;
 
-  /// The bazaars matching what has been typed. Called with an empty string
+  /// The areas matching what has been typed. Called with an empty string
   /// when the box is focused and empty, which is what offers the whole beat.
   final List<FieldArea> Function(String term) optionsFor;
 
   final ValueChanged<FieldArea> onSelected;
   final ValueChanged<String> onChanged;
+
+  /// The area the fine will name, once one is taken.
+  final FieldArea? selected;
+
+  /// Cancelling it. The box takes the focus back, so the next one is one tap
+  /// away rather than two.
+  final VoidCallback onCleared;
+
   final String hint;
 
   @override
@@ -45,10 +49,36 @@ class _AreaSearchFieldState extends State<AreaSearchField> {
     super.dispose();
   }
 
+  void _cancel() {
+    widget.onCleared();
+    widget.controller.clear();
+    _focus.requestFocus();
+  }
+
+  void _take(FieldArea area) {
+    widget.onSelected(area);
+    // Taken, so the suggestions have nothing left to offer: without this the
+    // box reopens the moment the text is cleared behind the choice.
+    _focus.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
-    // The overlay is measured against the field, so the suggestions line up
-    // with the box instead of the screen.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        _field(context),
+        if (widget.selected != null) ...<Widget>[
+          const SizedBox(height: 12),
+          _SelectedArea(area: widget.selected!, onCancel: _cancel),
+        ],
+      ],
+    );
+  }
+
+  /// The box itself. The overlay is measured against it, so the suggestions
+  /// line up with the field instead of the screen.
+  Widget _field(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         return RawAutocomplete<FieldArea>(
@@ -57,7 +87,7 @@ class _AreaSearchFieldState extends State<AreaSearchField> {
           displayStringForOption: (FieldArea area) => area.areaName,
           optionsBuilder: (TextEditingValue value) =>
               widget.optionsFor(value.text),
-          onSelected: widget.onSelected,
+          onSelected: _take,
           fieldViewBuilder:
               (
                 BuildContext context,
@@ -147,6 +177,61 @@ class _Suggestions extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// The area the fine will be posted against, with what the beat knows about
+/// it — and the way out of it.
+class _SelectedArea extends StatelessWidget {
+  const _SelectedArea({required this.area, required this.onCancel});
+
+  final FieldArea area;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                Icons.location_on_rounded,
+                color: theme.colorScheme.primary,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    AppText.titleMedium(area.areaName),
+                    const SizedBox(height: 2),
+                    AppText.caption(
+                      'The fine will be posted here',
+                      color: muted,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: onCancel,
+                icon: const Icon(Icons.close_rounded, size: 20),
+                tooltip: 'Choose another area',
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (area.zoneName != null)
+            AppDetailRow(icon: Icons.map_outlined, value: area.zoneName!),
+        ],
       ),
     );
   }

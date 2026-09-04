@@ -5,13 +5,6 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_radius.dart';
 import '../../../../widgets/widgets.dart';
 
-/// The figure the fine is for, given a block of its own.
-///
-/// It is the one number a shopkeeper argues about and the one an officer must
-/// not mistype, so it is set apart from the rest of the form and printed large
-/// — not one field among four in a card.
-///
-/// The amount is a string from end to end: this widget never parses it.
 class FineAmountField extends StatelessWidget {
   const FineAmountField({
     super.key,
