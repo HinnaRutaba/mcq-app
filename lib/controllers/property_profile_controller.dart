@@ -31,6 +31,15 @@ enum ProfileTab {
   const ProfileTab(this.label);
 
   final String label;
+
+  /// The tab a link names, e.g. `?tab=owed`. Null on anything unrecognised —
+  /// a stale link opens the profile rather than failing on it.
+  static ProfileTab? byName(String? name) {
+    for (final ProfileTab tab in ProfileTab.values) {
+      if (tab.name == name) return tab;
+    }
+    return null;
+  }
 }
 
 /// One property's profile: the shop and its paperwork, where it stands on
@@ -45,9 +54,11 @@ class PropertyProfileController extends GetxController {
   PropertyProfileController({
     required this.propertyId,
     this.card,
+    ProfileTab? initialTab,
     ReportingRepository? reportingRepository,
     EnforcementCaseRepository? caseRepository,
-  }) : _reporting = reportingRepository ?? Get.find<ReportingRepository>(),
+  }) : tab = Rx<ProfileTab>(initialTab ?? ProfileTab.overview),
+       _reporting = reportingRepository ?? Get.find<ReportingRepository>(),
        _cases = caseRepository ?? Get.find<EnforcementCaseRepository>();
 
   final int propertyId;
@@ -78,7 +89,9 @@ class PropertyProfileController extends GetxController {
 
   final RxnInt selectedCaseId = RxnInt();
 
-  final Rx<ProfileTab> tab = Rx<ProfileTab>(ProfileTab.overview);
+  /// Which face of the profile is up. Opens on the overview unless the link
+  /// that got here named another — see [ProfileTab.byName].
+  final Rx<ProfileTab> tab;
 
   final RxBool isLoading = RxBool(false);
   final RxBool isLoadingTimeline = RxBool(false);

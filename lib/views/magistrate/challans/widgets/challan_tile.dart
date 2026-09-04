@@ -20,10 +20,16 @@ class ChallanTile extends StatelessWidget {
   const ChallanTile({
     super.key,
     required this.challan,
+    this.onTap,
     this.dialer = const Dialer(),
   });
 
   final Challan challan;
+
+  /// Opens the bill in full. Every row has one: the figures are already on
+  /// the record behind the tile, so there is nothing to fetch and no row that
+  /// cannot answer for itself.
+  final VoidCallback? onTap;
 
   final Dialer dialer;
 
@@ -37,6 +43,7 @@ class ChallanTile extends StatelessWidget {
     final String? mobileNo = _mobileNo;
 
     return AppCard(
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

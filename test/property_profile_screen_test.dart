@@ -15,6 +15,7 @@ import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/case_card.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/holder_actions.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/profile_header.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/dashboard_fixtures.dart';
@@ -115,6 +116,59 @@ void main() {
       // Not the three above added up here — the total the server sent.
       expect(find.text('Total outstanding'), findsOneWidget);
       expect(find.text('Never'), findsOneWidget);
+    });
+
+    testWidgets('a bill drawn flat still shows its figure', (
+      WidgetTester tester,
+    ) async {
+      // The embedded summary shape: the figures on the challan itself rather
+      // than under an `amounts` map.
+      reporting = FakeReportingRepository(
+        profile: PropertyProfile.fromJson(<String, dynamic>{
+          ...propertyProfileJson,
+          'challans': <dynamic>[
+            <String, dynamic>{
+              'id': 9012,
+              'challan_no': 'MCQ-CH-2627-09012',
+              'balance_amount': '62222.22',
+              'due_date': '2026-08-15',
+            },
+          ],
+        }),
+      );
+      await pumpProfile(tester);
+      await openTab(tester, ProfileTab.owed);
+
+      expect(find.text('Rs 62,222'), findsOneWidget);
+    });
+
+    testWidgets('a bill opens the whole of itself in a sheet', (
+      WidgetTester tester,
+    ) async {
+      await pumpProfile(tester);
+      await openTab(tester, ProfileTab.owed);
+
+      await tester.tap(find.text('MCQ-CH-2627-09012'));
+      await settle(tester);
+
+      expect(find.byType(ChallanSheet), findsOneWidget);
+
+      // Scoped to the sheet: the tab behind it names some of the same parts
+      // of the debt, and a bare `find.text` would match those too.
+      Finder inSheet(String text) =>
+          find.descendant(of: find.byType(ChallanSheet), matching: find.text(text));
+
+      // The breakdown the row could not carry, and the figure to quote.
+      expect(inSheet('Payable now'), findsOneWidget);
+      expect(inSheet('This month'), findsOneWidget);
+      expect(inSheet('Arrears'), findsOneWidget);
+      expect(inSheet('Surcharge'), findsOneWidget);
+      // What a shopkeeper reads out at a counter.
+      expect(inSheet('11800000118'), findsOneWidget);
+      expect(inSheet('A payment link is live on this bill.'), findsOneWidget);
+      // Nothing the server sent as zero is drawn — "Rs 0 paid" reads as a
+      // part of the bill that is not there.
+      expect(inSheet('Paid'), findsNothing);
     });
 
     testWidgets('the tabs are how the rest of it is reached', (

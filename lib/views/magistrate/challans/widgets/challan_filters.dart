@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import '../../../../controllers/challans_controller.dart';
 import '../../../../widgets/widgets.dart';
 
-/// The bar over the challan list: rent bills, penalties, or both.
+/// The bar over the challan list: bills, penalties, or both.
 ///
 /// No counts on the chips. Two of the three are a different request to the
 /// server, so the rows for the queue an officer is *not* looking at are not in

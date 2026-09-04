@@ -12,6 +12,7 @@ import '../../../models/enforcement_action.dart';
 import '../../../models/enforcement_case.dart';
 import '../../../models/property_profile.dart';
 import '../../../widgets/widgets.dart';
+import '../shared/widgets/challan_sheet.dart';
 import '../shared/widgets/create_fine_button.dart';
 import 'widgets/case_card.dart';
 import 'widgets/case_timeline.dart';
@@ -20,11 +21,19 @@ import 'widgets/profile_header.dart';
 const EdgeInsets _cardPadding = EdgeInsets.fromLTRB(12, 16, 12, 16);
 
 class PropertyProfileScreen extends StatefulWidget {
-  const PropertyProfileScreen({super.key, required this.propertyId, this.card});
+  const PropertyProfileScreen({
+    super.key,
+    required this.propertyId,
+    this.card,
+    this.initialTab,
+  });
 
   final int propertyId;
 
   final DefaulterCard? card;
+
+  /// The face to open on. Null opens the overview.
+  final ProfileTab? initialTab;
 
   @override
   State<PropertyProfileScreen> createState() => _PropertyProfileScreenState();
@@ -32,7 +41,11 @@ class PropertyProfileScreen extends StatefulWidget {
 
 class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
   late final PropertyProfileController controller = Get.put(
-    PropertyProfileController(propertyId: widget.propertyId, card: widget.card),
+    PropertyProfileController(
+      propertyId: widget.propertyId,
+      card: widget.card,
+      initialTab: widget.initialTab,
+    ),
   );
 
   @override
@@ -562,6 +575,9 @@ class _Challans extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 10),
             child: AppCard(
               padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+              // The row is a summary; the whole bill — its breakdown, what is
+              // payable today and the number to quote — is a press away.
+              onTap: () => ChallanSheet.show(context, challan: challan),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -575,10 +591,19 @@ class _Challans extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // The balance on this bill alone. A fine bill and a rent
-                      // bill are separate debts and are never totalled.
+                      // This bill alone. A fine bill and a rent bill are
+                      // separate debts and are never totalled.
+                      //
+                      // `payable_now` first — it is the server's answer to
+                      // what is due today, after any deferral, and the figure
+                      // quoted at a counter. The two behind it are fallbacks
+                      // for a row that omits it, so the column is never blank
+                      // while the bill carries a figure at all.
                       AppText.body(
-                        Formatters.money(challan.amounts.balanceAmount) ?? '—',
+                        Formatters.money(challan.amounts.payableNow) ??
+                            Formatters.money(challan.amounts.balanceAmount) ??
+                            Formatters.money(challan.amounts.totalAmount) ??
+                            '—',
                         fontWeight: FontWeight.w700,
                         maxLines: 1,
                       ),

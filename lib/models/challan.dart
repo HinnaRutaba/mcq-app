@@ -128,12 +128,14 @@ class Challan {
     dueDate: Json.dateTime(json['due_date']),
     isOverdue: Json.booleanOr(json['is_overdue']),
     daysOverdue: Json.integerOr(json['days_overdue']),
-    amounts: ChallanAmounts.fromJson(Json.map(json['amounts'])),
+    amounts: ChallanAmounts.of(json),
     isProrated: Json.booleanOr(json['is_prorated']),
     prorationDays: Json.integer(json['proration_days']),
     isEdited: Json.booleanOr(json['is_edited']),
     remarks: Json.string(json['remarks']),
-    consumerNumber: Json.string(json['consumer_number']),
+    consumerNumber: Json.string(
+      Json.pick(json, <String>['consumer_number', 'consumer_no']),
+    ),
     linkShortCode: Json.string(json['link_short_code']),
     linkExpiresAt: Json.dateTime(json['link_expires_at']),
     hasLiveLink: Json.booleanOr(json['has_live_link']),
@@ -191,6 +193,17 @@ class ChallanAmounts {
   final String? balanceAmount;
   final String? deferredAmount;
   final String? payableNow;
+
+  /// The figures, wherever the server put them.
+  ///
+  /// `billing/challans` nests them under `amounts`; the challan summaries
+  /// embedded in another record — a property profile, a fine — carry
+  /// `balance_amount` and its siblings on the challan itself. Both are read,
+  /// so a bill drawn from either shape still has a figure on it.
+  factory ChallanAmounts.of(Map<String, dynamic> json) =>
+      ChallanAmounts.fromJson(
+        json['amounts'] is Map ? Json.map(json['amounts']) : json,
+      );
 
   factory ChallanAmounts.fromJson(Map<String, dynamic> json) => ChallanAmounts(
     previousBalance: Json.money(json['previous_balance']),

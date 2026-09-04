@@ -8,14 +8,17 @@ import '../models/challan.dart';
 /// Which bills are on screen.
 ///
 /// Only [fines] is a question the server can be asked — `challan_type=fine` is
-/// the one value the API publishes. [rent] shares [all]'s query and is narrowed
-/// here, because guessing at the enum's other half would silently return
-/// nothing.
+/// the one value the API publishes. [bills] shares [all]'s query and is
+/// narrowed here, because the rest of the enum is not published: the live
+/// server also sends `combined` ("Everything owed"), so a filter that asked for
+/// "rent" by name would silently return nothing.
 enum ChallanFilter {
   all('All'),
 
-  /// A month's rent, with its arrears and surcharge.
-  rent('Rent'),
+  /// Everything that is not a penalty — a month's rent, arrears, a combined
+  /// demand. Deliberately not called "Rent": the server's own label for the
+  /// commonest of these is "Everything owed".
+  bills('Bills'),
 
   /// A penalty. One charge, one label, and a debt of its own.
   fines('Fines');
@@ -64,7 +67,8 @@ class ChallansController extends GetxController {
   final RxnString errorMessage = RxnString();
 
   /// What the rows in hand were asked for. Switching between [ChallanFilter.all]
-  /// and [ChallanFilter.rent] does not change it, so that switch costs no call.
+  /// and [ChallanFilter.bills] does not change it, so that switch costs no
+  /// call.
   String? _loadedType;
 
   /// Bumped per fetch, so a slow answer to an old question cannot land on top
@@ -77,9 +81,9 @@ class ChallansController extends GetxController {
     load();
   }
 
-  /// The rows to draw. Rent is the everything-list minus the penalties; see
+  /// The rows to draw. Bills is the everything-list minus the penalties; see
   /// [ChallanFilter].
-  List<Challan> get visible => filter.value == ChallanFilter.rent
+  List<Challan> get visible => filter.value == ChallanFilter.bills
       ? challans.where((Challan challan) => !challan.isFine).toList()
       : challans.toList();
 

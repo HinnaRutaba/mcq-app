@@ -13,6 +13,7 @@ import '../../views/magistrate/more/sealed_screen.dart';
 import '../../views/magistrate/round/round_screen.dart';
 import '../../views/magistrate/trade/trade_capture_screen.dart';
 import '../../views/magistrate/trade/trade_licences_screen.dart';
+import '../../controllers/property_profile_controller.dart';
 import '../../views/magistrate/challans/challans_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/magistrate/property/property_profile_screen.dart';
@@ -141,6 +142,7 @@ final GoRouter appRouter = GoRouter(
         card: state.extra is DefaulterCard
             ? state.extra! as DefaulterCard
             : null,
+        initialTab: ProfileTab.byName(state.uri.queryParameters['tab']),
       ),
     ),
   ],

@@ -183,6 +183,91 @@ final List<Challan> challansFixture = <Map<String, dynamic>>[
   ),
 ].map(Challan.fromJson).toList();
 
+/// One row exactly as `billing/challans` sent it, keys and all.
+///
+/// Copied from a live response rather than the published spec, which is how
+/// `challan_type: combined` and `allotment.allotment_type` came to light —
+/// neither was in the document the models were written from.
+final Map<String, dynamic> challanOffTheWireJson = <String, dynamic>{
+  'id': 1377,
+  'challan_no': 'MCQ-CH-2627-0000593',
+  'challan_type': <String, dynamic>{
+    'value': 'combined',
+    'label': 'Everything owed',
+    'tone': 'neutral',
+  },
+  'is_single_charge': false,
+  'surcharge_exempt': false,
+  'surcharge_exempt_reason': null,
+  'status': <String, dynamic>{
+    'value': 'draft',
+    'label': 'Draft',
+    'tone': 'neutral',
+  },
+  'issue_date': '2026-11-25',
+  'due_date': '2026-12-05',
+  'is_overdue': false,
+  'days_overdue': 0,
+  'amounts': <String, dynamic>{
+    'previous_balance': '0.00',
+    'current_amount': '40000.00',
+    'arrears_amount': '22222.22',
+    'surcharge_amount': '0.00',
+    'other_amount': '0.00',
+    'adjustment_amount': '0.00',
+    'total_amount': '62222.22',
+    'paid_amount': '0.00',
+    'balance_amount': '62222.22',
+    'deferred_amount': '0.00',
+    'payable_now': '62222.22',
+  },
+  'is_prorated': false,
+  'proration_days': null,
+  'is_edited': false,
+  'remarks': null,
+  'consumer_number': null,
+  'link_short_code': null,
+  'link_expires_at': null,
+  'has_live_link': false,
+  'can_defer': false,
+  'dispatched_at': null,
+  'first_paid_at': null,
+  'settled_at': null,
+  'superseded_by_challan_id': null,
+  'billing_period': <String, dynamic>{
+    'id': 9,
+    'period_code': '2026-11',
+    'fiscal_year': '2026-2027',
+  },
+  'allotment': <String, dynamic>{
+    'id': 210,
+    'allotment_no': 'MCQ-AL-00210',
+    'allotment_type': <String, dynamic>{
+      'value': 'rent',
+      'label': 'Rent',
+      'tone': 'neutral',
+    },
+  },
+  'allottee': <String, dynamic>{
+    'id': 12,
+    'allottee_code': 'ALT-00012',
+    'name': 'Abdul Malik Pirkani',
+    'mobile_no': '03301000011',
+  },
+  'payer_name': null,
+  'payer_mobile_no': null,
+  'property': <String, dynamic>{
+    'id': 240,
+    'property_code': 'MCQ-JR-0009',
+    'display_name': 'Jinnah Parking, Kandahari Bazaar',
+  },
+  'area': <String, dynamic>{'id': 1, 'code': 'JR', 'name': 'Jinnah Road'},
+  'created_at': '2026-09-02T12:42:51+00:00',
+  'updated_at': '2026-09-02T12:42:51+00:00',
+};
+
+final Challan challanOffTheWire = Challan.fromJson(challanOffTheWireJson);
+
 /// [count] bills, so a test can outrun a page. Every fourth is a fine, so the
 /// type filter has something to find on the pages after the first.
 List<Challan> challanRun(int count) => <Challan>[

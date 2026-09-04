@@ -83,14 +83,20 @@ class PropertyRef {
 
 /// The tenancy a unit is held under. Null wherever nobody holds the unit.
 class AllotmentRef {
-  const AllotmentRef({this.id, this.allotmentNo});
+  const AllotmentRef({this.id, this.allotmentNo, this.allotmentType});
 
   final int? id;
   final String? allotmentNo;
 
+  /// Rent or lease — the terms the unit is held on, which is where that
+  /// distinction actually lives. A challan's own `challan_type` is about what
+  /// the bill covers (`combined`, `fine`), not how the shop is held.
+  final LabelledValue? allotmentType;
+
   factory AllotmentRef.fromJson(Map<String, dynamic> json) => AllotmentRef(
     id: Json.integer(json['id']),
     allotmentNo: Json.string(json['allotment_no']),
+    allotmentType: LabelledValue.maybe(json['allotment_type']),
   );
 
   static AllotmentRef? maybe(Object? source) =>

@@ -72,8 +72,14 @@ class AppRoutes {
   /// The row the officer tapped travels as the route's `extra`, so the profile
   /// can draw its header before the three calls behind it answer. A cold link
   /// carries none, and the screen loads from the id alone.
+  ///
+  /// [propertyProfilePath] takes the tab to open on as `?tab=`, named by the
+  /// `ProfileTab` value — a bill on the Challans list opens the shop on `owed`,
+  /// where the bills are, rather than on the overview.
   static const String propertyProfile = '/magistrate/property/:id';
 
-  static String propertyProfilePath(int propertyId) =>
-      '/magistrate/property/$propertyId';
+  static String propertyProfilePath(int propertyId, {String? tab}) =>
+      tab == null
+      ? '/magistrate/property/$propertyId'
+      : '/magistrate/property/$propertyId?tab=$tab';
 }

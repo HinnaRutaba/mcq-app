@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
+import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
+import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/challan_repository.dart';
 import 'package:mcq_app/models/models.dart';
 import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/challans/widgets/challan_tile.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/challan_fixtures.dart';
@@ -128,16 +131,16 @@ void main() {
       expect(namesOnScreen(tester), <String>['Gul Hassan', 'Shahid Iqbal']);
     });
 
-    testWidgets('narrows rent in the app rather than guessing at the enum', (
+    testWidgets('narrows bills in the app rather than guessing at the enum', (
       WidgetTester tester,
     ) async {
       await pumpChallans(tester);
-      await chooseFilter(tester, 'Rent');
+      await chooseFilter(tester, 'Bills');
 
       // The same request as "All", so no second call goes out.
       expect(billing.calls, 1);
       expect(namesOnScreen(tester), <String>['Abdul Karim', 'Noor Muhammad']);
-      expect(find.text('rent bills · loaded so far'), findsOneWidget);
+      expect(find.text('bills · loaded so far'), findsOneWidget);
     });
 
     testWidgets('offers the way back out of an empty filter', (
@@ -215,6 +218,128 @@ void main() {
         ).opacity,
         0.0,
       );
+    });
+  });
+
+  group('the shapes the server sends', () {
+    test('a challan summary carries its figures on itself', () {
+      // What `billing/challans` nests under `amounts`, a challan embedded in
+      // another record carries flat — see `FineChallanRef`. Both have to read.
+      final Challan flat = Challan.fromJson(<String, dynamic>{
+        'id': 1377,
+        'challan_no': 'MCQ-CH-2627-0000593',
+        'balance_amount': '62222.22',
+        'consumer_no': 'DRTRMNMD',
+        'has_live_link': true,
+      });
+
+      expect(flat.amounts.balanceAmount, '62222.22');
+      expect(flat.consumerNumber, 'DRTRMNMD');
+      expect(flat.hasLiveLink, isTrue);
+    });
+
+    test('a nested amounts map still wins', () {
+      final Challan nested = Challan.fromJson(<String, dynamic>{
+        'id': 1377,
+        // Top-level decoys: where the map exists, it is the record.
+        'balance_amount': '1.00',
+        'amounts': <String, dynamic>{
+          'balance_amount': '62222.22',
+          'payable_now': '62222.22',
+        },
+      });
+
+      expect(nested.amounts.balanceAmount, '62222.22');
+      expect(nested.amounts.payableNow, '62222.22');
+    });
+
+    test('a combined demand is not a fine', () {
+      // The live server's commonest type, which the published enum omitted.
+      final Challan combined = Challan.fromJson(<String, dynamic>{
+        'id': 1377,
+        'challan_type': <String, dynamic>{
+          'value': 'combined',
+          'label': 'Everything owed',
+          'tone': 'neutral',
+        },
+        'amounts': <String, dynamic>{'payable_now': '62222.22'},
+      });
+
+      expect(combined.isFine, isFalse);
+      // So it lands under Bills, whose label does not claim it is rent.
+      expect(ChallanFilter.bills.label, 'Bills');
+      expect(ChallanFilter.bills.challanType, isNull);
+    });
+  });
+
+  group('opening a bill', () {
+    testWidgets('a tapped row shows the whole bill, off the row in hand', (
+      WidgetTester tester,
+    ) async {
+      billing = FakeChallanRepository(
+        challans: <Challan>[challanOffTheWire, ...challansFixture],
+      );
+      await pumpChallans(tester);
+
+      await tester.tap(find.byType(ChallanTile).first);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChallanSheet), findsOneWidget);
+
+      Finder inSheet(String text) => find.descendant(
+        of: find.byType(ChallanSheet),
+        matching: find.text(text),
+      );
+
+      // The breakdown the list response already carried — no second call.
+      expect(billing.calls, 1);
+      expect(inSheet('Payable now'), findsOneWidget);
+      expect(inSheet('Rs 40,000'), findsOneWidget);
+      expect(inSheet('Rs 22,222'), findsOneWidget);
+      expect(inSheet('MCQ-AL-00210 · Rent'), findsOneWidget);
+    });
+
+    testWidgets('the shop behind it is one more press', (
+      WidgetTester tester,
+    ) async {
+      billing = FakeChallanRepository(
+        challans: <Challan>[challanOffTheWire],
+      );
+      await pumpChallans(tester);
+      await tester.tap(find.byType(ChallanTile).first);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Open the shop'), findsOneWidget);
+    });
+
+    testWidgets('a fine on somebody off the register still opens', (
+      WidgetTester tester,
+    ) async {
+      await pumpChallans(tester);
+
+      // Gul Hassan is not on the property register, so there is no shop to
+      // offer — but the bill itself still reads.
+      final Finder fine = find.ancestor(
+        of: find.text('Gul Hassan'),
+        matching: find.byType(ChallanTile),
+      );
+      await tester.tap(fine);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ChallanSheet), findsOneWidget);
+      expect(find.text('Open the shop'), findsNothing);
+    });
+
+    testWidgets('the link names the tab the bills live on', (
+      WidgetTester tester,
+    ) async {
+      expect(
+        AppRoutes.propertyProfilePath(501, tab: ProfileTab.owed.name),
+        '/magistrate/property/501?tab=owed',
+      );
+      expect(ProfileTab.byName('owed'), ProfileTab.owed);
+      // A stale link opens the profile rather than failing on it.
+      expect(ProfileTab.byName('nonsense'), isNull);
     });
   });
 

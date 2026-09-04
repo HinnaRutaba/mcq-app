@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
 import 'package:mcq_app/app/dependency_injection.dart';
+import 'package:mcq_app/config/theme/app_radius.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
@@ -41,6 +42,7 @@ import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
@@ -239,6 +241,19 @@ void main() {
       _seedChallans(challans: challanRun(30));
       return const ChallansScreen();
     },
+    // One bill read end to end, the sheet a bill row on the Owed tab opens.
+    // A rent bill breaks down; a fine is one charge under one label, which is
+    // why both are here.
+    // A row off the live wire, so the still is of real keys rather than the
+    // spec's — a combined demand on a rent tenancy, with no link and no
+    // consumer number yet.
+    'challan_sheet': () => _sheet(
+      // As the Challans list opens it, so the way through to the shop is in
+      // the still too.
+      ChallanSheet(challan: challanOffTheWire, onOpenShop: () {}),
+    ),
+    'challan_sheet_fine': () =>
+        _sheet(ChallanSheet(challan: challansFixture[2])),
     'more': () => const MoreScreen(),
     'sealed': () => const SealedScreen(),
     'profile': () {
@@ -345,6 +360,8 @@ void main() {
     'challans_collapsed': 1400,
     'challans_fines': 1200,
     'challans_paged': 1800,
+    'challan_sheet': 2500,
+    'challan_sheet_fine': 2400,
     'fine': 2600,
     'fine_with_shop': 2600,
     'fine_evidence': 2600,
@@ -556,6 +573,25 @@ TradeLicencesController _seedTrade({Object? failure, String? query}) {
   }
   return controller;
 }
+
+/// A sheet as `showModalBottomSheet` draws it — the surface, the lip and the
+/// bottom edge — so a still of one is a still of what the officer sees.
+Widget _sheet(Widget child) => Builder(
+  builder: (BuildContext context) => Scaffold(
+    backgroundColor: Colors.black54,
+    body: Align(
+      alignment: Alignment.bottomCenter,
+      child: Material(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.xl),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: child,
+      ),
+    ),
+  ),
+);
 
 /// Puts the billing list over the fixtures and drops the controller so it is
 /// rebuilt over them. Returns it, so an entry can choose the filter it means to

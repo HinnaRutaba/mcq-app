@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../config/routes/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
 import '../../../controllers/challans_controller.dart';
+import '../../../controllers/property_profile_controller.dart';
 import '../../../models/challan.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/widgets/back_to_home_button.dart';
+import '../shared/widgets/challan_sheet.dart';
 import 'widgets/challan_filters.dart';
 import 'widgets/challan_tile.dart';
 
@@ -143,6 +147,7 @@ List<Widget> _slivers(ChallansController controller) {
           }
 
           final Challan challan = rows[index - lead.length];
+          final int? propertyId = challan.property?.id;
 
           // Keyed by the bill, so a row keeps its element as pages append:
           // unkeyed, every rebuild would restart the entrance and the list
@@ -152,7 +157,26 @@ List<Widget> _slivers(ChallansController controller) {
             child: AppEntrance(
               key: ValueKey<Object>(challan.id ?? challan.challanNo ?? index),
               index: index,
-              child: ChallanTile(challan: challan),
+              child: ChallanTile(
+                challan: challan,
+                // The bill itself, off the row already in hand — its whole
+                // breakdown, with no second call and nothing lost. The shop
+                // behind it is one more press, from inside the sheet.
+                onTap: () => ChallanSheet.show(
+                  context,
+                  challan: challan,
+                  onOpenShop: propertyId == null
+                      ? null
+                      : () => context.push(
+                          // Straight to the bills rather than the overview:
+                          // the officer got here by tapping one.
+                          AppRoutes.propertyProfilePath(
+                            propertyId,
+                            tab: ProfileTab.owed.name,
+                          ),
+                        ),
+                ),
+              ),
             ),
           );
         },
@@ -227,20 +251,20 @@ class _CountLine extends StatelessWidget {
     );
   }
 
-  /// Rent is narrowed in the app rather than asked for, so the server's total
+  /// Bills is narrowed in the app rather than asked for, so the server's total
   /// does not describe it and the rows in hand are the only honest count —
   /// see [ChallanFilter].
-  int get _figure => filter == ChallanFilter.rent ? shown : (total ?? shown);
+  int get _figure => filter == ChallanFilter.bills ? shown : (total ?? shown);
 
   /// What the figure counts, and — where the list is longer than the pages
   /// fetched — how much of it is up.
   String get _rest {
     final String noun = switch (filter) {
       ChallanFilter.all => _figure == 1 ? 'challan' : 'challans',
-      ChallanFilter.rent => _figure == 1 ? 'rent bill' : 'rent bills',
+      ChallanFilter.bills => _figure == 1 ? 'bill' : 'bills',
       ChallanFilter.fines => _figure == 1 ? 'fine' : 'fines',
     };
-    if (filter == ChallanFilter.rent) return '$noun · loaded so far';
+    if (filter == ChallanFilter.bills) return '$noun · loaded so far';
     final int? all = total;
     if (all == null || shown >= all) return noun;
     return '$noun · $shown showing';
@@ -316,8 +340,8 @@ class _Nothing extends StatelessWidget {
 
   final ChallanFilter filter;
 
-  /// Whether the server still has pages. On [ChallanFilter.rent] this is the
-  /// difference between "no rent bills" and "none on the pages fetched yet".
+  /// Whether the server still has pages. On [ChallanFilter.bills] this is the
+  /// difference between "no bills" and "none on the pages fetched yet".
   final bool hasMore;
 
   final bool isLoadingMore;
@@ -343,14 +367,14 @@ class _Nothing extends StatelessWidget {
         children: <Widget>[
           AppEmptyState(
             icon: isFines ? Icons.gavel_rounded : Icons.receipt_long_outlined,
-            title: isFines ? 'No fines' : 'No rent bills',
+            title: isFines ? 'No fines' : 'No bills',
             message: hasMore && !isFines
-                // Rent is narrowed in the app, so an empty screen here is only
-                // a statement about the pages fetched so far.
+                // Bills is narrowed in the app, so an empty screen here is
+                // only a statement about the pages fetched so far.
                 ? 'None on the pages loaded so far. There are more to fetch.'
                 : isFines
                 ? 'Nobody has an unpaid penalty.'
-                : 'Every bill outstanding is a penalty, not rent.',
+                : 'Everything outstanding is a penalty.',
           ),
           const SizedBox(height: 8),
           AppButton(
