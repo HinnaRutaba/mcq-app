@@ -87,7 +87,6 @@ class FineOffender {
     required this.fatherName,
     required this.mobileNo,
     this.cnic,
-    this.address,
   });
 
   /// Pre-fill this block from `PersonLookup.suggested` after a CNIC search —
@@ -96,13 +95,11 @@ class FineOffender {
   factory FineOffender.fromSuggestion(
     PersonSuggestion suggestion, {
     String? cnic,
-    String? address,
   }) => FineOffender(
     name: suggestion.name,
     fatherName: suggestion.fatherName ?? '',
     mobileNo: suggestion.mobileNo ?? '',
     cnic: cnic,
-    address: address,
   );
 
   final String name;
@@ -111,9 +108,6 @@ class FineOffender {
 
   /// e.g. `5440011223344`.
   final String? cnic;
-
-  /// Where they were found, e.g. "Handcart, Circular Road".
-  final String? address;
 
   /// Whether the server will accept this block. All three identity fields have
   /// to be there together.
@@ -127,6 +121,5 @@ class FineOffender {
     'offender_father_name': fatherName,
     'offender_mobile_no': mobileNo,
     'offender_cnic': cnic,
-    'offender_address': address,
   };
 }

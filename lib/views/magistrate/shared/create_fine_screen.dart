@@ -594,7 +594,6 @@ class _PayerSection extends StatelessWidget {
     // anybody on the register to bill is its judgement, not the handset's.
     // Both are settled when the controller is built, so nothing here watches.
     final needsOffender = controller.needsOffenderDetails;
-    final areaFine = controller.isAreaFine;
 
     return _Section(
       step: '4',
@@ -637,17 +636,6 @@ class _PayerSection extends StatelessWidget {
               controller: controller.offenderMobileController,
               keyboardType: TextInputType.phone,
               validator: controller.validateOffenderMobile,
-              onChanged: (_) => controller.markEdited(),
-            ),
-            const SizedBox(height: 18),
-
-            AppTextField(
-              label: areaFine ? 'Where they were found' : 'Address',
-              hint: areaFine
-                  ? 'Optional, e.g. handcart, Circular Road'
-                  : 'Optional',
-              controller: controller.offenderAddressController,
-              maxLines: 2,
               onChanged: (_) => controller.markEdited(),
             ),
           ],

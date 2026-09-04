@@ -494,7 +494,6 @@ void main() {
       controller.offenderFatherController.text = 'Gul Khan';
       controller.offenderMobileController.text = '03001234567';
       controller.offenderCnicController.text = '5440011223344';
-      controller.offenderAddressController.text = 'Footpath outside Shop 12';
 
       expect(await controller.impose(), ImposeOutcome.success);
 
@@ -506,7 +505,6 @@ void main() {
       expect(json['area_id'], 1);
       expect(json['fine_type_id'], 4);
       expect(json['offender_name'], 'Noor Ahmed');
-      expect(json['offender_address'], 'Footpath outside Shop 12');
       expect(json.keys.toSet(), <String>{
         'area_id',
         'fine_type_id',
@@ -516,7 +514,6 @@ void main() {
         'offender_father_name',
         'offender_mobile_no',
         'offender_cnic',
-        'offender_address',
         'photo_path',
         'client_action_uuid',
       });

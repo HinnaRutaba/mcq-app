@@ -293,7 +293,6 @@ void main() {
             fatherName: 'Abdul Rasheed',
             mobileNo: '03001112233',
             cnic: '5440011223344',
-            address: 'Handcart, Circular Road',
           ),
           photoPath: 'enforcement/photos/01J.jpg',
           clientActionUuid: 'f1e2d3c4b5a69788',
@@ -314,7 +313,6 @@ void main() {
         'offender_father_name': 'Abdul Rasheed',
         'offender_mobile_no': '03001112233',
         'offender_cnic': '5440011223344',
-        'offender_address': 'Handcart, Circular Road',
         'photo_path': 'enforcement/photos/01J.jpg',
         'client_action_uuid': 'f1e2d3c4b5a69788',
       });

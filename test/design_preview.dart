@@ -515,7 +515,6 @@ void main() {
       fine.offenderFatherController.text = 'Gul Khan';
       fine.offenderMobileController.text = '03001234567';
       fine.offenderCnicController.text = '5440011223344';
-      fine.offenderAddressController.text = 'Handcart, Circular Road';
     },
     // The form as it looks once the officer has filled it in: a trade chosen
     // off the tariff, and the fee on the bar quoted per year rather than

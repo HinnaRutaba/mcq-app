@@ -12,6 +12,7 @@ import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/data/repositories/evidence_repository.dart';
 import 'package:mcq_app/data/repositories/fine_repository.dart';
 import 'package:mcq_app/data/repositories/person_repository.dart';
+import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/models/evidence_upload.dart';
 import 'package:mcq_app/models/fine.dart';
 import 'package:mcq_app/models/fine_request.dart';
@@ -22,6 +23,7 @@ import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
 import 'support/definitions_fixtures.dart';
 import 'support/person_fixtures.dart';
+import 'support/property_profile_fixtures.dart';
 
 /// The fine form on screen. Only what a still of the widget tree cannot show:
 /// the area's suggestions, which open under the search box, close when one is
@@ -58,17 +60,23 @@ void main() {
     Get.put<EvidenceRepository>(_FakeEvidenceRepository(), permanent: true);
     people = FakePersonRepository();
     Get.put<PersonRepository>(people, permanent: true);
+    Get.put<ReportingRepository>(FakeReportingRepository(), permanent: true);
   });
 
   tearDown(Get.reset);
 
-  Future<FineController> pumpForm(WidgetTester tester) async {
+  Future<FineController> pumpForm(
+    WidgetTester tester, {
+    int? propertyId,
+  }) async {
     tester.view
       ..physicalSize = const Size(400, 1400)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const MaterialApp(home: CreateFineScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: CreateFineScreen(propertyId: propertyId)),
+    );
     await tester.pumpAndSettle();
     return Get.find<FineController>();
   }
@@ -165,6 +173,27 @@ void main() {
       find.text('No record for this CNIC. Fill the details in below.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('a shop\'s allottee arrives with their CNIC in the field', (
+    WidgetTester tester,
+  ) async {
+    final FineController controller = await pumpForm(
+      tester,
+      propertyId: fixturePropertyId,
+    );
+
+    // Everything the register holds about the person to bill, the CNIC
+    // included — it is the field the officer would otherwise retype off a
+    // card they are already holding.
+    expect(controller.offenderCnicController.text, '5440012345671');
+    expect(controller.offenderNameController.text, 'Muhammad Iqbal');
+    expect(controller.offenderMobileController.text, '03001234511');
+    expect(find.text('5440012345671'), findsOneWidget);
+
+    // And it was not mistaken for something the officer typed: no lookup went
+    // out behind their back.
+    expect(people.searched, isEmpty);
   });
 
   testWidgets('cancelling the area puts the officer back in the box', (

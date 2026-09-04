@@ -813,7 +813,6 @@ void main() {
             fatherName: 'Abdul Rasheed',
             mobileNo: '03001234567',
             cnic: '5440011223344',
-            address: 'Footpath outside Shop 12, Liaquat Bazaar',
           ),
         ),
       );

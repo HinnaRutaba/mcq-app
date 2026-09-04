@@ -15,15 +15,7 @@ import 'widgets/licence_tile.dart';
 import 'widgets/lookup_answer.dart';
 import 'widgets/trade_filters.dart';
 
-/// Trade licences — the second register an officer works in the same bazaar,
-/// and a separate one from enforcement: a licence is permission to trade, not
-/// a debt.
-///
-/// The box in the header is not a filter over the list. It is the doorway
-/// lookup — "may this shop trade?" — asked of the whole city, so a query
-/// replaces the queues with an answer. The three queues underneath are the
-/// round: what is running out, what has run out, and what this officer has
-/// captured and not yet been paid for.
+
 class TradeLicencesScreen extends StatelessWidget {
   const TradeLicencesScreen({super.key});
 

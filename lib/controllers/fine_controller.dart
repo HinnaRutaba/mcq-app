@@ -150,8 +150,6 @@ class FineController extends GetxController {
 
   // Optional, and where nobody is on the register they are the only way back
   // to the person: there is no unit to find them at.
-  final TextEditingController offenderAddressController =
-      TextEditingController();
 
   // --- The evidence -----------------------------------------------------
   final RxnString photoLocalPath = RxnString();
@@ -177,7 +175,6 @@ class FineController extends GetxController {
   String? _suggestedFather;
   String? _suggestedMobile;
   String? _suggestedCnic;
-  String? _suggestedAddress;
 
   String? _amountServerError;
   String? _provisionServerError;
@@ -220,7 +217,6 @@ class FineController extends GetxController {
     areaSearchController.dispose();
     areaIdController.dispose();
     personLookup.onClose();
-    offenderAddressController.dispose();
     super.onClose();
   }
 
@@ -517,20 +513,16 @@ class FineController extends GetxController {
     final String? name = card?.allotteeName ?? allottee?.fullName;
     final String? mobile = card?.mobileNo ?? allottee?.mobileNo;
     final String? cnic = card?.cnic ?? allottee?.cnic;
-    // Ready to print, e.g. "Shop S-8, Liaquat Bazaar, Jinnah Road".
-    final String? address = property?.streetAddress;
 
     _prefill(offenderNameController, name, _suggestedName);
     _prefill(offenderFatherController, allottee?.fatherName, _suggestedFather);
     _prefill(offenderMobileController, mobile, _suggestedMobile);
     _prefill(offenderCnicController, cnic, _suggestedCnic);
-    _prefill(offenderAddressController, address, _suggestedAddress);
 
     _suggestedName = name;
     _suggestedFather = allottee?.fatherName;
     _suggestedMobile = mobile;
     _suggestedCnic = cnic;
-    _suggestedAddress = address;
     markEdited();
   }
 
@@ -786,7 +778,6 @@ class FineController extends GetxController {
     fatherName: offenderFatherController.text.trim(),
     mobileNo: offenderMobileController.text.trim(),
     cnic: _trimmedOrNull(offenderCnicController.text),
-    address: _trimmedOrNull(offenderAddressController.text),
   );
 
   static String? _trimmedOrNull(String value) {

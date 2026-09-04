@@ -147,8 +147,9 @@ class AllotteeRef {
     allotteeCode: Json.string(json['allottee_code']),
     fullName: Json.string(Json.pick(json, <String>['full_name', 'name'])),
     fatherName: Json.string(json['father_name']),
-    mobileNo: Json.string(json['mobile_no']),
-    cnic: Json.string(json['cnic']),
+    mobileNo: Json.string(Json.pick(json, <String>['mobile_no', 'mobile'])),
+    // Spelled two ways across the registers this block is read from.
+    cnic: Json.string(Json.pick(json, <String>['cnic', 'cnic_no'])),
     status: Json.string(json['status']),
   );
 
