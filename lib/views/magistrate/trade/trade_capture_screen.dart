@@ -6,7 +6,7 @@ import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
 import '../../../controllers/trade_capture_controller.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/reveal_banner.dart';
+import '../../../core/utils/form_scroll.dart';
 import '../../../models/field_beat.dart';
 import '../../../models/trade_application.dart';
 import '../../../models/trade_application_request.dart';
@@ -66,15 +66,19 @@ class _TradeCaptureScreenState extends State<TradeCaptureScreen> {
       return;
     }
 
-    // Everything else is already on the form: the banner carries the server's
-    // own sentence, and a refusal's per-field messages are back under their
-    // fields. Only the banner needs finding — it is at the top and the officer
-    // is at the bottom. A form that failed on its fields alone is left where it
-    // is, because the message they need is beside the field, not up there.
-    if (controller.errorMessage.value != null ||
-        controller.mayHaveLanded.value) {
+    // A send that never came back is not a message but a choice — check the
+    // captures, or send again — so it stays a block at the top of the form,
+    // and the form is carried back to it.
+    if (controller.mayHaveLanded.value) {
       _scrollController.revealBanner();
+      return;
     }
+
+    // Otherwise the server's own sentence is in the submit bar, under the
+    // thumb that just pressed the button. Anything it blamed a field for is
+    // under that field — which may be several sections up, so the form goes
+    // to it.
+    scrollToFirstError(controller.formKey);
   }
 
   @override
@@ -95,22 +99,30 @@ class _TradeCaptureScreenState extends State<TradeCaptureScreen> {
           Expanded(
             child: Form(
               key: controller.formKey,
-              child: ListView(
+              // A column, not a list: this form is a fixed handful of
+              // sections, and a lazy list only ever builds the visible ones —
+              // so `validate()` paints messages on half the form and passes
+              // the rest, and a field that was never built cannot be scrolled
+              // to when the server names it.
+              child: SingleChildScrollView(
                 controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-                children: <Widget>[
-                  _Banner(
-                    controller: controller,
-                    onCheck: () => _leave(changed: true),
-                  ),
-                  _AreaSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _TradeSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _ShopkeeperSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _ShopSection(controller: controller),
-                ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    _Banner(
+                      controller: controller,
+                      onCheck: () => _leave(changed: true),
+                    ),
+                    _AreaSection(controller: controller),
+                    const SizedBox(height: 20),
+                    _TradeSection(controller: controller),
+                    const SizedBox(height: 20),
+                    _ShopkeeperSection(controller: controller),
+                    const SizedBox(height: 20),
+                    _ShopSection(controller: controller),
+                  ],
+                ),
               ),
             ),
           ),
@@ -164,14 +176,14 @@ class _Banner extends StatelessWidget {
       );
     }
 
-    final String? message =
-        controller.errorMessage.value ?? controller.tariffError.value;
+    // A refused capture is not here: it is in the submit bar, beside the
+    // button that will be pressed again. This is the tariff — a fee that would
+    // not load belongs beside the form it prices.
+    final String? message = controller.tariffError.value;
     if (message == null) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
-      // The server's own sentence, verbatim. It knows why it refused and the
-      // handset does not.
       child: AppAlert(message: message),
     );
   }
@@ -299,6 +311,7 @@ class _AreaSection extends StatelessWidget {
       onCleared: controller.clearArea,
       hint: 'Search the bazaar',
       note: 'The licence is priced for this bazaar',
+      error: controller.areaError,
     );
   }
 }
@@ -682,6 +695,19 @@ class _SubmitBar extends StatelessWidget {
                 if (missing.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 10),
                   StillNeededNote(missing: missing),
+                ],
+                // Why the last press did not go through, kept beside the
+                // button that will be pressed again. Not while the send is
+                // unconfirmed: the block at the top of the form says that
+                // better, and saying it twice in two tones reads as two
+                // different problems.
+                if (controller.errorMessage.value != null &&
+                    !controller.mayHaveLanded.value) ...<Widget>[
+                  const SizedBox(height: 10),
+                  AppAlert(
+                    message: controller.errorMessage.value!,
+                    compact: true,
+                  ),
                 ],
                 const SizedBox(height: 10),
                 AppButton(

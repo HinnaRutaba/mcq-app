@@ -102,7 +102,10 @@ class TradeCaptureController extends GetxController {
   /// watches this instead and re-reads them.
   final RxInt revision = RxInt(0);
 
-  final Map<String, String> _serverErrors = <String, String>{};
+  /// Observable: the bazaar and the trade are chosen on a card and a search
+  /// box rather than on `FormField`s, so nothing repaints them when the form
+  /// is validated — the views watching these have to be told.
+  final RxMap<String, String> _serverErrors = <String, String>{}.obs;
 
   @override
   void onInit() {

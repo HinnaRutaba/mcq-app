@@ -17,41 +17,13 @@ import 'widgets/licence_tile.dart';
 import 'widgets/lookup_answer.dart';
 import 'widgets/trade_filters.dart';
 
-class TradeLicencesScreen extends StatefulWidget {
+class TradeLicencesScreen extends StatelessWidget {
   const TradeLicencesScreen({super.key});
 
   /// Two heights: the scope line only appears once the beat has landed, and a
   /// header sized for it before then leaves a gap under the title.
   static const double _headerHeight = 130;
   static const double _headerWithScope = 152;
-
-  @override
-  State<TradeLicencesScreen> createState() => _TradeLicencesScreenState();
-}
-
-class _TradeLicencesScreenState extends State<TradeLicencesScreen> {
-  /// Whether the tab was on screen last time dependencies changed. The branch
-  /// stays mounted inside the shell's `IndexedStack`, so this is the only
-  /// signal that the officer has come back to it — go_router mutes an inactive
-  /// branch's tickers, and that flips as the tab does.
-  bool _wasVisible = true;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    final bool visible = TickerMode.valuesOf(context).enabled;
-    final bool returned = visible && !_wasVisible;
-    _wasVisible = visible;
-
-    // Quietly: the rows already up stay up and the thin bar on the filter row
-    // carries the work, so coming back to the tab never costs a spinner. The
-    // bazaars are not re-asked for — they are a posting, not a queue, and only
-    // a pull re-reads them.
-    if (returned) {
-      Get.find<TradeLicencesController>().load(refreshBeat: false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +43,8 @@ class _TradeLicencesScreenState extends State<TradeLicencesScreen> {
                 title: 'Trade Licences',
                 subtitle: scope,
                 expandedHeight: scope == null
-                    ? TradeLicencesScreen._headerHeight
-                    : TradeLicencesScreen._headerWithScope,
+                    ? _headerHeight
+                    : _headerWithScope,
                 compactTitle: true,
                 // Room for the labelled button below, which is wider than the
                 // circle action the header reserves for by default.

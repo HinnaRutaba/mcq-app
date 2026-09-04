@@ -192,8 +192,12 @@ class FineController extends GetxController {
   String? _offenderFatherServerError;
   String? _offenderMobileServerError;
   String? _offenderCnicServerError;
-  String? _areaServerError;
   String? _remarksServerError;
+
+  /// The area's refusal, observable where the others are not: the area is
+  /// chosen on a search box rather than a `FormField`, so nothing repaints it
+  /// when the form is validated — the view has to be told.
+  final RxnString areaServerError = RxnString();
 
   @override
   void onInit() {
@@ -676,7 +680,7 @@ class FineController extends GetxController {
   }
 
   String? validateArea(int? value) {
-    if (_areaServerError != null) return _areaServerError;
+    if (areaServerError.value != null) return areaServerError.value;
     // `area_id` is required whatever the fine is against; a unit answers it
     // without asking, and this is what catches the unit whose record cannot.
     if (targetAreaId == null) return 'Name the area the fine was issued in';
@@ -831,7 +835,7 @@ class FineController extends GetxController {
     errorMessage.value = error.message;
     if (!error.isValidation) return;
 
-    _areaServerError = error.errorFor('area_id');
+    areaServerError.value = error.errorFor('area_id');
     _remarksServerError = error.errorFor('remarks');
     // No `allotment_id` here on purpose: the tenancy came off the unit's own
     // record, so a refusal about it is nothing the officer can fix on this
@@ -846,7 +850,7 @@ class FineController extends GetxController {
   }
 
   void _clearServerErrors() {
-    _areaServerError = null;
+    areaServerError.value = null;
     _remarksServerError = null;
     _fineTypeServerError = null;
     _amountServerError = null;

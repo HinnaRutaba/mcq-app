@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../controllers/fine_controller.dart';
 import '../../../core/utils/dialer.dart';
-import '../../../core/utils/reveal_banner.dart';
+import '../../../core/utils/form_scroll.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/capture/photo_capture.dart';
 import '../../../models/enforcement_definitions.dart';
@@ -54,12 +54,8 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
     ),
   );
 
-  /// The form's own scroll, so a refusal can be scrolled back to.
-  final ScrollController _scrollController = ScrollController();
-
   @override
   void dispose() {
-    _scrollController.dispose();
     Get.delete<FineController>();
     super.dispose();
   }
@@ -77,14 +73,10 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
       return;
     }
 
-    // A refusal is already on the form: the banner carries the server's own
-    // sentence and the per-field messages are back under their fields. Only
-    // the banner needs finding — it is at the top and the officer is at the
-    // bottom. A form that failed on its fields alone is left where it is,
-    // because the message they need is beside the field, not up there.
-    if (controller.errorMessage.value != null) {
-      _scrollController.revealBanner();
-    }
+    // The server's own sentence is in the submit bar, under the thumb that
+    // just pressed the button. Anything it blamed a field for is under that
+    // field — which may be several sections up, so the form goes to it.
+    scrollToFirstError(controller.formKey);
   }
 
   @override
@@ -113,34 +105,31 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
           Expanded(
             child: Form(
               key: controller.formKey,
-              child: ListView(
-                controller: _scrollController,
+              // A column, not a list: this form is a fixed handful of
+              // sections, and a lazy list only ever builds the visible ones —
+              // so `validate()` paints messages on half the form and passes
+              // the rest, and a field that was never built cannot be scrolled
+              // to when the server names it.
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-                children: <Widget>[
-                  Obx(() {
-                    final message = controller.errorMessage.value;
-                    if (message == null) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      // The server's own sentence, verbatim. It knows why it
-                      // refused and the handset does not.
-                      child: AppAlert(message: message),
-                    );
-                  }),
-                  _TargetSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _OffenceSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _AmountSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _PayerSection(controller: controller),
-                  const SizedBox(height: 20),
-                  _EvidenceSection(controller: controller),
-                  if (controller.takesRemarks) ...<Widget>[
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    _TargetSection(controller: controller),
                     const SizedBox(height: 20),
-                    _RemarksSection(controller: controller),
+                    _OffenceSection(controller: controller),
+                    const SizedBox(height: 20),
+                    _AmountSection(controller: controller),
+                    const SizedBox(height: 20),
+                    _PayerSection(controller: controller),
+                    const SizedBox(height: 20),
+                    _EvidenceSection(controller: controller),
+                    if (controller.takesRemarks) ...<Widget>[
+                      const SizedBox(height: 20),
+                      _RemarksSection(controller: controller),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -360,6 +349,7 @@ class _AreaPicker extends StatelessWidget {
         selected: controller.chosenArea,
         onCleared: controller.clearArea,
         note: 'The fine will be posted here',
+        error: controller.areaServerError.value,
       );
     });
   }
@@ -961,6 +951,18 @@ class _SubmitBar extends StatelessWidget {
                 if (missing.isNotEmpty) ...<Widget>[
                   const SizedBox(height: 10),
                   StillNeededNote(missing: missing),
+                ],
+                // Why the last press did not go through, kept beside the
+                // button that will be pressed again rather than at the top of
+                // a form the officer has already scrolled past. The server's
+                // own sentence, verbatim: it knows why it refused and the
+                // handset does not.
+                if (controller.errorMessage.value != null) ...<Widget>[
+                  const SizedBox(height: 10),
+                  AppAlert(
+                    message: controller.errorMessage.value!,
+                    compact: true,
+                  ),
                 ],
                 const SizedBox(height: 10),
                 AppButton(

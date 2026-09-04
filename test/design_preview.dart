@@ -444,6 +444,21 @@ void main() {
       _seedDefinitions();
       return const CreateFineScreen();
     },
+    // The server said no. The whole point of the still is the bottom bar: the
+    // refusal sits against the button that was just pressed, so an officer at
+    // the foot of a long form is told without going looking.
+    'fine_refused': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions();
+      _seedDashboard();
+      return const CreateFineScreen();
+    },
+    'trade_capture_refused': () {
+      _seedTradeCapture();
+      return const TradeCaptureScreen(areaId: 1);
+    },
   };
 
   // A dashboard is taller than a form. Rendering it at the default height
@@ -460,12 +475,14 @@ void main() {
     'trade_capture': 3000,
     'trade_capture_filled': 3600,
     'trade_capture_shop': 2200,
+    'trade_capture_refused': 2400,
     'challans': 2900,
     'challans_collapsed': 1400,
     'challans_fines': 1200,
     'challans_paged': 1800,
     'challan_sheet': 2500,
     'challan_sheet_fine': 2400,
+    'fine_refused': 2600,
     'fine': 2600,
     'fine_with_shop': 2600,
     'fine_evidence': 2600,
@@ -581,6 +598,30 @@ void main() {
         ..cnicController.text = '5440112233445';
       capture.chooseCategory(tradeTariffFixture.category(40)!);
     },
+    // Filled in and refused: the sentence the server sent, in the bar.
+    'fine_refused': () {
+      final FineController fine = Get.find<FineController>()..setArea(2);
+      fine.chooseFineType(fine.fineTypes.last);
+      fine.offenderNameController.text = 'Noor Ahmed';
+      fine.offenderFatherController.text = 'Gul Khan';
+      fine.offenderMobileController.text = '03001234567';
+      fine.offenderCnicController.text = '5440011223344';
+      fine.errorMessage.value =
+          'A fine for breaking a seal has to be filed against the case the '
+          'seal belongs to.';
+    },
+    'trade_capture_refused': () {
+      final TradeCaptureController capture = Get.find<TradeCaptureController>();
+      capture
+        ..applicantController.text = 'Abdul Karim'
+        ..fatherController.text = 'Muhammad Yousaf'
+        ..businessController.text = 'Al Madina Naan Shop'
+        ..addressController.text = 'Shop 14, Circular Road, Quetta'
+        ..cnicController.text = '5440112233445';
+      capture.chooseCategory(tradeTariffFixture.category(40)!);
+      capture.errorMessage.value =
+          'This CNIC already holds a licence for this trade in this bazaar.';
+    },
   };
 
   for (final entry in screens.entries) {
@@ -635,7 +676,10 @@ void main() {
           // Whichever scrollable the screen happens to use.
           final scrollable = find.byType(CustomScrollView).evaluate().isNotEmpty
               ? find.byType(CustomScrollView)
-              : find.byType(ListView).first;
+              : find.byType(ListView).evaluate().isNotEmpty
+              ? find.byType(ListView).first
+              // A form is a column in a scroll view, not a lazy list.
+              : find.byType(SingleChildScrollView).first;
           await tester.drag(scrollable, Offset(0, -scrollBy));
           await tester.pumpAndSettle();
           // Sections that scrolled into view start their entrance on a plain

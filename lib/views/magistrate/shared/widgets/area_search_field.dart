@@ -15,6 +15,7 @@ class AreaSearchField extends StatefulWidget {
     required this.onCleared,
     this.note,
     this.hint = 'Search the area',
+    this.error,
   });
 
   /// The text being searched with, held by the fine's own controller so a
@@ -40,6 +41,11 @@ class AreaSearchField extends StatefulWidget {
   final String? note;
 
   final String hint;
+
+  /// What the server said about the area, under the box that chose it. A
+  /// refusal naming `area_id` is the officer's to fix, so it belongs on the
+  /// field rather than only in the bar at the bottom.
+  final String? error;
 
   @override
   State<AreaSearchField> createState() => _AreaSearchFieldState();
@@ -79,6 +85,13 @@ class _AreaSearchFieldState extends State<AreaSearchField> {
             area: widget.selected!,
             note: widget.note,
             onCancel: _cancel,
+          ),
+        ],
+        if (widget.error != null) ...<Widget>[
+          const SizedBox(height: 6),
+          AppText.caption(
+            widget.error!,
+            color: Theme.of(context).colorScheme.error,
           ),
         ],
       ],
