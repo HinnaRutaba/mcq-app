@@ -1,11 +1,5 @@
 import '../core/utils/json_parse.dart';
 
-/// A value the server has already labelled and toned for display:
-/// `{"value": "warned", "label": "Warned", "tone": "warning"}`.
-///
-/// Render [label] as-is and colour by [tone]. Do not build a second lookup
-/// table in the app: the server owns the wording, and new statuses appear
-/// without an app release.
 class LabelledValue {
   const LabelledValue({required this.value, required this.label, this.tone});
 
@@ -59,6 +53,7 @@ class PropertyRef {
     this.propertyCode,
     this.displayName,
     this.physicalStatus,
+    this.location,
   });
 
   final int? id;
@@ -70,11 +65,24 @@ class PropertyRef {
   /// Present on a case's property, absent on a challan's.
   final LabelledValue? physicalStatus;
 
+  /// Where the unit stands, when the reference carries a fix.
+  ///
+  /// Read from a nested block or from the reference itself, because the
+  /// endpoints that do send coordinates disagree on where to put them —
+  /// `billing/challans` sends none at all today, and this is null there until
+  /// it does. [GeoPoint.maybe] answers null unless there is a real fix, so
+  /// every one of these lookups is safe to try.
+  final GeoPoint? location;
+
   factory PropertyRef.fromJson(Map<String, dynamic> json) => PropertyRef(
     id: Json.integer(json['id']),
     propertyCode: Json.string(json['property_code']),
     displayName: Json.string(json['display_name']),
     physicalStatus: LabelledValue.maybe(json['physical_status']),
+    location:
+        GeoPoint.maybe(json['location']) ??
+        GeoPoint.maybe(json['map']) ??
+        GeoPoint.maybe(json),
   );
 
   static PropertyRef? maybe(Object? source) =>
@@ -243,12 +251,6 @@ class EnforcementCaseRef {
       source is Map ? EnforcementCaseRef.fromJson(Json.map(source)) : null;
 }
 
-/// Where a unit stands. Sent as `latitude`/`longitude` on a field card and
-/// `lat`/`lng` on a map pin.
-///
-/// The strings are kept exactly as sent so a coordinate is never reformatted
-/// on its way through the app; [latitudeValue] / [longitudeValue] are there for
-/// handing to a map widget.
 class GeoPoint {
   const GeoPoint({this.latitude, this.longitude});
 

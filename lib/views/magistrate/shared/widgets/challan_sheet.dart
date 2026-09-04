@@ -5,36 +5,27 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_radius.dart';
 import '../../../../core/utils/dialer.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/map_launcher.dart';
 import '../../../../models/api_refs.dart';
 import '../../../../models/challan.dart';
 import '../../../../widgets/widgets.dart';
 
-/// One bill, read end to end.
-///
-/// A fine is not a rent bill: where [Challan.isSingleCharge] is set this draws
-/// one charge under one label, because a penalty has no month's rent, arrears
-/// or surcharge to break down and a table of zeroes reads as though it does.
-///
-/// [ChallanAmounts.payableNow] leads — it is the server's answer to what is due
-/// today, after any deferral, and the figure to quote at a counter.
 class ChallanSheet extends StatelessWidget {
   const ChallanSheet({
     super.key,
     required this.challan,
     this.onOpenShop,
     this.dialer = const Dialer(),
+    this.mapLauncher = const MapLauncher(),
   });
 
   final Challan challan;
 
-  /// Opens the shop the bill is against, after closing the sheet.
-  ///
-  /// Null where there is nowhere to go — a fine raised against somebody off
-  /// the register names no property — and null from the profile itself, which
-  /// is already the shop.
   final VoidCallback? onOpenShop;
 
   final Dialer dialer;
+
+  final MapLauncher mapLauncher;
 
   static Future<void> show(
     BuildContext context, {
@@ -60,7 +51,8 @@ class ChallanSheet extends StatelessWidget {
       context,
     ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
     final AppTone tone = AppToneColors.fromApi(challan.status?.tone);
-    final String? mobileNo = challan.allottee?.mobileNo ?? challan.payerMobileNo;
+    final String? mobileNo =
+        challan.allottee?.mobileNo ?? challan.payerMobileNo;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -84,7 +76,7 @@ class ChallanSheet extends StatelessWidget {
                   color: tone.on(context),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,12 +92,20 @@ class ChallanSheet extends StatelessWidget {
                   ],
                 ),
               ),
+              IconButton(
+                // The sheet is a modal route on the navigator, not a page on
+                // the router: `context.pop()` would take the screen underneath
+                // it instead of closing this.
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded),
+                tooltip: 'Close',
+              ),
             ],
           ),
           const SizedBox(height: 16),
 
           Wrap(spacing: 6, runSpacing: 6, children: _badges()),
-          const SizedBox(height: 18),
+          const SizedBox(height: 8),
 
           // The one figure an officer says out loud. Never a sum of this bill
           // and another — a fine and a month's rent are separate debts.
@@ -121,7 +121,7 @@ class ChallanSheet extends StatelessWidget {
           const SizedBox(height: 8),
           ..._charges(),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 12),
           const AppText.titleMedium('The bill'),
           const SizedBox(height: 8),
           ..._facts(),
@@ -133,16 +133,21 @@ class ChallanSheet extends StatelessWidget {
             if (_payer != null)
               AppDetailRow(icon: Icons.person_outline_rounded, value: _payer!),
             if (_tenancy != null)
-              AppDetailRow(
-                icon: Icons.assignment_outlined,
-                value: _tenancy!,
-              ),
+              AppDetailRow(icon: Icons.assignment_outlined, value: _tenancy!),
             if (_shop != null)
-              AppDetailRow(icon: Icons.storefront_outlined, value: _shop!),
+              AppDetailRow(
+                icon: Icons.storefront_outlined,
+                value: _shop!,
+                maxLines: 2,
+                // On the shop where there is one, on the bazaar otherwise —
+                // the action belongs on the most exact place named.
+                trailing: _directions(context),
+              ),
             if (challan.area?.name != null)
               AppDetailRow(
                 icon: Icons.place_outlined,
                 value: challan.area!.name!,
+                trailing: _shop == null ? _directions(context) : null,
               ),
             if (mobileNo != null)
               AppDetailRow(
@@ -347,6 +352,38 @@ class ChallanSheet extends StatelessWidget {
   }
 
   String? get _shop => challan.property?.displayName;
+
+  /// The fix the register holds for the unit, when it holds one. Null on every
+  /// challan the billing endpoint sends today — it publishes no coordinates —
+  /// and the search below is what stands in until it does.
+  GeoPoint? get _fix => challan.property?.location;
+
+  /// What to search a map for without a fix: the shop as the server named it,
+  /// then the bazaar. Gets the officer to the right row of shops and leaves
+  /// the last few yards to them.
+  String? get _mapQuery {
+    final List<String> parts = <String>[
+      ?challan.property?.displayName,
+      ?challan.area?.name,
+    ];
+    return parts.isEmpty ? null : parts.join(', ');
+  }
+
+  /// The map button, or null when there is nothing to point one at. A fix
+  /// beats an address, and neither means no map.
+  Widget? _directions(BuildContext context) {
+    if (MapLauncher.targetFor(point: _fix, address: _mapQuery) == null) {
+      return null;
+    }
+    return AppButton(
+      label: _fix == null ? 'Find' : 'Directions',
+      icon: Icons.map_outlined,
+      variant: AppButtonVariant.outline,
+      fullWidth: false,
+      height: 34,
+      onPressed: () => mapLauncher.open(point: _fix, address: _mapQuery),
+    );
+  }
 
   /// Whether the link still works is the whole point of saying anything about
   /// it — an expired link shared at a doorstep is worse than none.

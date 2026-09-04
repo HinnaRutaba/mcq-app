@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:mcq_app/core/utils/map_launcher.dart';
 import 'package:mcq_app/models/models.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
+import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/challan_fixtures.dart';
 
@@ -10,16 +12,35 @@ import 'support/challan_fixtures.dart';
 /// onto the screen. A field the model parses and the sheet never draws is a
 /// field the officer does not have.
 void main() {
+  late _FakeMaps maps;
+
+  setUp(() => maps = _FakeMaps());
+
   Future<void> pumpSheet(WidgetTester tester, Challan challan) async {
     tester.view
       ..physicalSize = const Size(420, 3000)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      MaterialApp(home: Scaffold(body: ChallanSheet(challan: challan))),
+      MaterialApp(
+        home: Scaffold(
+          body: ChallanSheet(challan: challan, mapLauncher: maps),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
   }
+
+  /// The same bill with a fix on its property, which billing does not send
+  /// today — the model reads one the moment it appears.
+  Challan withFix() => Challan.fromJson(<String, dynamic>{
+    ...challanOffTheWireJson,
+    'property': <String, dynamic>{
+      ...challanOffTheWireJson['property']! as Map<String, dynamic>,
+      'latitude': '30.19788500',
+      'longitude': '67.00838900',
+    },
+  });
 
   group('the payload off the wire', () {
     test('every key in the response reaches the model', () {
@@ -127,4 +148,64 @@ void main() {
       );
     });
   });
+
+  group('finding the shop', () {
+    testWidgets('a fix opens the map on the shop itself', (
+      WidgetTester tester,
+    ) async {
+      final Challan pinned = withFix();
+      expect(pinned.property?.location?.hasFix, isTrue);
+
+      await pumpSheet(tester, pinned);
+      await tester.tap(find.widgetWithText(AppButton, 'Directions'));
+      await tester.pumpAndSettle();
+
+      expect(maps.opened.single.point?.latitudeValue, 30.197885);
+      expect(maps.opened.single.point?.longitudeValue, 67.008389);
+    });
+
+    testWidgets('without one it searches the shop and the bazaar', (
+      WidgetTester tester,
+    ) async {
+      // What billing sends today: a property with no coordinates on it.
+      await pumpSheet(tester, challanOffTheWire);
+
+      // Worded differently, because a name search is not a pin.
+      expect(find.widgetWithText(AppButton, 'Directions'), findsNothing);
+      await tester.tap(find.widgetWithText(AppButton, 'Find'));
+      await tester.pumpAndSettle();
+
+      expect(maps.opened.single.point, isNull);
+      expect(
+        maps.opened.single.address,
+        'Jinnah Parking, Kandahari Bazaar, Jinnah Road',
+      );
+    });
+
+    testWidgets('a bill naming no place offers no map', (
+      WidgetTester tester,
+    ) async {
+      final Challan placeless = Challan.fromJson(<String, dynamic>{
+        'id': 1,
+        'allottee': <String, dynamic>{'name': 'Somebody'},
+        'amounts': <String, dynamic>{'payable_now': '100.00'},
+      });
+
+      await pumpSheet(tester, placeless);
+
+      expect(find.widgetWithText(AppButton, 'Find'), findsNothing);
+      expect(find.widgetWithText(AppButton, 'Directions'), findsNothing);
+    });
+  });
+}
+
+class _FakeMaps extends MapLauncher {
+  final List<({GeoPoint? point, String? address})> opened =
+      <({GeoPoint? point, String? address})>[];
+
+  @override
+  Future<bool> open({GeoPoint? point, String? address}) async {
+    opened.add((point: point, address: address));
+    return true;
+  }
 }

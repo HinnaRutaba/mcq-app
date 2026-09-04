@@ -6,16 +6,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../models/challan.dart';
 import '../../../../widgets/widgets.dart';
 
-/// One bill on the challan list.
-///
-/// The person leads, not the challan number: this list spans every shop, so
-/// the first question is whose bill it is — the number is what gets quoted
-/// once the officer is already talking to them. The profile's own bill rows
-/// lead with the number instead, because the shop is already known there.
-///
-/// One figure only, whatever the bill's shape: [ChallanAmounts.payableNow] is
-/// the server's answer to "what is due today", and a fine's balance is never
-/// added to a rent bill's.
+
 class ChallanTile extends StatelessWidget {
   const ChallanTile({
     super.key,
