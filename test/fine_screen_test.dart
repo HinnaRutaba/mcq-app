@@ -11,6 +11,7 @@ import 'package:mcq_app/data/repositories/auth_repository.dart';
 import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/data/repositories/evidence_repository.dart';
 import 'package:mcq_app/data/repositories/fine_repository.dart';
+import 'package:mcq_app/data/repositories/person_repository.dart';
 import 'package:mcq_app/models/evidence_upload.dart';
 import 'package:mcq_app/models/fine.dart';
 import 'package:mcq_app/models/fine_request.dart';
@@ -20,11 +21,14 @@ import 'package:mcq_app/widgets/widgets.dart';
 import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
 import 'support/definitions_fixtures.dart';
+import 'support/person_fixtures.dart';
 
 /// The fine form on screen. Only what a still of the widget tree cannot show:
 /// the area's suggestions, which open under the search box, close when one is
 /// taken, and open again when the choice is cancelled.
 void main() {
+  late FakePersonRepository people;
+
   setUp(() async {
     Get.reset();
     final StubbedApi api = StubbedApi();
@@ -52,6 +56,8 @@ void main() {
 
     Get.put<FineRepository>(_FakeFineRepository(), permanent: true);
     Get.put<EvidenceRepository>(_FakeEvidenceRepository(), permanent: true);
+    people = FakePersonRepository();
+    Get.put<PersonRepository>(people, permanent: true);
   });
 
   tearDown(Get.reset);
@@ -98,8 +104,67 @@ void main() {
     expect(controller.areaSearchController.text, isEmpty);
     expect(find.text('Jinnah Road'), findsNothing);
     // Its own tile, with what the beat knows about it.
+    expect(find.text('The fine will be posted here'), findsOneWidget);
     expect(find.text('Zone 1 - Zarghoon'), findsOneWidget);
-    expect(find.text('Area 2'), findsOneWidget);
+  });
+
+  testWidgets('a whole CNIC is looked up, and the answer fills who pays', (
+    WidgetTester tester,
+  ) async {
+    final FineController controller = await pumpForm(tester);
+    final Finder cnic = find.widgetWithText(AppTextField, "Offender's CNIC");
+
+    // Half a CNIC is not a search: nothing goes on the wire until all
+    // thirteen digits are there — and the field says so, rather than sitting
+    // there looking broken.
+    await tester.enterText(cnic, '544001000');
+    await tester.pumpAndSettle();
+    expect(people.searched, isEmpty);
+    expect(find.text('Haji Abdul Rauf Kakar'), findsNothing);
+    expect(
+      find.text('4 more digits and the register is searched'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(cnic, '5440010000000');
+    await tester.pumpAndSettle();
+
+    expect(people.searched, <String>['5440010000000']);
+    // Offered with what the register holds, and which register that is.
+    expect(find.text('Haji Abdul Rauf Kakar'), findsOneWidget);
+    expect(find.text('On the property register'), findsOneWidget);
+    expect(find.text('S/O Abdul Ghafoor Kakar'), findsOneWidget);
+
+    await tester.tap(find.text('Tap to fill in who pays'));
+    await tester.pumpAndSettle();
+
+    // Taken: the identity fields are filled in and the card has given way to
+    // what it filled in.
+    expect(controller.offenderNameController.text, 'Haji Abdul Rauf Kakar');
+    expect(controller.offenderFatherController.text, 'Abdul Ghafoor Kakar');
+    expect(controller.offenderMobileController.text, '03368359506');
+    expect(find.text('Tap to fill in who pays'), findsNothing);
+  });
+
+  testWidgets('a CNIC nobody holds is said out loud', (
+    WidgetTester tester,
+  ) async {
+    people.known = false;
+    await pumpForm(tester);
+
+    await tester.enterText(
+      find.widgetWithText(AppTextField, "Offender's CNIC"),
+      '5440010000000',
+    );
+    await tester.pumpAndSettle();
+
+    // Not an error — a hawker nobody has written up before. The officer types
+    // the details themselves, and the field says so rather than going quiet.
+    expect(people.searched, <String>['5440010000000']);
+    expect(
+      find.text('No record for this CNIC. Fill the details in below.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('cancelling the area puts the officer back in the box', (
@@ -119,7 +184,7 @@ void main() {
     // Focused again, so the next area is one tap away: the suggestions are
     // open without the officer touching the box.
     expect(find.text('Jinnah Road'), findsOneWidget);
-    expect(find.text('Area 2'), findsNothing);
+    expect(find.text('The fine will be posted here'), findsNothing);
   });
 }
 

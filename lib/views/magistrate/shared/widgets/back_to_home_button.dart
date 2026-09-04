@@ -1,18 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// The back arrow on the five bar tabs that are not Home.
-///
-/// Home is where an officer starts and what they read between shops, so every
-/// other tab is somewhere they *went* — and a screen you went to is expected
-/// to have a way back. The bar underneath does it in one tap already; this is
-/// for the hand that reaches for the arrow in the corner instead, and it is
-/// the same step Android's own back button takes (see the `PopScope` in
-/// `MagistrateShell`, which routes the system press through [goHome] too).
-///
-/// Lives in `shared/` rather than [lib/widgets/] despite being used by four
-/// tabs: it knows the bar's branch order, which is the shell's business and
-/// not a generic component's.
 class BackToHomeButton extends StatelessWidget {
   const BackToHomeButton({super.key});
 

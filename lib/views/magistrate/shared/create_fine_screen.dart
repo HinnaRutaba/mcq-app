@@ -16,6 +16,7 @@ import '../../../widgets/widgets.dart';
 import 'widgets/area_search_field.dart';
 import 'widgets/evidence_tile.dart';
 import 'widgets/fine_amount_field.dart';
+import 'widgets/person_cnic_field.dart';
 import 'widgets/fine_imposed_sheet.dart';
 import '../../../config/theme/app_radius.dart';
 
@@ -608,12 +609,13 @@ class _PayerSection extends StatelessWidget {
       child: AppCard(
         child: Column(
           children: <Widget>[
-            AppTextField(
+            PersonCnicField(
+              controller: controller.personLookup,
               label: "Offender's CNIC",
               hint: needsOffender ? 'e.g. 5440011223344' : 'Optional',
-              controller: controller.offenderCnicController,
               validator: controller.validateOffenderCnic,
               onChanged: (_) => controller.markEdited(),
+              onTaken: controller.takePerson,
             ),
             const SizedBox(height: 18),
             AppTextField(

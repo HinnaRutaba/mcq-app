@@ -5,16 +5,19 @@ import '../core/capture/photo_capture.dart';
 import '../core/network/api_exception.dart';
 import '../data/repositories/evidence_repository.dart';
 import '../data/repositories/fine_repository.dart';
+import '../data/repositories/person_repository.dart';
 import '../data/repositories/reporting_repository.dart';
 import '../models/api_refs.dart';
 import '../models/enforcement_definitions.dart';
 import '../models/field_beat.dart';
 import '../models/fine.dart';
 import '../models/fine_request.dart';
+import '../models/person_lookup.dart';
 import '../models/property_profile.dart';
 import '../models/unit_card.dart';
 import 'dashboard_controller.dart';
 import 'definitions_controller.dart';
+import 'person_lookup_controller.dart';
 
 /// What came of pressing "Impose a fine".
 enum ImposeOutcome {
@@ -53,11 +56,13 @@ class FineController extends GetxController {
     FineRepository? fineRepository,
     EvidenceRepository? evidenceRepository,
     ReportingRepository? reportingRepository,
+    PersonRepository? personRepository,
     DefinitionsController? definitionsController,
     DashboardController? dashboardController,
     PhotoCapture? photoCapture,
   }) : _fines = fineRepository ?? Get.find<FineRepository>(),
        _reportingOverride = reportingRepository,
+       _personOverride = personRepository,
        _evidence = evidenceRepository ?? Get.find<EvidenceRepository>(),
        _definitions =
            definitionsController ?? Get.find<DefinitionsController>(),
@@ -81,6 +86,14 @@ class FineController extends GetxController {
   /// already has everything it needs.
   late final ReportingRepository _reporting =
       _reportingOverride ?? Get.find<ReportingRepository>();
+
+  final PersonRepository? _personOverride;
+
+  /// The CNIC search behind the payer block, and the field it owns. Built on
+  /// first use, because a fine on a shop is usually written without one.
+  late final PersonLookupController personLookup = PersonLookupController(
+    personRepository: _personOverride,
+  );
 
   /// The offences a fine may be raised for, with the amount and provision the
   /// register suggests for each. Rows MCQ can edit, so they are read here and
@@ -131,9 +144,12 @@ class FineController extends GetxController {
   final TextEditingController offenderMobileController =
       TextEditingController();
 
+  /// The CNIC, held by the search that owns the field.
+  TextEditingController get offenderCnicController =>
+      personLookup.cnicController;
+
   // Optional, and where nobody is on the register they are the only way back
   // to the person: there is no unit to find them at.
-  final TextEditingController offenderCnicController = TextEditingController();
   final TextEditingController offenderAddressController =
       TextEditingController();
 
@@ -203,7 +219,7 @@ class FineController extends GetxController {
     offenderMobileController.dispose();
     areaSearchController.dispose();
     areaIdController.dispose();
-    offenderCnicController.dispose();
+    personLookup.onClose();
     offenderAddressController.dispose();
     super.onClose();
   }
@@ -550,6 +566,24 @@ class FineController extends GetxController {
     // Anything the officer put there themselves stays.
     if (current.isNotEmpty && current != previous) return;
     field.text = suggestion ?? '';
+  }
+
+  // --- Who pays ---------------------------------------------------------
+
+  /// Fills the payer block in from a CNIC the officer looked up and took.
+  ///
+  /// Straight over whatever was there: they tapped a card with a name on it,
+  /// and the block has to say what they were shown.
+  void takePerson(PersonSuggestion suggestion, PersonLookup found) {
+    offenderNameController.text = suggestion.name;
+    offenderFatherController.text = suggestion.fatherName ?? '';
+    offenderMobileController.text = suggestion.mobileNo ?? '';
+    // What was taken is what the register suggested, so a later prefill from a
+    // shop does not mistake it for the officer's own typing.
+    _suggestedName = suggestion.name;
+    _suggestedFather = suggestion.fatherName;
+    _suggestedMobile = suggestion.mobileNo;
+    markEdited();
   }
 
   // --- The evidence -----------------------------------------------------

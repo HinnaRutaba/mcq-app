@@ -23,6 +23,7 @@ import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/challan_repository.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
+import 'package:mcq_app/data/repositories/person_repository.dart';
 import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
@@ -53,6 +54,7 @@ import 'support/api_stub.dart';
 import 'support/challan_fixtures.dart';
 import 'support/dashboard_fixtures.dart';
 import 'support/definitions_fixtures.dart';
+import 'support/person_fixtures.dart';
 import 'support/property_profile_fixtures.dart';
 import 'support/trade_fixtures.dart';
 
@@ -384,6 +386,21 @@ void main() {
       return const CreateFineScreen(unit: _finedUnit);
     },
     // Its "who pays" block, which an area fine always has to fill in.
+    // The CNIC search under "who pays": thirteen digits, and whoever the
+    // registers hold offered under the field.
+    'fine_person_lookup': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions();
+      _seedDashboard();
+      Get.delete<PersonRepository>(force: true);
+      Get.put<PersonRepository>(
+        FakePersonRepository(fineCount: 2),
+        permanent: true,
+      );
+      return const CreateFineScreen();
+    },
     'fine_in_area_payer': () {
       Get.find<ThemeController>().setColorScheme(
         AppColorScheme.balochistanGreen,
@@ -417,6 +434,7 @@ void main() {
     'fine_with_shop': 2600,
     'fine_evidence': 2600,
     'fine_from_property': 2600,
+    'fine_person_lookup': 3000,
     'fine_shop_payer': 2800,
     'fine_in_area': 2800,
     'fine_in_area_payer': 2800,
@@ -450,6 +468,7 @@ void main() {
     'fine_evidence': 700,
     'fine_in_area_payer': 620,
     'fine_shop_payer': 700,
+    'fine_person_lookup': 900,
     'trade_capture_shop': 1500,
   };
 
@@ -483,6 +502,12 @@ void main() {
       // Encroachment on the fixture's register — the amount and the section of
       // law under it are the register's own, not typed.
       fine.chooseFineType(fine.fineTypes.last);
+    },
+    'fine_person_lookup': () {
+      final FineController fine = Get.find<FineController>()..setArea(2);
+      fine.chooseFineType(fine.fineTypes.last);
+      fine.personLookup.cnicController.text = '5440010000000';
+      fine.personLookup.search('5440010000000');
     },
     'fine_in_area_payer': () {
       final FineController fine = Get.find<FineController>()..setArea(2);
