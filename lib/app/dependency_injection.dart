@@ -24,6 +24,7 @@ import '../data/repositories/person_repository.dart';
 import '../data/repositories/reporting_repository.dart';
 import '../data/repositories/trade_repository.dart';
 import '../data/repositories/units_repository.dart';
+import 'session_scope.dart';
 
 /// Registers app-wide singletons before [runApp].
 ///
@@ -118,4 +119,9 @@ void setupDependencies() {
     fenix: true,
   );
   Get.lazyPut<ChallansController>(ChallansController.new, fenix: true);
+
+  // Last, because it drops the four above when the session changes hands: a
+  // `fenix` controller that is deleted is rebuilt — and refetched — the next
+  // time its tab asks for it.
+  watchSessionScope();
 }
