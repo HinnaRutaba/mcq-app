@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:mcq_app/app/dependency_injection.dart';
+import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/config/theme/app_radius.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
@@ -50,6 +52,7 @@ import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
+import 'package:mcq_app/views/splash/splash_screen.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/api_stub.dart';
@@ -111,6 +114,21 @@ void main() {
   // show — the sign-in screen is worth seeing with a failure on it, since that
   // is the state an officer meets at a counter when the password is wrong.
   final screens = <String, Widget Function()>{
+    // The splash carries a router of its own: it navigates as soon as the
+    // session check lands, and the harness pumps it under a plain MaterialApp.
+    'splash': () => InheritedGoRouter(
+      goRouter: GoRouter(
+        routes: <RouteBase>[
+          for (final String path in <String>[
+            '/',
+            AppRoutes.login,
+            AppRoutes.magistrateHome,
+          ])
+            GoRoute(path: path, builder: (_, _) => const SizedBox.shrink()),
+        ],
+      ),
+      child: const SplashScreen(),
+    ),
     'login': () {
       Get.find<AuthController>().errorMessage.value = null;
       return const LoginScreen();
@@ -532,6 +550,10 @@ void main() {
   /// still of a settled page proves nothing about how it arrives.
   const midFlight = <String, int>{'home_arriving': 330};
 
+  /// Entries that never come to rest — a splash spins until it routes, so
+  /// `pumpAndSettle` would wait on an animation that has no end.
+  const neverSettles = <String>{'splash'};
+
   /// A nudge to give once the screen is up — a tab to open on a screen that
   /// registers its own controller, which a builder cannot reach before the
   /// widget it belongs to exists.
@@ -646,8 +668,24 @@ void main() {
             home: screen,
           ),
         );
+        // An asset image decodes on a real async pass, which `pump` never
+        // gives it — without this the crests come out as blank plates.
+        await tester.runAsync(() async {
+          final BuildContext element = tester.element(find.byType(MaterialApp));
+          for (final String asset in <String>[
+            AppLogo.asset,
+            AppGovernmentMark.asset,
+          ]) {
+            await precacheImage(AssetImage(asset), element);
+          }
+        });
+
         final catchAt = midFlight[entry.key];
-        if (catchAt == null) {
+        if (neverSettles.contains(entry.key)) {
+          for (var elapsed = 0; elapsed < 400; elapsed += 16) {
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+        } else if (catchAt == null) {
           await tester.pumpAndSettle();
         } else {
           // Frame by frame, the way a handset actually runs it. A single big
@@ -695,10 +733,17 @@ void main() {
         );
 
         // Let whatever was still moving finish, so the run ends with no timer
-        // or animation left pending.
-        await tester.pumpAndSettle();
-        await tester.pump(const Duration(seconds: 1));
-        await tester.pumpAndSettle();
+        // or animation left pending — including the splash's wait before it
+        // routes, which is a timer and not an animation.
+        if (neverSettles.contains(entry.key)) {
+          for (var elapsed = 0; elapsed < 1600; elapsed += 100) {
+            await tester.pump(const Duration(milliseconds: 100));
+          }
+        } else {
+          await tester.pumpAndSettle();
+          await tester.pump(const Duration(seconds: 1));
+          await tester.pumpAndSettle();
+        }
       });
     }
   }
