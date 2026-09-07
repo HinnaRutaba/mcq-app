@@ -54,6 +54,10 @@ class _BackdropPainter extends CustomPainter {
 
   double get _pale => brightness == Brightness.dark ? 0.45 : 1.0;
 
+  /// How present the spheres are over the gradient — every sphere's alpha is
+  /// scaled by this. The whole dial for how much they show.
+  static const double _presence = 0.5;
+
   @override
   void paint(Canvas canvas, Size size) {
     final double w = size.width;
@@ -103,22 +107,30 @@ class _BackdropPainter extends CustomPainter {
       canvas,
       Offset(w * 0.14, h * 0.08),
       w * 0.21,
-      Color.lerp(brand.headerTo, Colors.black, 0.30)!.withValues(alpha: 0.85),
-      Color.lerp(brand.headerTo, Colors.black, 0.55)!.withValues(alpha: 0.55),
+      Color.lerp(
+        brand.headerTo,
+        Colors.black,
+        0.30,
+      )!.withValues(alpha: 0.85 * _presence),
+      Color.lerp(
+        brand.headerTo,
+        Colors.black,
+        0.55,
+      )!.withValues(alpha: 0.55 * _presence),
     );
     _sphere(
       canvas,
       Offset(w * 0.88, h * 0.12),
       w * 0.115,
-      Colors.white.withValues(alpha: 0.80 * _pale),
-      Colors.white.withValues(alpha: 0.28 * _pale),
+      Colors.white.withValues(alpha: 0.80 * _pale * _presence),
+      Colors.white.withValues(alpha: 0.28 * _pale * _presence),
     );
     _sphere(
       canvas,
       Offset(w * 0.11, h * 0.63),
       w * 0.075,
-      Colors.white.withValues(alpha: 0.85 * _pale),
-      Colors.white.withValues(alpha: 0.40 * _pale),
+      Colors.white.withValues(alpha: 0.85 * _pale * _presence),
+      Colors.white.withValues(alpha: 0.40 * _pale * _presence),
     );
     _sphere(
       canvas,
@@ -126,12 +138,12 @@ class _BackdropPainter extends CustomPainter {
       w * 0.24,
       // The dark scheme's brand is a bright mint, so this one is dimmed with
       // the pale shapes rather than left to glow in the corner.
-      brand.primary.withValues(alpha: 0.42 * _pale),
+      brand.primary.withValues(alpha: 0.42 * _pale * _presence),
       Color.lerp(
         brand.primary,
         Colors.black,
         0.45,
-      )!.withValues(alpha: 0.30 * _pale),
+      )!.withValues(alpha: 0.30 * _pale * _presence),
     );
   }
 
@@ -154,7 +166,7 @@ class _BackdropPainter extends CustomPainter {
       center.translate(radius * 0.10, radius * 0.14),
       radius,
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.10)
+        ..color = Colors.black.withValues(alpha: 0.10 * _presence)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.35),
     );
 
