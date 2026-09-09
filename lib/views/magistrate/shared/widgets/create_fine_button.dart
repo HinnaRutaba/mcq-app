@@ -41,9 +41,12 @@ class CreateFineButton extends StatelessWidget {
   static double get notchRadius =>
       AppBottomNavBar.notchRadiusFor(AppFab.defaultCornerRadius);
 
-  /// Anything other than null came back means a fine was posted: the form pops
-  /// the [Fine] the server wrote, and an abandoned form pops nothing.
-  Future<void> _impose(BuildContext context) async {
+  static Future<void> impose(
+    BuildContext context, {
+    int? propertyId,
+    int? allotmentId,
+    Future<void> Function()? onImposed,
+  }) async {
     final Fine? imposed = await context.push<Fine>(
       AppRoutes.createFinePath(
         propertyId: propertyId,
@@ -64,7 +67,12 @@ class CreateFineButton extends StatelessWidget {
       size: size,
       color: context.brand.accent,
       foregroundColor: AppColors.onAccent,
-      onTap: () => _impose(context),
+      onTap: () => impose(
+        context,
+        propertyId: propertyId,
+        allotmentId: allotmentId,
+        onImposed: onImposed,
+      ),
     );
   }
 }

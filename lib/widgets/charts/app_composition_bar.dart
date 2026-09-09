@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -185,28 +187,35 @@ class _AppCompositionBarState extends State<AppCompositionBar> {
     double remainder,
     double gap,
   ) {
-    final items = <BarChartRodStackItem>[];
     final surface = theme.cardTheme.color ?? theme.colorScheme.surface;
-    var at = 0.0;
+    final parts = <(double, Color)>[
+      for (final CompositionSlice slice in widget.slices)
+        if (slice.value > 0) (slice.value, slice.color),
+      if (remainder > 0) (remainder, theme.colorScheme.surfaceContainerHighest),
+    ];
+    if (parts.isEmpty) return const <BarChartRodStackItem>[];
 
-    void add(double value, Color color) {
-      if (value <= 0) return;
-      if (items.isNotEmpty) {
-        items.add(BarChartRodStackItem(at, at + gap, surface));
-        at += gap;
+    // The separators come out of the bar's length rather than being added to
+    // it: laid end to end past the total, the last segment starts beyond the
+    // axis. Gaps that would not fit are dropped instead.
+    final gaps = gap * (parts.length - 1);
+    final spaced = gaps > 0 && gaps < widget.total;
+    final scale = spaced ? (widget.total - gaps) / widget.total : 1.0;
+
+    final items = <BarChartRodStackItem>[];
+    var at = 0.0;
+    for (final (double value, Color color) in parts) {
+      if (spaced && items.isNotEmpty) {
+        final to = math.min(at + gap, widget.total);
+        items.add(BarChartRodStackItem(at, to, surface));
+        at = to;
       }
-      final end = (at + value - (items.isEmpty ? 0 : 0)).clamp(
-        at,
-        widget.total,
-      );
+      // Parts adding up past the server's total are cut off at it — the bar
+      // never draws beyond its own end.
+      final end = math.min(at + value * scale, widget.total);
       items.add(BarChartRodStackItem(at, end, color));
       at = end;
     }
-
-    for (final CompositionSlice slice in widget.slices) {
-      add(slice.value, slice.color);
-    }
-    add(remainder, theme.colorScheme.surfaceContainerHighest);
     return items;
   }
 

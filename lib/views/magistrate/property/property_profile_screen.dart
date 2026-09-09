@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../config/theme/app_brand.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_status_colors.dart';
 import '../../../controllers/property_profile_controller.dart';
@@ -10,6 +11,7 @@ import '../../../models/challan.dart';
 import '../../../models/defaulter_card.dart';
 import '../../../models/enforcement_action.dart';
 import '../../../models/enforcement_case.dart';
+import '../../../models/enforcement_definitions.dart';
 import '../../../models/property_profile.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/widgets/challan_sheet.dart';
@@ -17,8 +19,14 @@ import '../shared/widgets/create_fine_button.dart';
 import 'widgets/case_card.dart';
 import 'widgets/case_timeline.dart';
 import 'widgets/profile_header.dart';
+import 'widgets/take_action_sheet.dart';
 
 const EdgeInsets _cardPadding = EdgeInsets.fromLTRB(12, 16, 12, 16);
+
+/// The register's code for a fine, which the fines endpoint raises rather than
+/// the action endpoint — so it is the one row on the sheet with a form of its
+/// own already.
+const String _fineImposed = 'fine_imposed';
 
 class PropertyProfileScreen extends StatefulWidget {
   const PropertyProfileScreen({
@@ -54,20 +62,30 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _takeAction(BuildContext context) async {
+    final ActionTypeDefinition? action = await TakeActionSheet.show(context);
+    if (action == null || !context.mounted) return;
+
+    if (action.code == _fineImposed) {
+      await CreateFineButton.impose(
+        context,
+        propertyId: controller.propertyId,
+        allotmentId: controller.allotmentId,
+        onImposed: controller.load,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // A fine imposed here lands on this shop's own bills and can open a
-      // case on it, so the profile re-reads itself when one comes back.
-      //
-      // Wrapped, because the tenancy the fine is billed to arrives with the
-      // profile: read outside an `Obx` the button would carry the null it was
-      // first built with.
-      floatingActionButton: Obx(
-        () => CreateFineButton(
-          propertyId: controller.propertyId,
-          allotmentId: controller.allotmentId,
-          onImposed: controller.load,
+      floatingActionButton: AppEntrance(
+        child: AppExtendedFab(
+          icon: Icons.bolt_rounded,
+          label: 'Take Action',
+          color: context.brand.accent,
+          foregroundColor: AppColors.onAccent,
+          onTap: () => _takeAction(context),
         ),
       ),
       body: RefreshIndicator(
@@ -144,7 +162,8 @@ List<Widget> _slivers(
 
   return <Widget>[
     SliverPadding(
-      // Deep at the bottom: the fine button floats over the last of the list.
+      // Deep at the bottom: the action button floats over the last of the
+      // list.
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 96),
       sliver: SliverList.list(
         children: <Widget>[

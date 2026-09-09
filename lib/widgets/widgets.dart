@@ -5,6 +5,7 @@
 library;
 
 export 'buttons/app_button.dart';
+export 'buttons/app_extended_fab.dart';
 export 'buttons/app_fab.dart';
 export 'cards/app_card.dart';
 export 'charts/app_bar_chart.dart';

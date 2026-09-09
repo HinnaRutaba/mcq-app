@@ -49,6 +49,7 @@ import 'package:mcq_app/views/magistrate/trade/widgets/capture_sheet.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/licence_sheet.dart';
 import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
+import 'package:mcq_app/views/magistrate/property/widgets/take_action_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
@@ -361,6 +362,12 @@ void main() {
       _seedPropertyProfile(profile: vacantPropertyProfileFixture);
       return const PropertyProfileScreen(propertyId: fixturePropertyId);
     },
+    // The sheet the shop's Take Action button opens: every step the register
+    // publishes for a case, in the server's own order and wording.
+    'take_action_sheet': () {
+      _seedDefinitions(register: _registerWithEveryAction());
+      return _sheet(const TakeActionSheet());
+    },
     'fine': () {
       // Reset the scheme: an earlier entry deliberately switches to indigo and
       // the controller is a permanent singleton, so without this the fine form
@@ -522,6 +529,7 @@ void main() {
     'property_profile_cases': 2600,
     'property_profile_history': 4400,
     'property_profile_vacant': 2200,
+    'take_action_sheet': 2700,
     'defaulters': 2900,
     'defaulters_never_paid': 2900,
     // Short on purpose: the list has to outrun the viewport to be scrolled.
@@ -777,6 +785,45 @@ void _seedDashboard({Object? failure}) {
 /// Puts the offence register over the fixture and rebuilds the controller that
 /// holds it, so the fine form's picker is drawn from rows rather than from a
 /// call the preview cannot make.
+/// The whole published action list, where the shared fixtures carry three
+/// rows. The sheet is a list, and a still of three of them says nothing about
+/// how ten read — including the ones the server writes itself, which are in
+/// `action_types` too.
+Map<String, dynamic> _registerWithEveryAction() {
+  final Map<String, dynamic> data = definitionsData();
+  data['action_types'] = <Map<String, dynamic>>[
+    _actionRow('site_visit', 'Site visit'),
+    _actionRow('verbal_warning', 'Verbal warning'),
+    _actionRow('final_warning', 'Final warning'),
+    _actionRow('notice_served', 'Notice served'),
+    _actionRow('payment_promised', 'Payment promised', promiseDate: true),
+    _actionRow('reminder_visit_set', 'Reminder visit set', visitDate: true),
+    _actionRow('fine_imposed', 'Fine imposed', amount: true),
+    _actionRow('seal', 'Sealed', sealNo: true),
+    _actionRow('unseal', 'Seal released', sealNo: true),
+    _actionRow('case_closed', 'Case closed'),
+  ];
+  return data;
+}
+
+Map<String, dynamic> _actionRow(
+  String code,
+  String name, {
+  bool promiseDate = false,
+  bool visitDate = false,
+  bool amount = false,
+  bool sealNo = false,
+}) => <String, dynamic>{
+  'code': code,
+  'name': name,
+  'fields': <String, dynamic>{
+    'promise_date': promiseDate,
+    'visit_date': visitDate,
+    'amount': amount,
+    'seal_no': sealNo,
+  },
+};
+
 void _seedDefinitions({Map<String, dynamic>? register}) {
   Get.find<AuthController>().officer.value = officerFixture;
   Get.delete<DefinitionsRepository>(force: true);

@@ -137,15 +137,23 @@ void main() {
       Get.put<ChallanRepository>(challans, permanent: true);
     });
 
+    /// Opens the fine form the way an officer does from a shop: the Take
+    /// Action button, then the fine off the register's own action list.
+    Future<void> openFineForm(WidgetTester tester) async {
+      await tester.tap(find.byType(AppExtendedFab));
+      await settle(tester);
+      await tester.tap(find.text('Fine imposed'));
+      await settle(tester);
+    }
+
     /// Writes a fine from the shop's own profile, the way an officer does:
-    /// the floating button, the offence, the send, and the receipt closed.
+    /// the action sheet, the offence, the send, and the receipt closed.
     Future<void> imposeFromProfile(WidgetTester tester) async {
       sizeTo(tester, height: 6000);
       await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
       await settle(tester);
 
-      await tester.tap(find.byType(AppFab));
-      await settle(tester);
+      await openFineForm(tester);
 
       // The offence prefills the amount and the provision off the register,
       // which is everything else the form insists on.
@@ -176,7 +184,7 @@ void main() {
       // third because the fine landed on this shop's bills.
       expect(reporting.profileCalls, 3);
       expect(challans.calls, challansBefore + 1);
-      expect(find.byType(AppFab), findsOneWidget);
+      expect(find.byType(AppExtendedFab), findsOneWidget);
     });
 
     testWidgets('leaves the shop alone when the form is abandoned', (
@@ -192,8 +200,7 @@ void main() {
       await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
       await settle(tester);
 
-      await tester.tap(find.byType(AppFab));
-      await settle(tester);
+      await openFineForm(tester);
       await tester.tap(find.byIcon(Icons.arrow_back_rounded));
       await settle(tester);
 

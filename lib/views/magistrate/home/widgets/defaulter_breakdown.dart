@@ -6,16 +6,6 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../models/round_group.dart';
 import '../../../../widgets/widgets.dart';
 
-/// Where the arrears sit across the officer's beat.
-///
-/// The beat's own `defaulters` queue already says how many owe and how much in
-/// total — the server totals that itself. This is the shape underneath it:
-/// which bazaar holds the money, and how much of the problem is people who
-/// promised and did not pay rather than people who simply fell behind.
-///
-/// Rows are per market, which is the level the server totals the money at.
-/// Rolling markets up into their shared area would mean adding two money
-/// strings together in Dart, and this app leaves that arithmetic to the server.
 class DefaulterBreakdown extends StatelessWidget {
   const DefaulterBreakdown({
     super.key,
@@ -50,7 +40,7 @@ class DefaulterBreakdown extends StatelessWidget {
             children: [
               _Stat(
                 value: brokenPromises,
-                label: 'Broken promises',
+                label: 'Missed payment',
                 tone: AppTone.danger,
               ),
               const _Divider(),
@@ -179,7 +169,7 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Nothing to be alarmed by at zero: no broken promises is the good
+    // Nothing to be alarmed by at zero: no missed payments is the good
     // outcome, and a red 0 reads as one more thing to chase.
     final colour = (value == 0 || tone == null) ? null : tone!.on(context);
 

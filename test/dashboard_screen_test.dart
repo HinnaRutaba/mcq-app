@@ -340,7 +340,7 @@ void main() {
     ) async {
       await pumpHome(tester);
 
-      expect(find.text('Broken promises'), findsOneWidget);
+      expect(find.text('Missed payment'), findsOneWidget);
       expect(find.text('3'), findsWidgets); // 0 + 2 + 1
       expect(find.text('Never paid'), findsOneWidget);
       expect(find.text('26'), findsOneWidget); // 14 + 9 + 3
