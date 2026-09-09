@@ -95,6 +95,20 @@ void main() {
     return picked;
   }
 
+  /// How visible a row is, all the fades over it multiplied together — the
+  /// sheet's own contents fading in, and the row's place in the stagger.
+  double visibility(WidgetTester tester, String label) => tester
+      .widgetList<FadeTransition>(
+        find.ancestor(
+          of: find.text(label),
+          matching: find.byType(FadeTransition),
+        ),
+      )
+      .fold<double>(
+        1,
+        (double shown, FadeTransition fade) => shown * fade.opacity.value,
+      );
+
   /// The names on screen, in the order they are laid out.
   List<String> shown(WidgetTester tester) => tester
       .widgetList<AppText>(find.byType(AppText))
@@ -202,6 +216,59 @@ void main() {
     await openSheet(tester);
 
     expect(find.byType(AppEmptyState), findsOneWidget);
+  });
+
+  testWidgets('the rows arrive after the sheet, one after another', (
+    WidgetTester tester,
+  ) async {
+    seedDefinitions(
+      register: registerOf(<Map<String, dynamic>>[
+        action('site_visit', 'Site visit'),
+        action('verbal_warning', 'Verbal warning'),
+        action('final_warning', 'Final warning'),
+      ]),
+    );
+
+    ActionTypeDefinition? picked;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (BuildContext context) => AppButton(
+              label: 'Open',
+              onPressed: () async =>
+                  picked = await TakeActionSheet.show(context),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    // The surface is still growing: the rows are laid out — the sheet's height
+    // is settled from the first frame — but none of them are showing yet.
+    expect(find.text('Site visit'), findsOneWidget);
+    expect(visibility(tester, 'Site visit'), 0);
+
+    // Part way through the stagger: the first row is ahead of the third, which
+    // is what makes it a stagger rather than three rows fading as one.
+    for (int elapsed = 0; elapsed < 480; elapsed += 16) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(visibility(tester, 'Site visit'), greaterThan(0));
+    expect(
+      visibility(tester, 'Site visit'),
+      greaterThan(visibility(tester, 'Final warning')),
+    );
+
+    // And all the way in, so nothing is left half-faded.
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(visibility(tester, 'Final warning'), 1);
+    expect(picked, isNull);
   });
 
   testWidgets('the shop profile opens it from the Take Action button', (

@@ -368,6 +368,13 @@ void main() {
       _seedDefinitions(register: _registerWithEveryAction());
       return _sheet(const TakeActionSheet());
     },
+    // The same sheet with the rows still arriving. They are held back until
+    // the surface has grown out of the button and then come one after
+    // another, so the still worth reviewing is this one, not the settled page.
+    'take_action_sheet_arriving': () {
+      _seedDefinitions(register: _registerWithEveryAction());
+      return _sheet(const TakeActionSheet());
+    },
     'fine': () {
       // Reset the scheme: an earlier entry deliberately switches to indigo and
       // the controller is a permanent singleton, so without this the fine form
@@ -530,6 +537,7 @@ void main() {
     'property_profile_history': 4400,
     'property_profile_vacant': 2200,
     'take_action_sheet': 2700,
+    'take_action_sheet_arriving': 2700,
     'defaulters': 2900,
     'defaulters_never_paid': 2900,
     // Short on purpose: the list has to outrun the viewport to be scrolled.
@@ -556,7 +564,14 @@ void main() {
 
   /// Entries caught part-way through their entrance instead of at rest. A
   /// still of a settled page proves nothing about how it arrives.
-  const midFlight = <String, int>{'home_arriving': 330};
+  const midFlight = <String, int>{
+    'home_arriving': 330,
+    // The rows inside a sheet wait on a plain `Timer` before they stagger,
+    // which `pumpAndSettle` does not advance — so both of these are pumped
+    // frame by frame: one caught mid-stagger, one run out to rest.
+    'take_action_sheet_arriving': 430,
+    'take_action_sheet': 1500,
+  };
 
   /// Entries that never come to rest — a splash spins until it routes, so
   /// `pumpAndSettle` would wait on an animation that has no end.

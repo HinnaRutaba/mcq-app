@@ -56,6 +56,8 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
     ),
   );
 
+  final GlobalKey _fab = GlobalKey();
+
   @override
   void dispose() {
     Get.delete<PropertyProfileController>();
@@ -63,7 +65,10 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
   }
 
   Future<void> _takeAction(BuildContext context) async {
-    final ActionTypeDefinition? action = await TakeActionSheet.show(context);
+    final ActionTypeDefinition? action = await TakeActionSheet.show(
+      context,
+      from: _fab,
+    );
     if (action == null || !context.mounted) return;
 
     if (action.code == _fineImposed) {
@@ -81,6 +86,7 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
     return Scaffold(
       floatingActionButton: AppEntrance(
         child: AppExtendedFab(
+          key: _fab,
           icon: Icons.bolt_rounded,
           label: 'Take Action',
           color: context.brand.accent,

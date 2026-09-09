@@ -1,34 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../config/theme/app_brand.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_radius.dart';
 import '../../../../controllers/definitions_controller.dart';
 import '../../../../models/enforcement_definitions.dart';
 import '../../../../widgets/widgets.dart';
 
-/// What an officer can put on a shop's case, as MCQ publishes it.
-///
-/// The list is `GET enforcement/definitions`' own `action_types`, in the
-/// server's order and with its own wording — never a picker written out here.
-/// A row MCQ renames, reorders or adds next year arrives on this sheet without
-/// an app release.
 class TakeActionSheet extends StatefulWidget {
   const TakeActionSheet({super.key, this.definitions});
 
   /// Injected by a test or a preview. Null resolves the app's own singleton.
   final DefinitionsController? definitions;
 
-  /// The action the officer picked, or null if they closed the sheet.
-  static Future<ActionTypeDefinition?> show(BuildContext context) {
-    return showModalBottomSheet<ActionTypeDefinition>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
+  static Future<ActionTypeDefinition?> show(
+    BuildContext context, {
+    GlobalKey? from,
+  }) {
+    return AppContainerSheet.show<ActionTypeDefinition>(
+      context,
+      from: from,
+      fromColor: context.brand.accent,
       builder: (BuildContext context) => const TakeActionSheet(),
     );
   }
@@ -36,6 +29,10 @@ class TakeActionSheet extends StatefulWidget {
   @override
   State<TakeActionSheet> createState() => _TakeActionSheetState();
 }
+
+/// When the rows start arriving — as the growing surface finishes, so they
+/// land on a sheet rather than inside a moving hole.
+const Duration _staggerAfter = Duration(milliseconds: 240);
 
 class _TakeActionSheetState extends State<TakeActionSheet> {
   late final DefinitionsController _definitions =
@@ -64,6 +61,7 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
@@ -79,9 +77,6 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
               ],
             ),
           ),
-          // Read here, in the builder: the rows land after the sheet is up on
-          // the one round a signal cost, and a read in a child's build would
-          // register with nothing.
           Flexible(
             child: Obx(() {
               final List<ActionTypeDefinition> types = _definitions.actionTypes;
@@ -114,14 +109,29 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
 
               return ListView(
                 shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                padding: EdgeInsets.fromLTRB(
+                  20,
+                  0,
+                  20,
+                  // Clear of the home indicator: this sheet paints to the
+                  // bottom edge rather than being inset from it.
+                  24 + MediaQuery.viewPaddingOf(context).bottom,
+                ),
                 children: <Widget>[
-                  for (final ActionTypeDefinition type in types)
+                  for (final (int at, ActionTypeDefinition type)
+                      in types.indexed)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: _ActionRow(
-                        type: type,
-                        onTap: () => Navigator.of(context).pop(type),
+                      // Held back until the sheet has grown, then one after
+                      // another — a list that is already sitting there when
+                      // the surface arrives reads as a screenshot.
+                      child: AppEntrance(
+                        index: at,
+                        delay: _staggerAfter,
+                        child: _ActionRow(
+                          type: type,
+                          onTap: () => Navigator.of(context).pop(type),
+                        ),
                       ),
                     ),
                 ],
@@ -154,8 +164,8 @@ class _ActionRow extends StatelessWidget {
       child: Row(
         children: <Widget>[
           Container(
-            height: 44,
-            width: 44,
+            height: 40,
+            width: 40,
             decoration: BoxDecoration(
               color: tone.container(context),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -167,15 +177,22 @@ class _ActionRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                AppText.body(
-                  type.name,
-                  fontWeight: FontWeight.w700,
-                  maxLines: 2,
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppText.body(
+                        type.name,
+                        fontWeight: FontWeight.w700,
+                        maxLines: 2,
+                      ),
+                    ),
+                    if (type.nameUr != null) ...<Widget>[
+                      const SizedBox(height: 2),
+                      AppText.label(type.nameUr!, color: muted, maxLines: 1),
+                    ],
+                  ],
                 ),
-                if (type.nameUr != null) ...<Widget>[
-                  const SizedBox(height: 2),
-                  AppText.caption(type.nameUr!, color: muted, maxLines: 1),
-                ],
+
                 if (type.description != null) ...<Widget>[
                   const SizedBox(height: 3),
                   AppText.caption(type.description!, color: muted, maxLines: 2),
