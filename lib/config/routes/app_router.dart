@@ -15,6 +15,7 @@ import '../../views/magistrate/trade/trade_capture_screen.dart';
 import '../../views/magistrate/trade/trade_licences_screen.dart';
 import '../../controllers/property_profile_controller.dart';
 import '../../views/magistrate/challans/challans_screen.dart';
+import '../../views/magistrate/shared/create_case_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/magistrate/property/property_profile_screen.dart';
 import '../../views/splash/splash_screen.dart';
@@ -123,6 +124,13 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => CreateFineScreen(
         propertyId: int.tryParse(state.uri.queryParameters['property'] ?? ''),
         allotmentId: int.tryParse(state.uri.queryParameters['allotment'] ?? ''),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.createCase,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => CreateCaseScreen(
+        propertyId: int.tryParse(state.uri.queryParameters['property'] ?? ''),
       ),
     ),
     GoRoute(

@@ -1,6 +1,8 @@
+import 'package:mcq_app/data/mock/case_type_seed.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/models/api_response.dart';
+import 'package:mcq_app/models/case_type_option.dart';
 import 'package:mcq_app/models/enforcement_action.dart';
 import 'package:mcq_app/models/enforcement_action_request.dart';
 import 'package:mcq_app/models/enforcement_case.dart';
@@ -473,12 +475,47 @@ class FakeReportingRepository implements ReportingRepository {
       throw UnimplementedError('the property profile does not read the map');
 }
 
+/// The file `POST enforcement/field/cases` answers with — a conduct case
+/// opened today, before any magistrate has been assigned to it.
+const Map<String, dynamic> openedCaseJson = <String, dynamic>{
+  'id': 512,
+  'case_no': 'MCQ-EC-2627-00512',
+  'status': <String, dynamic>{'value': 'open', 'label': 'Open', 'tone': 'info'},
+  'priority': <String, dynamic>{
+    'value': 'normal',
+    'label': 'Normal',
+    'tone': 'neutral',
+  },
+  'opened_on': '2026-09-09',
+  'amounts': <String, dynamic>{'outstanding_at_open': '187450.00'},
+  'position': <String, dynamic>{
+    'outstanding_now': '187450.00',
+    'direction': 'level',
+  },
+  'is_live': true,
+  'is_conduct_case': true,
+  'is_assigned': false,
+  'property': <String, dynamic>{
+    'id': fixturePropertyId,
+    'property_code': 'MCQ-JR-000118',
+    'display_name': 'Shop S-22, Liaquat Bazaar',
+  },
+  'area': <String, dynamic>{'id': 2, 'name': 'Prince Road'},
+  'action_count': 0,
+  'fine_count': 0,
+};
+
 /// The case list and the timelines, from the fixtures.
 ///
 /// The list is paged the way the endpoint pages it, so the profile's own
 /// page-reading is exercised rather than assumed.
 class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
-  FakeEnforcementCaseRepository({this.failure, this.timelineFailure});
+  FakeEnforcementCaseRepository({
+    this.failure,
+    this.timelineFailure,
+    this.openFailure,
+    this.caseTypeFailure,
+  });
 
   /// Mutable so a test can let the signal come back and retry.
   Object? failure;
@@ -486,8 +523,17 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
   /// A timeline that fails while the rest of the screen loads.
   Object? timelineFailure;
 
+  /// A refused `POST enforcement/field/cases`.
+  Object? openFailure;
+
+  /// A case-kind list that would not load.
+  Object? caseTypeFailure;
+
   final List<int> pagesRequested = <int>[];
   final List<int> timelinesRequested = <int>[];
+
+  /// What the form actually posted, so a test can read the body back.
+  FieldCaseRequest? openedWith;
 
   static final List<List<Map<String, dynamic>>> _pages =
       <List<Map<String, dynamic>>>[casesPageOneJson, casesPageTwoJson];
@@ -516,8 +562,17 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
   }
 
   @override
-  Future<EnforcementCase> openCase(FieldCaseRequest request) async =>
-      throw UnimplementedError('the property profile does not open cases');
+  Future<List<CaseTypeOption>> caseTypes() async {
+    if (caseTypeFailure != null) throw caseTypeFailure!;
+    return caseTypeSeed;
+  }
+
+  @override
+  Future<EnforcementCase> openCase(FieldCaseRequest request) async {
+    openedWith = request;
+    if (openFailure != null) throw openFailure!;
+    return EnforcementCase.fromJson(openedCaseJson);
+  }
 
   @override
   Future<List<EnforcementAction>> actions(int caseId) async {

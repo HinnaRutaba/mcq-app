@@ -146,6 +146,18 @@ class DefaultersController extends GetxController {
     await Future.wait(<Future<void>>[_loadAreas(), _fetch()]);
   }
 
+  /// Re-reads the list after something was written to a shop on it — a case
+  /// opened from that shop's own profile, which changes the case badge on its
+  /// row and the "Open case" chip the list can be narrowed by.
+  ///
+  /// Nothing to do until the tab has been opened: this controller is
+  /// registered lazily and fetches when it is first built, so a list nobody
+  /// has looked at is not stale.
+  static Future<void> reloadIfOpened() async {
+    if (!Get.isRegistered<DefaultersController>()) return;
+    await Get.find<DefaultersController>().load();
+  }
+
   /// Called per keystroke; the fetch behind it is debounced.
   void search(String term) => query.value = term.trim();
 

@@ -6,14 +6,18 @@ import 'package:go_router/go_router.dart';
 
 import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
+import 'package:mcq_app/controllers/case_controller.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
+import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/definitions_controller.dart';
 import 'package:mcq_app/controllers/fine_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
 import 'package:mcq_app/data/repositories/challan_repository.dart';
+import 'package:mcq_app/data/repositories/dashboard_repository.dart';
+import 'package:mcq_app/data/repositories/defaulters_repository.dart';
 import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
 import 'package:mcq_app/data/repositories/evidence_repository.dart';
@@ -25,6 +29,7 @@ import 'package:mcq_app/models/evidence_upload.dart';
 import 'package:mcq_app/models/fine.dart';
 import 'package:mcq_app/models/fine_request.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_capture_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
@@ -226,6 +231,167 @@ void main() {
     });
   });
 
+  group('a case', () {
+    late FakeReportingRepository reporting;
+    late FakeEnforcementCaseRepository cases;
+    late FakeDefaultersRepository defaulters;
+
+    /// The two screens a case is opened between: a shop's profile, and the
+    /// form pushed over it. Real paths, so `AppRoutes.createCasePath` resolves.
+    GoRouter router() => GoRouter(
+      initialLocation: '/shop',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/shop',
+          builder: (BuildContext context, GoRouterState state) =>
+              const PropertyProfileScreen(propertyId: fixturePropertyId),
+        ),
+        GoRoute(
+          path: AppRoutes.createCase,
+          builder: (BuildContext context, GoRouterState state) =>
+              CreateCaseScreen(
+                propertyId: int.tryParse(
+                  state.uri.queryParameters['property'] ?? '',
+                ),
+              ),
+        ),
+      ],
+    );
+
+    setUp(() async {
+      final StubbedApi api = StubbedApi();
+      api.stub.reply(definitionsResponse);
+
+      final AuthController auth = AuthController(
+        authRepository: ApiAuthRepository(
+          api: api.service,
+          storage: api.storage,
+        ),
+      );
+      Get.put<AuthController>(auth, permanent: true);
+
+      final DefinitionsController definitions = DefinitionsController(
+        definitionsRepository: ApiDefinitionsRepository(api: api.service),
+        authController: auth,
+      );
+      await definitions.load();
+      Get.put<DefinitionsController>(definitions, permanent: true);
+
+      reporting = FakeReportingRepository();
+      cases = FakeEnforcementCaseRepository();
+      defaulters = FakeDefaultersRepository();
+      Get.put<ReportingRepository>(reporting, permanent: true);
+      Get.put<EnforcementCaseRepository>(cases, permanent: true);
+      Get.put<PersonRepository>(FakePersonRepository(), permanent: true);
+      Get.put<DefaultersRepository>(defaulters, permanent: true);
+      Get.put<DashboardRepository>(FakeDashboardRepository(), permanent: true);
+    });
+
+    testWidgets('re-reads the shop it was opened on', (
+      WidgetTester tester,
+    ) async {
+      // The Defaulters tab has been opened, so its rows — which carry the
+      // case badge — are behind this and have to be told as well.
+      Get.put<DefaultersController>(DefaultersController());
+      await settle(tester);
+      final int defaultersBefore = defaulters.defaultersCalls;
+
+      sizeTo(tester, height: 6000);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+      await settle(tester);
+
+      // The way an officer gets here: the Take Action button, then the case
+      // off the sheet. The rows are held back before they stagger, on a plain
+      // `Timer`.
+      await tester.tap(find.byType(AppExtendedFab));
+      await settle(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      await tester.tap(find.text('Create new case'));
+      await settle(tester);
+
+      // The kind is chosen for the officer while there is one of it, so the
+      // words are all the form is short of.
+      final CaseController file = Get.find<CaseController>();
+      file.reasonController.text =
+          'Trading in goods the agreement does not permit.';
+      // The profile names the holder; the rest of the block is typed.
+      file.offenderFatherController.text = 'Ghulam Nabi';
+      file.offenderMobileController.text = '03007654321';
+      file.markEdited();
+      await settle(tester);
+
+      await tester.tap(find.widgetWithText(AppButton, 'Open the case'));
+      await settle(tester);
+      await tapDone(tester);
+
+      // The unit travels as `property_id`, and a conduct case names no
+      // tenancy.
+      expect(cases.openedWith!.toJson()['property_id'], fixturePropertyId);
+      expect(cases.openedWith!.toJson()['allotment_id'], isNull);
+      expect(cases.openedWith!.toJson()['offender_name'], 'Muhammad Iqbal');
+      // Two reads before the write — the screen's own and the form's, which
+      // fetches the shop behind a route that carried only an id — and a third
+      // because the case landed on this shop's enforcement block.
+      expect(reporting.profileCalls, 3);
+      expect(defaulters.defaultersCalls, defaultersBefore + 1);
+      expect(find.byType(AppExtendedFab), findsOneWidget);
+    });
+
+    testWidgets('leaves the shop alone when the form is abandoned', (
+      WidgetTester tester,
+    ) async {
+      sizeTo(tester, height: 6000);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+      await settle(tester);
+
+      await tester.tap(find.byType(AppExtendedFab));
+      await settle(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      await tester.tap(find.text('Create new case'));
+      await settle(tester);
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await settle(tester);
+
+      expect(cases.openedWith, isNull);
+      // Nothing was written, so nothing is out of date: the form's own read of
+      // the shop is the only call the trip cost.
+      expect(reporting.profileCalls, 2);
+    });
+
+    testWidgets('the defaulter list is left unbuilt until its tab is opened', (
+      WidgetTester tester,
+    ) async {
+      sizeTo(tester, height: 6000);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+      await settle(tester);
+
+      await tester.tap(find.byType(AppExtendedFab));
+      await settle(tester);
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      await tester.tap(find.text('Create new case'));
+      await settle(tester);
+
+      final CaseController file = Get.find<CaseController>();
+      file.reasonController.text = 'Sub-let to a tea stall.';
+      file.offenderFatherController.text = 'Ghulam Nabi';
+      file.offenderMobileController.text = '03007654321';
+      file.markEdited();
+      await settle(tester);
+      await tester.tap(find.widgetWithText(AppButton, 'Open the case'));
+      await settle(tester);
+      await tapDone(tester);
+
+      // A list nobody has looked at is not stale — it fetches when the tab is
+      // first opened, and building it here would put a call on the wire for a
+      // screen that is not on it.
+      expect(Get.isRegistered<DefaultersController>(), isFalse);
+      expect(defaulters.defaultersCalls, 0);
+    });
+  });
+
   group('a captured shop', () {
     late FakeTradeRepository trade;
 
@@ -242,9 +408,7 @@ void main() {
           builder: (BuildContext context, GoRouterState state) =>
               TradeCaptureScreen(
                 searched: state.uri.queryParameters['q'],
-                areaId: int.tryParse(
-                  state.uri.queryParameters['area'] ?? '',
-                ),
+                areaId: int.tryParse(state.uri.queryParameters['area'] ?? ''),
               ),
         ),
       ],
@@ -285,8 +449,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.add_business_outlined));
       await settle(tester);
 
-      final TradeCaptureController capture =
-          Get.find<TradeCaptureController>();
+      final TradeCaptureController capture = Get.find<TradeCaptureController>();
       expect(capture.areaId.value, 1);
       fill(capture);
       await settle(tester);

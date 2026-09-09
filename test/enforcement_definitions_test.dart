@@ -384,6 +384,12 @@ void main() {
         propertyId: 1,
         caseType: 'unauthorised_use',
         caseReason: 'Trading in goods the agreement does not permit.',
+        offender: const FineOffender(
+          name: 'Abdul Samad',
+          fatherName: 'Ghulam Nabi',
+          mobileNo: '03007654321',
+          cnic: '5440099887766',
+        ),
         priority: 'normal',
         nextVisitDate: DateTime(2026, 9, 20),
       );
@@ -394,6 +400,12 @@ void main() {
       expect(body['case_type'], 'unauthorised_use');
       expect(body['priority'], 'normal');
       expect(body['next_visit_date'], '2026-09-20');
+      // The person a notice on this case is served on, in the same block a
+      // fine carries.
+      expect(body['offender_name'], 'Abdul Samad');
+      expect(body['offender_father_name'], 'Ghulam Nabi');
+      expect(body['offender_mobile_no'], '03007654321');
+      expect(body['offender_cnic'], '5440099887766');
       expect(body.containsKey('allotment_id'), isFalse);
       expect(request.isConductCase, isTrue);
     });

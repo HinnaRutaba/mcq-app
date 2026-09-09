@@ -11,6 +11,7 @@ import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/config/theme/app_radius.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
+import 'package:mcq_app/controllers/case_controller.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
 import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
@@ -33,6 +34,7 @@ import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 import 'package:mcq_app/models/challan.dart';
+import 'package:mcq_app/models/enforcement_case.dart';
 import 'package:mcq_app/models/property_profile.dart';
 import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/models/unit_card.dart';
@@ -50,7 +52,9 @@ import 'package:mcq_app/views/magistrate/trade/widgets/licence_sheet.dart';
 import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/take_action_sheet.dart';
+import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/case_opened_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
 import 'package:mcq_app/views/splash/splash_screen.dart';
@@ -382,6 +386,43 @@ void main() {
       _seedDefinitions(register: _registerWithEveryAction());
       return _sheet(const TakeActionSheet(hasOpenCase: true));
     },
+    // Opening a case on a shop, reached from its Take Action sheet: what the
+    // case is about, why, and how urgent. The shop is never chosen here.
+    'case': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions(register: _registerWithEveryPriority());
+      return const CreateCaseScreen(unit: _finedUnit);
+    },
+    // The route carried a property id and nothing else, so the card is
+    // fetched — and this shop already has a file open, which is said before a
+    // second one is opened on it.
+    'case_from_property': () {
+      _seedDefinitions(register: _registerWithEveryPriority());
+      _seedPropertyProfile();
+      return const CreateCaseScreen(propertyId: fixturePropertyId);
+    },
+    // Filled in and refused: the server's own sentence in the bar, against
+    // the button that was just pressed.
+    'case_refused': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions(register: _registerWithEveryPriority());
+      return const CreateCaseScreen(unit: _finedUnit);
+    },
+    // The receipt the form ends on: the case number the shopkeeper is told,
+    // and the fact that nobody is on it yet.
+    'case_offender': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions(register: _registerWithEveryPriority());
+      return const CreateCaseScreen(unit: _finedUnit);
+    },
+    'case_opened_sheet': () =>
+        _sheet(CaseOpenedSheet(file: EnforcementCase.fromJson(openedCaseJson))),
     'fine': () {
       // Reset the scheme: an earlier entry deliberately switches to indigo and
       // the controller is a permanent singleton, so without this the fine form
@@ -521,6 +562,11 @@ void main() {
     'challans_paged': 1800,
     'challan_sheet': 2500,
     'challan_sheet_fine': 2400,
+    'case': 4200,
+    'case_from_property': 3400,
+    'case_refused': 3400,
+    'case_offender': 3000,
+    'case_opened_sheet': 1500,
     'fine_refused': 2600,
     'fine': 2600,
     'fine_with_shop': 2600,
@@ -562,6 +608,7 @@ void main() {
     'property_profile_collapsed': 420,
     // Enough to take the header to about the middle of its collapse.
     'property_profile_half': 60,
+    'case_offender': 1100,
     'fine_evidence': 700,
     'fine_remarks': 1500,
     'fine_in_area_payer': 620,
@@ -605,6 +652,26 @@ void main() {
         Get.find<TradeLicencesController>().retryLookup(),
     'trade_licences_renewal': () =>
         Get.find<TradeLicencesController>().retryLookup(),
+    // The words an officer would actually type: what they saw, not the code.
+    'case': () {
+      final CaseController file = Get.find<CaseController>();
+      file.reasonController.text =
+          'Trading in general goods; the allotment is for a tailoring shop.';
+      // The card names the holder and their mobile; the father's name is what
+      // the register does not carry.
+      file.offenderFatherController.text = 'Ghulam Nabi';
+      file.markEdited();
+    },
+    'case_refused': () {
+      final CaseController file = Get.find<CaseController>();
+      file.reasonController.text =
+          'Trading in general goods; the allotment is for a tailoring shop.';
+      file.offenderFatherController.text = 'Ghulam Nabi';
+      file.markEdited();
+      file.errorMessage.value =
+          'A case is already open on this property. Record this against case '
+          'MCQ-EC-2627-00204 instead.';
+    },
     // The officer pressed the fine button with no shop in mind, so the fine is
     // against somebody in a area.
     'fine_in_area': () {
@@ -847,6 +914,20 @@ Map<String, dynamic> _actionRow(
     'seal_no': sealNo,
   },
 };
+
+/// The register's four priorities, where the shared fixture carries one. The
+/// case form's picker is drawn from them, and a still of a single row says
+/// nothing about how the choice reads.
+Map<String, dynamic> _registerWithEveryPriority() {
+  final Map<String, dynamic> data = definitionsData();
+  data['case_priorities'] = <Map<String, dynamic>>[
+    <String, dynamic>{'value': 'low', 'label': 'Low', 'tone': 'neutral'},
+    <String, dynamic>{'value': 'normal', 'label': 'Normal', 'tone': 'info'},
+    <String, dynamic>{'value': 'high', 'label': 'High', 'tone': 'warning'},
+    <String, dynamic>{'value': 'critical', 'label': 'Urgent', 'tone': 'danger'},
+  ];
+  return data;
+}
 
 void _seedDefinitions({Map<String, dynamic>? register}) {
   Get.find<AuthController>().officer.value = officerFixture;

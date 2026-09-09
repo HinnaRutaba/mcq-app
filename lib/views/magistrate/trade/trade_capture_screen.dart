@@ -193,65 +193,6 @@ class _Banner extends StatelessWidget {
 // Sections
 // ---------------------------------------------------------------------------
 
-/// A numbered block. The number is the point: it tells the officer how much
-/// form is left, which a flat run of labels never does.
-class _Section extends StatelessWidget {
-  const _Section({
-    required this.step,
-    required this.title,
-    required this.child,
-    this.note,
-  });
-
-  final String step;
-  final String title;
-  final String? note;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final Color? muted = theme.textTheme.bodyMedium?.color?.withValues(
-      alpha: 0.6,
-    );
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Container(
-              height: 24,
-              width: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: AppText.caption(
-                step,
-                color: theme.colorScheme.onPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: AppText.titleLarge(title)),
-          ],
-        ),
-        if (note != null) ...<Widget>[
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 34),
-            child: AppText.body(note!, color: muted),
-          ),
-        ],
-        const SizedBox(height: 12),
-        child,
-      ],
-    );
-  }
-}
-
 /// Step 1: the bazaar, which nothing else on this form can be answered
 /// without — `tariff?area_id=` prices one bazaar and has to be told which.
 class _AreaSection extends StatelessWidget {
@@ -260,7 +201,7 @@ class _AreaSection extends StatelessWidget {
   final TradeCaptureController controller;
 
   @override
-  Widget build(BuildContext context) => _Section(
+  Widget build(BuildContext context) => AppFormSection(
     step: '1',
     title: 'The bazaar',
     note: 'MCQ prices a trade by zone, so the bazaar decides the fee.',
@@ -334,7 +275,7 @@ class _TradeSection extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) => _Section(
+  Widget build(BuildContext context) => AppFormSection(
     step: '2',
     title: 'The trade',
     note:
@@ -531,7 +472,7 @@ class _ShopkeeperSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return AppFormSection(
       step: '3',
       title: 'The shopkeeper',
       note:
@@ -607,7 +548,7 @@ class _ShopSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return AppFormSection(
       step: '4',
       title: 'The shop',
       child: AppCard(

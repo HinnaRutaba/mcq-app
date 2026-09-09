@@ -55,6 +55,18 @@ class AppRoutes {
     return Uri(path: createFine, queryParameters: query).toString();
   }
 
+  /// Opening an enforcement case. Reached from a shop's Take Action sheet,
+  /// which is the only place that knows which unit it is about — hence the
+  /// `?property=`, and a form that picks no shop of its own.
+  static const String createCase = '/magistrate/case/new';
+
+  static String createCasePath({int? propertyId}) => propertyId == null
+      ? createCase
+      : Uri(
+          path: createCase,
+          queryParameters: <String, String>{'property': '$propertyId'},
+        ).toString();
+
   /// Capturing an unlicensed shop. Pushed over the shell from the licences
   /// tab: a form the officer should finish or abandon in front of the
   /// shopkeeper, not wander off from into another tab.

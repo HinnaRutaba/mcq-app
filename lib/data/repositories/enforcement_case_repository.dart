@@ -1,12 +1,14 @@
 import '../../core/network/api_config.dart';
 import '../../core/network/api_service.dart';
 import '../../models/api_response.dart';
+import '../../models/case_type_option.dart';
 import '../../models/enforcement_action.dart';
 import '../../models/enforcement_action_request.dart';
 import '../../models/enforcement_case.dart';
 import '../../models/field_case_request.dart';
 import '../../models/field_seal.dart';
 import '../../models/seal_requests.dart';
+import '../mock/case_type_seed.dart';
 
 /// Enforcement cases, their visit timelines, and the writes an officer makes
 /// against them from the field.
@@ -23,6 +25,12 @@ abstract class EnforcementCaseRepository {
 
   /// The visit timeline for one case, oldest first.
   Future<List<EnforcementAction>> actions(int caseId);
+
+  /// What a case may be opened about — the vocabulary behind `case_type`.
+  ///
+  /// Asynchronous because MCQ is expected to publish these: the picker is
+  /// drawn from whatever this answers, so the endpoint lands here alone.
+  Future<List<CaseTypeOption>> caseTypes();
 
   /// Opens a case from the handset.
   ///
@@ -88,6 +96,11 @@ class ApiEnforcementCaseRepository implements EnforcementCaseRepository {
     final response = await _api.get(ApiPaths.caseActions(caseId));
     return response.dataList.map(EnforcementAction.fromJson).toList();
   }
+
+  /// The seeded list, until MCQ publishes one. Nothing goes on the wire, and
+  /// no caller changes when it does.
+  @override
+  Future<List<CaseTypeOption>> caseTypes() async => caseTypeSeed;
 
   @override
   Future<EnforcementCase> openCase(FieldCaseRequest request) async {

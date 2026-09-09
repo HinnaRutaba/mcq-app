@@ -9,7 +9,6 @@ import '../../../config/theme/app_colors.dart';
 import '../../../controllers/fine_controller.dart';
 import '../../../core/utils/dialer.dart';
 import '../../../core/utils/form_scroll.dart';
-import '../../../core/utils/formatters.dart';
 import '../../../core/capture/photo_capture.dart';
 import '../../../models/enforcement_definitions.dart';
 import '../../../models/field_beat.dart';
@@ -18,9 +17,10 @@ import '../../../widgets/widgets.dart';
 import 'widgets/area_search_field.dart';
 import 'widgets/evidence_tile.dart';
 import 'widgets/amount_field.dart';
-import 'widgets/person_cnic_field.dart';
+import 'widgets/offender_fields.dart';
 import 'widgets/fine_imposed_sheet.dart';
 import 'widgets/still_needed_note.dart';
+import 'widgets/unit_summary_card.dart';
 import '../../../config/theme/app_radius.dart';
 
 class CreateFineScreen extends StatefulWidget {
@@ -147,63 +147,6 @@ class _CreateFineScreenState extends State<CreateFineScreen> {
 // Sections
 // ---------------------------------------------------------------------------
 
-/// A numbered block. The number is the point: it tells the officer how much
-/// form is left, which a flat run of labels never does.
-class _Section extends StatelessWidget {
-  const _Section({
-    required this.step,
-    required this.title,
-    required this.child,
-    this.note,
-  });
-
-  final String step;
-  final String title;
-  final String? note;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Container(
-              height: 24,
-              width: 24,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: AppText.caption(
-                step,
-                color: theme.colorScheme.onPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: AppText.titleLarge(title)),
-          ],
-        ),
-        if (note != null) ...[
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 34),
-            child: AppText.body(note!, color: muted),
-          ),
-        ],
-        const SizedBox(height: 12),
-        child,
-      ],
-    );
-  }
-}
-
 /// Step 1: what the fine is against, which the officer never chooses here.
 ///
 /// Arriving from a shop's screen fines that shop, and its card is filled in
@@ -221,7 +164,7 @@ class _TargetSection extends StatelessWidget {
     // this section watches nothing — the two branches below do their own.
     final bool areaFine = controller.isAreaFine;
 
-    return _Section(
+    return AppFormSection(
       step: '1',
       title: areaFine ? 'The area' : 'The shop',
       child: areaFine
@@ -248,7 +191,7 @@ class _ShopField extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _ShopCard(controller: controller),
+            _shopCard(controller),
             // Every fine names a area. The unit's own answers for it, and
             // this is the shop whose record cannot.
             if (controller.targetAreaId == null) ...<Widget>[
@@ -355,83 +298,19 @@ class _AreaPicker extends StatelessWidget {
   }
 }
 
-/// The shop the fine is against, as the register has it: which unit, which
-/// area — the one that becomes `area_id` — and who holds it.
-///
-/// Drawn from the unit card the officer arrived with, or from the profile
-/// fetched behind a route that carried only an id.
-class _ShopCard extends StatelessWidget {
-  const _ShopCard({required this.controller});
-
-  final FineController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
-
-    final String? area = controller.unitArea;
-    final String? code = controller.unitCode;
-    final String? address = controller.unitAddress;
-    final String? outstanding = controller.unitOutstanding;
-    final String? holder = controller.allotteeName;
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(
-                Icons.storefront_rounded,
-                color: theme.colorScheme.primary,
-                size: 22,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    AppText.titleMedium(controller.unitTitle),
-                    const SizedBox(height: 2),
-                    AppText.caption(
-                      // "Vacant" is not the same fact as "owes nothing", so
-                      // the two never share a line.
-                      controller.unitIsVacant
-                          ? 'Vacant — nobody holds this unit'
-                          : (holder ?? 'Held, allottee not named'),
-                      color: muted,
-                    ),
-                  ],
-                ),
-              ),
-              if (controller.unitIsSealed)
-                const AppStatusBadge(label: 'Sealed', tone: AppTone.warning),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (code != null) AppDetailRow(icon: Icons.tag_rounded, value: code),
-          if (area != null)
-            AppDetailRow(icon: Icons.location_on_outlined, value: area),
-          if (address != null)
-            AppDetailRow(
-              icon: Icons.place_outlined,
-              value: address,
-              maxLines: 2,
-            ),
-          if (outstanding != null)
-            // Rent arrears, and a fine is a separate debt: the two figures are
-            // never added together.
-            AppDetailRow(
-              icon: Icons.account_balance_wallet_outlined,
-              value:
-                  '${Formatters.money(outstanding) ?? outstanding} owed in rent',
-            ),
-        ],
-      ),
-    );
-  }
-}
+/// The shop the fine is against, from whichever of the two records is in hand
+/// — the card the officer arrived with, or the profile fetched behind a route
+/// that carried only an id.
+Widget _shopCard(FineController controller) => UnitSummaryCard(
+  title: controller.unitTitle,
+  holder: controller.allotteeName,
+  code: controller.unitCode,
+  area: controller.unitArea,
+  address: controller.unitAddress,
+  outstanding: controller.unitOutstanding,
+  isVacant: controller.unitIsVacant,
+  isSealed: controller.unitIsSealed,
+);
 
 class _OffenceSection extends StatelessWidget {
   const _OffenceSection({required this.controller});
@@ -440,7 +319,7 @@ class _OffenceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return AppFormSection(
       step: '2',
       title: 'The offence',
       // The section of law is not asked for: it belongs to the offence, and
@@ -600,7 +479,7 @@ class _AmountSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return AppFormSection(
       step: '3',
       title: 'The amount',
       child: Obx(() {
@@ -650,7 +529,12 @@ class _PayerSection extends StatelessWidget {
                   'of you is somebody else.';
       }
 
-      return _Section(step: '4', title: 'Who pays', note: note, child: child);
+      return AppFormSection(
+        step: '4',
+        title: 'Who pays',
+        note: note,
+        child: child,
+      );
     });
   }
 }
@@ -739,44 +623,18 @@ class _PayerFields extends StatelessWidget {
   final FineController controller;
 
   @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        children: <Widget>[
-          PersonCnicField(
-            controller: controller.personLookup,
-            label: "Offender's CNIC",
-            hint: "e.g. 5440011223344",
-            validator: controller.validateOffenderCnic,
-            onChanged: (_) => controller.markEdited(),
-            onTaken: controller.takePerson,
-          ),
-          const SizedBox(height: 18),
-          AppTextField(
-            label: "Offender's name",
-            controller: controller.offenderNameController,
-            validator: controller.validateOffenderName,
-            onChanged: (_) => controller.markEdited(),
-          ),
-          const SizedBox(height: 18),
-          AppTextField(
-            label: "Father's name",
-            controller: controller.offenderFatherController,
-            validator: controller.validateOffenderFather,
-            onChanged: (_) => controller.markEdited(),
-          ),
-          const SizedBox(height: 18),
-          AppTextField(
-            label: 'Mobile number',
-            controller: controller.offenderMobileController,
-            keyboardType: TextInputType.phone,
-            validator: controller.validateOffenderMobile,
-            onChanged: (_) => controller.markEdited(),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => OffenderFields(
+    lookup: controller.personLookup,
+    nameController: controller.offenderNameController,
+    fatherController: controller.offenderFatherController,
+    mobileController: controller.offenderMobileController,
+    validateCnic: controller.validateOffenderCnic,
+    validateName: controller.validateOffenderName,
+    validateFather: controller.validateOffenderFather,
+    validateMobile: controller.validateOffenderMobile,
+    onTaken: controller.takePerson,
+    onChanged: controller.markEdited,
+  );
 }
 
 class _EvidenceSection extends StatelessWidget {
@@ -800,7 +658,7 @@ class _EvidenceSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return AppFormSection(
       step: '5',
       title: 'The photograph',
       // The photograph is the only evidence this endpoint takes: a location
@@ -882,7 +740,7 @@ class _RemarksSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
+    return AppFormSection(
       step: '6',
       title: 'Remarks',
       note:

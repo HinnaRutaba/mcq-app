@@ -14,6 +14,7 @@ import '../../../models/enforcement_case.dart';
 import '../../../models/property_profile.dart';
 import '../../../models/shop_action.dart';
 import '../../../widgets/widgets.dart';
+import '../shared/create_case_screen.dart';
 import '../shared/widgets/challan_sheet.dart';
 import '../shared/widgets/create_fine_button.dart';
 import 'widgets/case_card.dart';
@@ -74,6 +75,17 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
         propertyId: controller.propertyId,
         allotmentId: controller.allotmentId,
         onImposed: controller.load,
+      );
+      return;
+    }
+
+    if (choice.action == ShopAction.openCase) {
+      // Re-read on the way back: a new case changes this screen's enforcement
+      // block, its Cases tab and the timeline hanging off it.
+      await CreateCaseScreen.open(
+        context,
+        propertyId: controller.propertyId,
+        onOpened: controller.load,
       );
     }
   }

@@ -1,4 +1,5 @@
 import '../core/utils/json_parse.dart';
+import 'fine_request.dart';
 
 /// Opens an enforcement case from the handset.
 ///
@@ -20,6 +21,7 @@ class FieldCaseRequest {
     required int this.allotmentId,
     this.caseReason,
     this.caseType,
+    this.offender,
     this.priority,
     this.magistrateId,
     this.nextVisitDate,
@@ -33,6 +35,7 @@ class FieldCaseRequest {
   const FieldCaseRequest.conduct({
     required int this.propertyId,
     required String this.caseType,
+    required FineOffender this.offender,
     this.caseReason,
     this.priority,
     this.magistrateId,
@@ -55,6 +58,11 @@ class FieldCaseRequest {
   /// The officer's own words on why the case is being opened, e.g. "Trading in
   /// goods the agreement does not permit."
   final String? caseReason;
+
+  /// The person the case is against — name, father's name and mobile
+  /// together. Required on a conduct case: a file with nobody named cannot
+  /// have a notice served on it.
+  final FineOffender? offender;
 
   /// `low` | `normal` | `high` | `critical`, from
   /// `EnforcementDefinitions.casePriorities`. Derived by the server on a
@@ -84,6 +92,7 @@ class FieldCaseRequest {
     'property_id': propertyId,
     'case_type': caseType,
     'case_reason': caseReason,
+    ...?offender?.toJson(),
     'priority': priority,
     'magistrate_id': magistrateId,
     'next_visit_date': Json.dateOnly(nextVisitDate),
