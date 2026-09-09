@@ -509,6 +509,26 @@ const Map<String, dynamic> openedCaseJson = <String, dynamic>{
 ///
 /// The list is paged the way the endpoint pages it, so the profile's own
 /// page-reading is exercised rather than assumed.
+/// The seal `POST enforcement/cases/{case}/seal` writes back — the number the
+/// officer puts on the physical seal, and the day it went on.
+const Map<String, dynamic> appliedSealJson = <String, dynamic>{
+  'id': 88,
+  'seal_no': 'MCQ-SL-2627-00088',
+  'status': <String, dynamic>{
+    'value': 'sealed',
+    'label': 'Sealed',
+    'tone': 'danger',
+  },
+  'sealed_on': '2026-09-04',
+  'seal_reason': 'Arrears unpaid after final notice.',
+  'is_sealed': true,
+  'ready_to_release': false,
+  'property_id': fixturePropertyId,
+  'shop_no': 'S-22',
+  'market_name': 'Liaquat Bazaar',
+  'allottee_name': 'Muhammad Iqbal',
+};
+
 class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
   FakeEnforcementCaseRepository({
     this.failure,
@@ -534,6 +554,13 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
 
   /// What the form actually posted, so a test can read the body back.
   FieldCaseRequest? openedWith;
+
+  /// A refused `POST enforcement/cases/{case}/seal`.
+  Object? sealFailure;
+
+  /// The case each seal was sent against, and the body that went with it.
+  final List<int> sealedCases = <int>[];
+  final List<CaseSealRequest> sealedWith = <CaseSealRequest>[];
 
   static final List<List<Map<String, dynamic>>> _pages =
       <List<Map<String, dynamic>>>[casesPageOneJson, casesPageTwoJson];
@@ -594,6 +621,10 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
   ) async => throw UnimplementedError('the profile records nothing yet');
 
   @override
-  Future<FieldSeal> seal(int caseId, CaseSealRequest request) async =>
-      throw UnimplementedError('the profile seals nothing yet');
+  Future<FieldSeal> seal(int caseId, CaseSealRequest request) async {
+    sealedCases.add(caseId);
+    sealedWith.add(request);
+    if (sealFailure != null) throw sealFailure!;
+    return FieldSeal.fromJson(appliedSealJson);
+  }
 }

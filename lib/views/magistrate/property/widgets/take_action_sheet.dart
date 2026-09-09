@@ -104,9 +104,6 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
                   children: <Widget>[
                     const Expanded(child: AppText.titleLarge('Take action')),
                     const SizedBox(width: 8),
-                    // The library's round button rather than a bare icon: it
-                    // carries a 36pt tap target and a ripple, and a glyph on
-                    // its own is neither.
                     AppCircleIconButton(
                       icon: Icons.close_rounded,
                       size: 36,
@@ -116,17 +113,15 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+
                 AppText.caption(
-                  'Roughly in the order they escalate.',
+                  'You can take the following actions on this property',
                   color: muted,
                 ),
               ],
             ),
           ),
-          // Read here, in the builder: the register lands after the sheet is
-          // up on the one round a signal cost, and a read in a child's build
-          // would register with nothing.
+
           Flexible(
             child: Obx(() {
               final bool ready = _definitions.isReady;

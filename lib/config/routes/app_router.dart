@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/defaulter_card.dart';
+import '../../models/enforcement_case.dart';
 import '../../views/auth/change_password_screen.dart';
 import '../../views/auth/login_screen.dart';
 import '../../views/magistrate/defaulters/defaulters_screen.dart';
@@ -16,6 +17,7 @@ import '../../views/magistrate/trade/trade_licences_screen.dart';
 import '../../controllers/property_profile_controller.dart';
 import '../../views/magistrate/challans/challans_screen.dart';
 import '../../views/magistrate/shared/create_case_screen.dart';
+import '../../views/magistrate/shared/create_seal_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/magistrate/property/property_profile_screen.dart';
 import '../../views/splash/splash_screen.dart';
@@ -131,6 +133,19 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => CreateCaseScreen(
         propertyId: int.tryParse(state.uri.queryParameters['property'] ?? ''),
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.createSeal,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => CreateSealScreen(
+        propertyId: int.tryParse(state.uri.queryParameters['property'] ?? '')!,
+        caseId: int.tryParse(state.uri.queryParameters['case'] ?? ''),
+        // The caller's own list, when it had one. A cold link carries none and
+        // the form reads them itself.
+        cases: state.extra is List<EnforcementCase>
+            ? state.extra! as List<EnforcementCase>
+            : null,
       ),
     ),
     GoRoute(

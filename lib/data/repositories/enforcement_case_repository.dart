@@ -26,6 +26,7 @@ abstract class EnforcementCaseRepository {
   /// The visit timeline for one case, oldest first.
   Future<List<EnforcementAction>> actions(int caseId);
 
+
   /// What a case may be opened about — the vocabulary behind `case_type`.
   ///
   /// Asynchronous because MCQ is expected to publish these: the picker is
@@ -64,6 +65,36 @@ abstract class EnforcementCaseRepository {
   /// The published spec does not capture this response, so it is read
   /// leniently; the untouched payload is on `FieldSeal.raw`.
   Future<FieldSeal> seal(int caseId, CaseSealRequest request);
+}
+
+/// The cases opened on one unit.
+///
+/// An extension rather than a member: `enforcement/cases` publishes no
+/// property filter, so this is the same loop over pages for every
+/// implementation — the shop's profile and the seal form both ask it, and no
+/// fake has to write it out again.
+extension PropertyCases on EnforcementCaseRepository {
+  /// Reads pages and keeps the rows naming the unit, [maxPages] deep.
+  Future<List<EnforcementCase>> casesForProperty(
+    int propertyId, {
+    int maxPages = 4,
+    int perPage = 50,
+  }) async {
+    final List<EnforcementCase> found = <EnforcementCase>[];
+    for (int page = 1; page <= maxPages; page++) {
+      final Paginated<EnforcementCase> result = await cases(
+        page: page,
+        perPage: perPage,
+      );
+      found.addAll(
+        result.items.where(
+          (EnforcementCase file) => file.property?.id == propertyId,
+        ),
+      );
+      if (!result.hasMore) break;
+    }
+    return found;
+  }
 }
 
 class ApiEnforcementCaseRepository implements EnforcementCaseRepository {

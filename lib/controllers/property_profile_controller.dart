@@ -4,7 +4,6 @@ import '../core/network/api_exception.dart';
 import '../data/repositories/enforcement_case_repository.dart';
 import '../data/repositories/reporting_repository.dart';
 import '../models/api_refs.dart';
-import '../models/api_response.dart';
 import '../models/defaulter_card.dart';
 import '../models/enforcement_action.dart';
 import '../models/enforcement_case.dart';
@@ -282,23 +281,17 @@ class PropertyProfileController extends GetxController {
 
   Future<void> _loadCases() async {
     try {
-      final List<EnforcementCase> found = <EnforcementCase>[];
-      for (int page = 1; page <= maxCasePages; page++) {
-        final Paginated<EnforcementCase> result = await _cases.cases(
-          page: page,
-          perPage: casePageSize,
-        );
-        found.addAll(result.items.where(_isThisProperty));
-        if (!result.hasMore) break;
-      }
+      final List<EnforcementCase> found = await _cases.casesForProperty(
+        propertyId,
+        maxPages: maxCasePages,
+        perPage: casePageSize,
+      );
       cases.value = found;
       selectedCaseId.value = _preferred(found)?.id ?? selectedCaseId.value;
     } on ApiException catch (error) {
       _report(error);
     }
   }
-
-  bool _isThisProperty(EnforcementCase file) => file.property?.id == propertyId;
 
   /// The case to open on: the one the card named, else the live one, else the
   /// first the server listed.

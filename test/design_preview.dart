@@ -19,6 +19,7 @@ import 'package:mcq_app/controllers/definitions_controller.dart';
 import 'package:mcq_app/controllers/fine_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/property_profile_controller.dart';
+import 'package:mcq_app/controllers/seals_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
@@ -29,12 +30,14 @@ import 'package:mcq_app/data/repositories/defaulters_repository.dart';
 import 'package:mcq_app/data/repositories/person_repository.dart';
 import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
+import 'package:mcq_app/data/repositories/field_seal_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 import 'package:mcq_app/models/challan.dart';
 import 'package:mcq_app/models/enforcement_case.dart';
+import 'package:mcq_app/models/field_seal.dart';
 import 'package:mcq_app/models/property_profile.dart';
 import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/models/unit_card.dart';
@@ -54,6 +57,7 @@ import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/take_action_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/create_seal_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/case_opened_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
@@ -66,6 +70,7 @@ import 'support/dashboard_fixtures.dart';
 import 'support/definitions_fixtures.dart';
 import 'support/person_fixtures.dart';
 import 'support/property_profile_fixtures.dart';
+import 'support/seal_fixtures.dart';
 import 'support/trade_fixtures.dart';
 
 /// Renders every screen to a PNG under `test/preview/` so a change can be
@@ -305,7 +310,22 @@ void main() {
     'challan_sheet_fine': () =>
         _sheet(ChallanSheet(challan: challansFixture[2])),
     'more': () => const MoreScreen(),
-    'sealed': () => const SealedScreen(),
+    // The seal register, and its second reading: everything shut, then the
+    // queue the server has cleared to come off.
+    'sealed': () {
+      _seedSeals();
+      return const SealedScreen();
+    },
+    'sealed_ready': () {
+      _seedSeals().showQueue(SealQueue.ready);
+      return const SealedScreen();
+    },
+    // Nothing sealed at all, which is a different sentence from a filter that
+    // found nothing.
+    'sealed_empty': () {
+      _seedSeals(seals: const <FieldSeal>[], ready: const <FieldSeal>[]);
+      return const SealedScreen();
+    },
     'profile': () {
       Get.find<AuthController>().officer.value = officerFixture;
       Get.find<ThemeController>().setColorScheme(
@@ -385,6 +405,28 @@ void main() {
     'take_action_sheet_arriving': () {
       _seedDefinitions(register: _registerWithEveryAction());
       return _sheet(const TakeActionSheet(hasOpenCase: true));
+    },
+    // Sealing a shop, reached from its Take Action sheet: which of the unit's
+    // cases the seal hangs on, and the reason that goes on the record.
+    'seal': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedPropertyProfile();
+      return CreateSealScreen(
+        propertyId: fixturePropertyId,
+        cases: _propertyCases(),
+        caseId: _propertyCases().first.id,
+      );
+    },
+    // The same form for a shop with no case yet: there is nothing to hang a
+    // seal on, so the only way on is to open one.
+    'seal_no_case': () {
+      _seedPropertyProfile();
+      return const CreateSealScreen(
+        propertyId: fixturePropertyId,
+        cases: <EnforcementCase>[],
+      );
     },
     // Opening a case on a shop, reached from its Take Action sheet: what the
     // case is about, why, and how urgent. The shop is never chosen here.
@@ -563,6 +605,8 @@ void main() {
     'challan_sheet': 2500,
     'challan_sheet_fine': 2400,
     'case': 4200,
+    'seal': 3000,
+    'seal_no_case': 2000,
     'case_from_property': 3400,
     'case_refused': 3400,
     'case_offender': 3000,
@@ -593,6 +637,9 @@ void main() {
     'take_action_sheet_sealed': 2400,
     'take_action_sheet_arriving': 2400,
     'defaulters': 2900,
+    'sealed': 1700,
+    'sealed_ready': 1700,
+    'sealed_empty': 1200,
     'defaulters_never_paid': 2900,
     // Short on purpose: the list has to outrun the viewport to be scrolled.
     'defaulters_collapsed': 1400,
@@ -979,6 +1026,12 @@ TradeLicencesController _seedTrade({Object? failure, String? query}) {
   return controller;
 }
 
+/// This shop's cases, the way its profile hands them to the seal form.
+List<EnforcementCase> _propertyCases() => casesPageOneJson
+    .map(EnforcementCase.fromJson)
+    .where((EnforcementCase file) => file.property?.id == fixturePropertyId)
+    .toList();
+
 /// A sheet as `showModalBottomSheet` draws it — the surface, the lip and the
 /// bottom edge — so a still of one is a still of what the officer sees.
 Widget _sheet(Widget child) => Builder(
@@ -1010,6 +1063,20 @@ ChallansController _seedChallans({List<Challan>? challans}) {
   // `fenix`, so the find below builds a fresh one over the fake just put.
   Get.delete<ChallansController>(force: true);
   return Get.find<ChallansController>();
+}
+
+/// Puts the seal register over the fixtures and drops the controller so it is
+/// rebuilt over them. Returns it, so an entry can choose the queue it means to
+/// show.
+SealsController _seedSeals({List<FieldSeal>? seals, List<FieldSeal>? ready}) {
+  Get.delete<FieldSealRepository>(force: true);
+  Get.put<FieldSealRepository>(
+    FakeFieldSealRepository(seals: seals, ready: ready),
+    permanent: true,
+  );
+  // `fenix`, so the find below builds a fresh one over the fake just put.
+  Get.delete<SealsController>(force: true);
+  return Get.find<SealsController>();
 }
 
 /// The capture form registers its own controller, so only the repository under

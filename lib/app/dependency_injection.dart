@@ -5,6 +5,7 @@ import '../controllers/challans_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
 import '../controllers/definitions_controller.dart';
+import '../controllers/seals_controller.dart';
 import '../controllers/theme_controller.dart';
 import '../controllers/trade_beat_controller.dart';
 import '../controllers/trade_licences_controller.dart';
@@ -119,8 +120,9 @@ void setupDependencies() {
     fenix: true,
   );
   Get.lazyPut<ChallansController>(ChallansController.new, fenix: true);
+  Get.lazyPut<SealsController>(SealsController.new, fenix: true);
 
-  // Last, because it drops the four above when the session changes hands: a
+  // Last, because it drops the five above when the session changes hands: a
   // `fenix` controller that is deleted is rebuilt — and refetched — the next
   // time its tab asks for it.
   watchSessionScope();

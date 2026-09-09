@@ -67,6 +67,22 @@ class AppRoutes {
           queryParameters: <String, String>{'property': '$propertyId'},
         ).toString();
 
+  /// Sealing a shop: `POST enforcement/cases/{case}/seal`.
+  ///
+  /// The unit travels as `?property=` — the form lists that unit's cases to
+  /// hang the seal on — and a case to start on as `?case=`. The cases the
+  /// caller has already read ride as the route's `extra`, so arriving from a
+  /// shop's profile does not re-read four pages of them.
+  static const String createSeal = '/magistrate/seal/new';
+
+  static String createSealPath({required int propertyId, int? caseId}) => Uri(
+    path: createSeal,
+    queryParameters: <String, String>{
+      'property': '$propertyId',
+      if (caseId != null) 'case': '$caseId',
+    },
+  ).toString();
+
   /// Capturing an unlicensed shop. Pushed over the shell from the licences
   /// tab: a form the officer should finish or abandon in front of the
   /// shopkeeper, not wander off from into another tab.

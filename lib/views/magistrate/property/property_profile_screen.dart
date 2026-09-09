@@ -15,6 +15,7 @@ import '../../../models/property_profile.dart';
 import '../../../models/shop_action.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/create_case_screen.dart';
+import '../shared/create_seal_screen.dart';
 import '../shared/widgets/challan_sheet.dart';
 import '../shared/widgets/create_fine_button.dart';
 import 'widgets/case_card.dart';
@@ -86,6 +87,19 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
         context,
         propertyId: controller.propertyId,
         onOpened: controller.load,
+      );
+      return;
+    }
+
+    if (choice.action == ShopAction.seal) {
+      // The cases go with it: this screen has already read them, and the seal
+      // form's first question is which of them to hang the seal on.
+      await CreateSealScreen.open(
+        context,
+        propertyId: controller.propertyId,
+        cases: controller.cases.toList(),
+        caseId: controller.liveCase?.id,
+        onSealed: controller.load,
       );
     }
   }

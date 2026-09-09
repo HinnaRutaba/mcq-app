@@ -4,6 +4,7 @@ import '../controllers/auth_controller.dart';
 import '../controllers/challans_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
+import '../controllers/seals_controller.dart';
 import '../controllers/trade_licences_controller.dart';
 import '../models/auth_user.dart';
 
@@ -12,6 +13,8 @@ import '../models/auth_user.dart';
 /// Each of them fetches once in `onInit` and then holds what it fetched, so
 /// without this the next officer on the handset opens Home to the last one's
 /// beat — and their filters, cursors and search box — until a pull to refresh.
+/// The seal register is the same: it is the officer's own seals, not the
+/// bazaar's.
 /// They are registered `fenix`, so dropping them here is enough: the next
 /// sign-in rebuilds each from scratch when its tab is first opened.
 ///
@@ -37,4 +40,5 @@ void _dropSessionControllers() {
   Get.delete<DefaultersController>();
   Get.delete<TradeLicencesController>();
   Get.delete<ChallansController>();
+  Get.delete<SealsController>();
 }

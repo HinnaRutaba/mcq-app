@@ -26,11 +26,14 @@ import 'package:mcq_app/data/repositories/person_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/models/evidence_upload.dart';
+import 'package:mcq_app/models/enforcement_case.dart';
 import 'package:mcq_app/models/fine.dart';
 import 'package:mcq_app/models/fine_request.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
+import 'package:mcq_app/views/magistrate/property/widgets/case_card.dart';
 import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/create_seal_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_capture_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/capture_tile.dart';
@@ -389,6 +392,156 @@ void main() {
       // screen that is not on it.
       expect(Get.isRegistered<DefaultersController>(), isFalse);
       expect(defaulters.defaultersCalls, 0);
+    });
+  });
+
+  group('a seal', () {
+    late FakeReportingRepository reporting;
+    late FakeEnforcementCaseRepository cases;
+    late FakeDefaultersRepository defaulters;
+
+    /// The two screens a seal is written between: a shop's profile, and the
+    /// form pushed over it. Real paths, so `AppRoutes.createSealPath` resolves.
+    GoRouter router() => GoRouter(
+      initialLocation: '/shop',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/shop',
+          builder: (BuildContext context, GoRouterState state) =>
+              const PropertyProfileScreen(propertyId: fixturePropertyId),
+        ),
+        GoRoute(
+          path: AppRoutes.createSeal,
+          builder: (BuildContext context, GoRouterState state) =>
+              CreateSealScreen(
+                propertyId: int.parse(
+                  state.uri.queryParameters['property'] ?? '0',
+                ),
+                caseId: int.tryParse(state.uri.queryParameters['case'] ?? ''),
+                cases: state.extra is List<EnforcementCase>
+                    ? state.extra! as List<EnforcementCase>
+                    : null,
+              ),
+        ),
+      ],
+    );
+
+    /// The register with a seal row on it. The shared fixture publishes three
+    /// action types and `seal` is not one of them — and the Take Action sheet
+    /// refuses a step MCQ has not published, which is the whole reason this
+    /// group carries its own register.
+    Map<String, dynamic> registerWithSeal() {
+      final Map<String, dynamic> data = definitionsData();
+      data['action_types'] = <Map<String, dynamic>>[
+        ...(data['action_types']! as List<dynamic>)
+            .cast<Map<String, dynamic>>(),
+        <String, dynamic>{
+          'code': 'seal',
+          'name': 'Sealed',
+          'fields': <String, dynamic>{'seal_no': true},
+        },
+      ];
+      return <String, dynamic>{'data': data};
+    }
+
+    setUp(() async {
+      final StubbedApi api = StubbedApi();
+      api.stub.reply(registerWithSeal());
+
+      final AuthController auth = AuthController(
+        authRepository: ApiAuthRepository(
+          api: api.service,
+          storage: api.storage,
+        ),
+      );
+      Get.put<AuthController>(auth, permanent: true);
+
+      final DefinitionsController definitions = DefinitionsController(
+        definitionsRepository: ApiDefinitionsRepository(api: api.service),
+        authController: auth,
+      );
+      await definitions.load();
+      Get.put<DefinitionsController>(definitions, permanent: true);
+
+      reporting = FakeReportingRepository();
+      cases = FakeEnforcementCaseRepository();
+      defaulters = FakeDefaultersRepository();
+      Get.put<ReportingRepository>(reporting, permanent: true);
+      Get.put<EnforcementCaseRepository>(cases, permanent: true);
+      Get.put<PersonRepository>(FakePersonRepository(), permanent: true);
+      Get.put<DefaultersRepository>(defaulters, permanent: true);
+      Get.put<DashboardRepository>(FakeDashboardRepository(), permanent: true);
+    });
+
+    /// Opens the seal form the way an officer does: the Take Action button,
+    /// then the seal off the sheet.
+    Future<void> openSealForm(WidgetTester tester) async {
+      await tester.tap(find.byType(AppExtendedFab));
+      await settle(tester);
+      // The rows are held back before they stagger, on a plain `Timer`.
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      await tester.tap(find.text('Seal the shop'));
+      await settle(tester);
+    }
+
+    testWidgets('re-reads the shop it was sealed on', (
+      WidgetTester tester,
+    ) async {
+      // The Defaulters tab has been opened, so its rows — which carry the seal
+      // badge — are behind this and have to be told as well.
+      Get.put<DefaultersController>(DefaultersController());
+      await settle(tester);
+      final int defaultersBefore = defaulters.defaultersCalls;
+
+      sizeTo(tester, height: 6000);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+      await settle(tester);
+      // Every page the profile read for itself, before the form is opened.
+      final int pagesRead = cases.pagesRequested.length;
+
+      await openSealForm(tester);
+
+      // The shop's own cases came with it, so the form asks for none of them
+      // again — and the live one is already chosen.
+      expect(cases.pagesRequested.length, pagesRead);
+      expect(find.byType(CaseCard), findsWidgets);
+
+      await tester.enterText(
+        find.byType(AppTextField).first,
+        'Arrears unpaid after final notice.',
+      );
+      await settle(tester);
+      await tester.tap(find.widgetWithText(AppButton, 'Seal the shop'));
+      await settle(tester);
+      await tapDone(tester);
+
+      expect(cases.sealedCases, <int>[fixtureLiveCaseId]);
+      expect(
+        cases.sealedWith.single.sealReason,
+        'Arrears unpaid after final notice.',
+      );
+      // Two profile reads before the write, and a third because the seal
+      // landed on this shop's enforcement block.
+      expect(reporting.profileCalls, 2);
+      expect(defaulters.defaultersCalls, defaultersBefore + 1);
+      expect(find.byType(AppExtendedFab), findsOneWidget);
+    });
+
+    testWidgets('leaves the shop alone when the form is abandoned', (
+      WidgetTester tester,
+    ) async {
+      sizeTo(tester, height: 6000);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+      await settle(tester);
+      final int profileCallsBefore = reporting.profileCalls;
+
+      await openSealForm(tester);
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await settle(tester);
+
+      expect(cases.sealedCases, isEmpty);
+      expect(reporting.profileCalls, profileCallsBefore);
     });
   });
 

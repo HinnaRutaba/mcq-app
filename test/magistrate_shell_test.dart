@@ -8,6 +8,8 @@ import 'package:mcq_app/config/routes/app_router.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
+import 'package:mcq_app/data/repositories/field_seal_repository.dart';
+import 'package:mcq_app/models/field_seal.dart';
 import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
 import 'package:mcq_app/views/magistrate/magistrate_shell.dart';
@@ -22,6 +24,7 @@ import 'package:mcq_app/views/magistrate/shared/widgets/back_to_home_button.dart
 import 'support/api_stub.dart';
 import 'support/challan_fixtures.dart';
 import 'support/dashboard_fixtures.dart';
+import 'support/seal_fixtures.dart';
 import 'support/trade_fixtures.dart';
 
 /// Whether the six labels physically fit is a question about real font
@@ -277,6 +280,18 @@ void main() {
       Get.reset();
       installInMemoryKeychain();
       setupDependencies();
+      // The seal register fetches as soon as it is built, and the real
+      // repository would put that on the wire. Empty, because what is under
+      // test here is the route and the bar under it — the list has
+      // `seals_screen_test.dart`.
+      Get.delete<FieldSealRepository>(force: true);
+      Get.put<FieldSealRepository>(
+        FakeFieldSealRepository(
+          seals: const <FieldSeal>[],
+          ready: const <FieldSeal>[],
+        ),
+        permanent: true,
+      );
     });
 
     tearDown(Get.reset);
