@@ -11,8 +11,8 @@ import '../../../models/challan.dart';
 import '../../../models/defaulter_card.dart';
 import '../../../models/enforcement_action.dart';
 import '../../../models/enforcement_case.dart';
-import '../../../models/enforcement_definitions.dart';
 import '../../../models/property_profile.dart';
+import '../../../models/shop_action.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/widgets/challan_sheet.dart';
 import '../shared/widgets/create_fine_button.dart';
@@ -22,11 +22,6 @@ import 'widgets/profile_header.dart';
 import 'widgets/take_action_sheet.dart';
 
 const EdgeInsets _cardPadding = EdgeInsets.fromLTRB(12, 16, 12, 16);
-
-/// The register's code for a fine, which the fines endpoint raises rather than
-/// the action endpoint — so it is the one row on the sheet with a form of its
-/// own already.
-const String _fineImposed = 'fine_imposed';
 
 class PropertyProfileScreen extends StatefulWidget {
   const PropertyProfileScreen({
@@ -65,13 +60,15 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
   }
 
   Future<void> _takeAction(BuildContext context) async {
-    final ActionTypeDefinition? action = await TakeActionSheet.show(
+    final ShopActionChoice? choice = await TakeActionSheet.show(
       context,
       from: _fab,
+      sealed: controller.isSealed,
+      hasOpenCase: controller.hasOpenCase,
     );
-    if (action == null || !context.mounted) return;
+    if (choice == null || !context.mounted) return;
 
-    if (action.code == _fineImposed) {
+    if (choice.action == ShopAction.fine) {
       await CreateFineButton.impose(
         context,
         propertyId: controller.propertyId,

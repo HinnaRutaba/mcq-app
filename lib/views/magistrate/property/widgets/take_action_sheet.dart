@@ -1,28 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../config/theme/app_brand.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_radius.dart';
 import '../../../../controllers/definitions_controller.dart';
 import '../../../../models/enforcement_definitions.dart';
+import '../../../../models/shop_action.dart';
 import '../../../../widgets/widgets.dart';
 
+/// The steps an officer can take on one shop.
+///
+/// The rows are [ShopAction] — the app's own list, worded as the choice being
+/// made and ordered roughly as enforcement escalates. What each row *posts* is
+/// still the register's: the matching `ActionTypeDefinition` is looked up by
+/// code and handed back with the choice, so an action MCQ renames or reprices
+/// arrives here without an app release. A step the register has switched off
+/// is shown and refused rather than quietly dropped — an officer who cannot
+/// find "Give a warning" will assume the app is broken.
 class TakeActionSheet extends StatefulWidget {
-  const TakeActionSheet({super.key, this.definitions});
+  const TakeActionSheet({
+    super.key,
+    this.sealed = false,
+    this.hasOpenCase = false,
+    this.definitions,
+  });
+
+  /// Whether the shop stands sealed — the row is a release rather than a seal.
+  final bool sealed;
+
+  /// Whether there is a case to record against. Without one, the steps that
+  /// need a case say that they will open it.
+  final bool hasOpenCase;
 
   /// Injected by a test or a preview. Null resolves the app's own singleton.
   final DefinitionsController? definitions;
 
-  static Future<ActionTypeDefinition?> show(
+  /// The step the officer picked, or null if they closed the sheet.
+  ///
+  /// [from] is the control that opened it — the sheet grows out of that
+  /// button's own rectangle rather than sliding up from nowhere.
+  static Future<ShopActionChoice?> show(
     BuildContext context, {
     GlobalKey? from,
+    bool sealed = false,
+    bool hasOpenCase = false,
   }) {
-    return AppContainerSheet.show<ActionTypeDefinition>(
+    return AppContainerSheet.show<ShopActionChoice>(
       context,
       from: from,
       fromColor: context.brand.accent,
-      builder: (BuildContext context) => const TakeActionSheet(),
+      builder: (BuildContext context) =>
+          TakeActionSheet(sealed: sealed, hasOpenCase: hasOpenCase),
     );
   }
 
@@ -53,36 +83,56 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
     ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
 
     return ConstrainedBox(
-      // As tall as the register needs, and no taller than this: the sheet is a
-      // choice, and the shop is still behind it. A register of three rows is a
-      // sheet of three rows.
+      // As tall as the list needs, and no taller. Eight steps is more than
+      // three quarters of a handset, and the last of them — the seal — is the
+      // one an officer must not have to go looking for.
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.sizeOf(context).height * 0.72,
+        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        // Stretched, or the header shrinks to its own text and is centred
+        // over rows that run the full width.
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const AppText.titleLarge('Take action'),
+                Row(
+                  children: <Widget>[
+                    const Expanded(child: AppText.titleLarge('Take action')),
+                    const SizedBox(width: 8),
+                    // The library's round button rather than a bare icon: it
+                    // carries a 36pt tap target and a ripple, and a glyph on
+                    // its own is neither.
+                    AppCircleIconButton(
+                      icon: Icons.close_rounded,
+                      size: 36,
+                      background: AppTone.neutral.container(context),
+                      iconColor: AppTone.neutral.on(context),
+                      onTap: () => context.pop(),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 4),
                 AppText.caption(
-                  'What happened at the shop, as MCQ publishes it.',
+                  'Roughly in the order they escalate.',
                   color: muted,
                 ),
               ],
             ),
           ),
+          // Read here, in the builder: the register lands after the sheet is
+          // up on the one round a signal cost, and a read in a child's build
+          // would register with nothing.
           Flexible(
             child: Obx(() {
-              final List<ActionTypeDefinition> types = _definitions.actionTypes;
               final bool ready = _definitions.isReady;
               final String? error = _definitions.errorMessage.value;
               final bool loading = _definitions.isLoading.value;
+              final List<ActionTypeDefinition> types = _definitions.actionTypes;
 
               if (!ready && loading) {
                 return const Padding(
@@ -97,6 +147,8 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
                   onRetry: _definitions.reload,
                 );
               }
+              // Loaded and empty is a misconfigured register, not a shop with
+              // nothing to do about it — every row would be refused.
               if (types.isEmpty) {
                 return const AppEmptyState(
                   icon: Icons.rule_folder_outlined,
@@ -107,146 +159,175 @@ class _TakeActionSheetState extends State<TakeActionSheet> {
                 );
               }
 
-              return ListView(
-                shrinkWrap: true,
-                padding: EdgeInsets.fromLTRB(
-                  20,
-                  0,
-                  20,
-                  // Clear of the home indicator: this sheet paints to the
-                  // bottom edge rather than being inset from it.
-                  24 + MediaQuery.viewPaddingOf(context).bottom,
-                ),
-                children: <Widget>[
-                  for (final (int at, ActionTypeDefinition type)
-                      in types.indexed)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      // Held back until the sheet has grown, then one after
-                      // another — a list that is already sitting there when
-                      // the surface arrives reads as a screenshot.
-                      child: AppEntrance(
-                        index: at,
-                        delay: _staggerAfter,
-                        child: _ActionRow(
-                          type: type,
-                          onTap: () => Navigator.of(context).pop(type),
-                        ),
-                      ),
-                    ),
-                ],
-              );
+              return _steps(context, types);
             }),
           ),
         ],
       ),
     );
   }
+
+  Widget _steps(BuildContext context, List<ActionTypeDefinition> types) {
+    final List<ShopAction> steps = ShopAction.forShop(sealed: widget.sealed);
+
+    return ListView(
+      shrinkWrap: true,
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        // Clear of the home indicator: this sheet paints to the bottom edge
+        // rather than being inset from it.
+        24 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
+      children: <Widget>[
+        for (final (int at, ShopAction step) in steps.indexed)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            // Held back until the sheet has grown, then one after another — a
+            // list already sitting there when the surface arrives reads as a
+            // screenshot.
+            child: AppEntrance(
+              index: at,
+              delay: _staggerAfter,
+              child: _StepRow(
+                step: step,
+                definition: _rowFor(step),
+                note: _noteFor(step),
+                onTap: _offers(step)
+                    ? () => context.pop(
+                        ShopActionChoice(step, definition: _rowFor(step)),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The register's row for a step, or null where the step is not an action
+  /// type at all — a new case is its own endpoint.
+  ActionTypeDefinition? _rowFor(ShopAction step) {
+    final String? code = step.code;
+    return code == null ? null : _definitions.actionType(code);
+  }
+
+  /// Whether the step can be taken. A step MCQ has switched off cannot be
+  /// posted, so the row is refused rather than failing at a shop counter.
+  bool _offers(ShopAction step) => step.code == null || _rowFor(step) != null;
+
+  /// A pill under the description, for what this shop's state changes about
+  /// the step, or why it cannot be taken at all.
+  ///
+  /// Not what the form will ask for: the register's `fields` block says a
+  /// promise needs a date, and so does the step's own description — the same
+  /// fact twice on one row.
+  String? _noteFor(ShopAction step) {
+    if (!_offers(step)) return 'MCQ has switched this off';
+    if (step.needsCase && !widget.hasOpenCase) return 'Opens a case first';
+    if (step == ShopAction.openCase && widget.hasOpenCase) {
+      return 'One case is already open';
+    }
+    return null;
+  }
 }
 
-class _ActionRow extends StatelessWidget {
-  const _ActionRow({required this.type, required this.onTap});
+class _StepRow extends StatelessWidget {
+  const _StepRow({
+    required this.step,
+    required this.definition,
+    required this.note,
+    required this.onTap,
+  });
 
-  final ActionTypeDefinition type;
-  final VoidCallback onTap;
+  final ShopAction step;
+
+  /// The register's row behind this step, where it has one.
+  final ActionTypeDefinition? definition;
+
+  final String? note;
+
+  /// Null where the step cannot be taken.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final Color? muted = Theme.of(
       context,
     ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
-    final AppTone tone = _toneFor(type.code);
-    final String? needs = _needs(type.fields);
+    final bool offered = onTap != null;
+    final AppTone tone = _toneFor(step);
 
-    return AppCard(
-      onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: <Widget>[
-          Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-              color: tone.container(context),
-              borderRadius: BorderRadius.circular(AppRadius.md),
+    return Opacity(
+      // Dimmed rather than hidden: the list is the same length whatever MCQ
+      // has switched off, so an officer can see what is missing.
+      opacity: offered ? 1 : 0.5,
+      child: AppCard(
+        onTap: onTap,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: <Widget>[
+            Container(
+              height: 44,
+              width: 44,
+              decoration: BoxDecoration(
+                color: tone.container(context),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(_iconFor(step), color: tone.on(context)),
             ),
-            child: Icon(_iconFor(type.code), color: tone.on(context)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppText.body(
-                        type.name,
-                        fontWeight: FontWeight.w700,
-                        maxLines: 2,
-                      ),
-                    ),
-                    if (type.nameUr != null) ...<Widget>[
-                      const SizedBox(height: 2),
-                      AppText.label(type.nameUr!, color: muted, maxLines: 1),
-                    ],
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  AppText.body(
+                    step.label,
+                    fontWeight: FontWeight.w700,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 2),
+                  AppText.caption(step.description, color: muted, maxLines: 2),
+                  if (note != null) ...<Widget>[
+                    const SizedBox(height: 6),
+                    AppStatusBadge(label: note!),
                   ],
-                ),
-
-                if (type.description != null) ...<Widget>[
-                  const SizedBox(height: 3),
-                  AppText.caption(type.description!, color: muted, maxLines: 2),
                 ],
-                if (needs != null) ...<Widget>[
-                  const SizedBox(height: 6),
-                  AppStatusBadge(label: needs),
-                ],
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Icon(Icons.chevron_right_rounded, size: 20, color: muted),
-        ],
+            const SizedBox(width: 10),
+            Icon(
+              offered ? Icons.chevron_right_rounded : Icons.block_rounded,
+              size: 20,
+              color: muted,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-/// What the action carries beyond a date and a remark, read off the server's
-/// own `fields` block — so the officer knows what the form will ask for
-/// before they pick it.
-String? _needs(ActionTypeFields fields) {
-  final List<String> parts = <String>[
-    if (fields.promiseDate) 'a promised date',
-    if (fields.visitDate) 'a return date',
-    if (fields.amount) 'an amount',
-    if (fields.sealNo) 'a seal number',
-  ];
-  if (parts.isEmpty) return null;
-  return 'Needs ${parts.join(' and ')}';
-}
-
-/// A glyph for the codes MCQ publishes today, and a neutral one for anything
-/// added since — the list is the server's, so this cannot be exhaustive.
-IconData _iconFor(String code) => switch (code) {
-  'site_visit' => Icons.storefront_outlined,
-  'verbal_warning' => Icons.campaign_outlined,
-  'final_warning' => Icons.warning_amber_rounded,
-  'notice_served' => Icons.description_outlined,
-  'payment_promised' => Icons.handshake_outlined,
-  'reminder_visit_set' => Icons.event_repeat_outlined,
-  'fine_imposed' => Icons.gavel_rounded,
-  'seal' => Icons.lock_outline_rounded,
-  'unseal' => Icons.lock_open_rounded,
-  'case_closed' => Icons.task_alt_rounded,
-  _ => Icons.assignment_outlined,
+IconData _iconFor(ShopAction step) => switch (step) {
+  ShopAction.visit => Icons.storefront_outlined,
+  ShopAction.warn => Icons.campaign_outlined,
+  ShopAction.promise => Icons.handshake_outlined,
+  ShopAction.remind => Icons.event_repeat_outlined,
+  ShopAction.fine => Icons.gavel_rounded,
+  ShopAction.openCase => Icons.create_new_folder_outlined,
+  ShopAction.seal => Icons.lock_outline_rounded,
+  ShopAction.unseal => Icons.lock_open_rounded,
 };
 
-/// How hard the step is on the shopkeeper: a visit is a visit, a final warning
-/// and a seal are not.
-AppTone _toneFor(String code) => switch (code) {
-  'final_warning' || 'fine_imposed' || 'seal' => AppTone.danger,
-  'notice_served' || 'verbal_warning' => AppTone.warning,
-  'payment_promised' || 'case_closed' || 'unseal' => AppTone.success,
-  _ => AppTone.primary,
+/// How hard the step is on the shopkeeper: a visit is a visit, a fine and a
+/// seal are not.
+AppTone _toneFor(ShopAction step) => switch (step) {
+  ShopAction.visit => AppTone.primary,
+  ShopAction.warn => AppTone.warning,
+  ShopAction.promise => AppTone.success,
+  ShopAction.remind => AppTone.info,
+  ShopAction.fine || ShopAction.seal => AppTone.danger,
+  ShopAction.openCase => AppTone.warning,
+  ShopAction.unseal => AppTone.success,
 };

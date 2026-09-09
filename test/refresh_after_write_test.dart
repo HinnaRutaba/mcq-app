@@ -142,7 +142,10 @@ void main() {
     Future<void> openFineForm(WidgetTester tester) async {
       await tester.tap(find.byType(AppExtendedFab));
       await settle(tester);
-      await tester.tap(find.text('Fine imposed'));
+      // The rows are held back before they stagger, on a plain `Timer`.
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      await tester.tap(find.text('Impose a fine'));
       await settle(tester);
     }
 

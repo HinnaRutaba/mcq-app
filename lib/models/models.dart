@@ -17,6 +17,7 @@ export 'enforcement_action.dart';
 export 'enforcement_action_request.dart';
 export 'enforcement_case.dart';
 export 'enforcement_definitions.dart';
+export 'shop_action.dart';
 export 'evidence_upload.dart';
 export 'field_activity.dart';
 export 'field_beat.dart';

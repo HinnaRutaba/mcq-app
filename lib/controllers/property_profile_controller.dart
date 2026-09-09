@@ -188,6 +188,33 @@ class PropertyProfileController extends GetxController {
     return card?.neverPaid ?? false;
   }
 
+  /// The case the shop is being worked through, when one is open. What an
+  /// action or a seal is hung on.
+  EnforcementCase? get liveCase {
+    for (final EnforcementCase file in cases) {
+      if (file.isLive) return file;
+    }
+    return null;
+  }
+
+  /// Whether the shop stands sealed. Decides whether the officer is offered a
+  /// seal or a release — offering the wrong one at a shopfront is worse than
+  /// offering neither, so a yes from either read wins.
+  bool get isSealed {
+    final PropertyEnforcement? enforcement = profile.value?.enforcement;
+    if (enforcement != null) {
+      return enforcement.isSealed || (liveCase?.isSealed ?? false);
+    }
+    return card?.isSealed ?? false;
+  }
+
+  /// Whether there is a case to record against. Any of the three reads saying
+  /// so is enough: the question is only whether one has to be opened first.
+  bool get hasOpenCase =>
+      (profile.value?.enforcement.hasOpenCase ?? false) ||
+      liveCase != null ||
+      (card?.hasOpenCase ?? false);
+
   /// The holder's number, for the call and message actions. Null on a vacant
   /// unit, and on one whose holder the register has no number for.
   String? get mobileNo => profile.value?.allottee?.mobileNo ?? card?.mobileNo;

@@ -362,18 +362,25 @@ void main() {
       _seedPropertyProfile(profile: vacantPropertyProfileFixture);
       return const PropertyProfileScreen(propertyId: fixturePropertyId);
     },
-    // The sheet the shop's Take Action button opens: every step the register
-    // publishes for a case, in the server's own order and wording.
+    // The sheet the shop's Take Action button opens: the app's own steps, in
+    // the order enforcement escalates, each carrying the register's row. This
+    // shop has no case yet, so the seal says what it will open first.
     'take_action_sheet': () {
       _seedDefinitions(register: _registerWithEveryAction());
       return _sheet(const TakeActionSheet());
+    },
+    // A shop with a case already open, and a seal already on it: the last row
+    // is a release rather than a seal, and the two are never both offered.
+    'take_action_sheet_sealed': () {
+      _seedDefinitions(register: _registerWithEveryAction());
+      return _sheet(const TakeActionSheet(sealed: true, hasOpenCase: true));
     },
     // The same sheet with the rows still arriving. They are held back until
     // the surface has grown out of the button and then come one after
     // another, so the still worth reviewing is this one, not the settled page.
     'take_action_sheet_arriving': () {
       _seedDefinitions(register: _registerWithEveryAction());
-      return _sheet(const TakeActionSheet());
+      return _sheet(const TakeActionSheet(hasOpenCase: true));
     },
     'fine': () {
       // Reset the scheme: an earlier entry deliberately switches to indigo and
@@ -536,8 +543,9 @@ void main() {
     'property_profile_cases': 2600,
     'property_profile_history': 4400,
     'property_profile_vacant': 2200,
-    'take_action_sheet': 2700,
-    'take_action_sheet_arriving': 2700,
+    'take_action_sheet': 2400,
+    'take_action_sheet_sealed': 2400,
+    'take_action_sheet_arriving': 2400,
     'defaulters': 2900,
     'defaulters_never_paid': 2900,
     // Short on purpose: the list has to outrun the viewport to be scrolled.
@@ -571,6 +579,7 @@ void main() {
     // frame by frame: one caught mid-stagger, one run out to rest.
     'take_action_sheet_arriving': 430,
     'take_action_sheet': 1500,
+    'take_action_sheet_sealed': 1500,
   };
 
   /// Entries that never come to rest — a splash spins until it routes, so
