@@ -5,18 +5,37 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../models/enforcement_case.dart';
 import '../../../../widgets/widgets.dart';
 
+/// One enforcement case as a card: where the file stands, what it is worth
+/// now against when it opened, and what the officer may do with it.
+///
+/// Read in three places — a shop's own profile, the seal form's case picker,
+/// and the [CasesScreen] list — which is why it lives here rather than beside
+/// any one of them.
 class CaseCard extends StatelessWidget {
   const CaseCard({
     super.key,
     required this.file,
     this.selected = false,
+    this.showSubject = false,
+    this.hint,
     this.onTap,
   });
 
   final EnforcementCase file;
 
-  /// Whether the history tab is showing this case's timeline.
+  /// Whether this card is the one its screen is acting on — the case whose
+  /// timeline is open, or the one a seal is being hung on.
   final bool selected;
+
+  /// Whether to name the shop and holder the case is about. Off where the
+  /// reader already knows — a shop's own profile, a picker of that shop's
+  /// cases — and on for a list that spans the whole beat, where the case
+  /// number alone says nothing about which shopfront to walk to.
+  final bool showSubject;
+
+  /// What tapping the card does, at the end of the count line. Null says
+  /// nothing, for a card that does not respond to a tap.
+  final String? hint;
 
   final VoidCallback? onTap;
 
@@ -41,24 +60,20 @@ class CaseCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(
-                child: AppText.titleMedium(
-                  file.caseNo ?? 'Case #${file.id}',
-                  maxLines: 1,
-                ),
-              ),
+              Expanded(child: AppText.titleMedium(_title, maxLines: 1)),
               if (file.status != null) ...<Widget>[
                 const SizedBox(width: 12),
                 AppStatusBadge(label: file.status!.label, tone: tone),
               ],
             ],
           ),
+          if (_where != null) ...<Widget>[
+            const SizedBox(height: 3),
+            AppText.body(_where!, maxLines: 1),
+          ],
           const SizedBox(height: 8),
-          if (file.openedOn != null)
-            AppDetailRow(
-              icon: Icons.folder_open_outlined,
-              value: 'Opened ${Formatters.date(file.openedOn!.toLocal())}',
-            ),
+          if (_opened != null)
+            AppDetailRow(icon: Icons.folder_open_outlined, value: _opened!),
           if (now != null)
             AppDetailRow(
               icon: Icons.account_balance_wallet_outlined,
@@ -105,7 +120,7 @@ class CaseCard extends StatelessWidget {
               '${file.actionCount} ${file.actionCount == 1 ? 'entry' : 'entries'}',
               if (file.fineCount > 0)
                 '${file.fineCount} ${file.fineCount == 1 ? 'fine' : 'fines'}',
-              if (selected) 'history open' else 'tap to read its history',
+              ?hint,
             ].join(' · '),
             color: muted,
             maxLines: 1,
@@ -113,6 +128,43 @@ class CaseCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// The case number, unless the card is naming the shopfront — then the
+  /// holder leads and the number moves down to the opened line, because a
+  /// list of case numbers is not something an officer can read a beat off.
+  String get _title => showSubject
+      ? (_holder ?? _unit ?? _caseNo)
+      : _caseNo;
+
+  String get _caseNo => file.caseNo ?? 'Case #${file.id}';
+
+  /// Whoever the case names. A conduct case can be about somebody who is not
+  /// on the register at all, and then [EnforcementCase.offender] is the only
+  /// name on the file.
+  String? get _holder => file.allottee?.fullName ?? file.offender?.name;
+
+  String? get _unit => file.property?.displayName ?? file.property?.propertyCode;
+
+  /// The shop and its bazaar, dropped when the title above is already the
+  /// shop. Only ever drawn under a card that is naming its subject.
+  String? get _where {
+    if (!showSubject) return null;
+    final List<String> parts = <String>[
+      if (_unit != null && _unit != _title) _unit!,
+      ?file.area?.name,
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
+  /// When the file was opened — carrying the case number where the title gave
+  /// it up, so the number an officer reads down the phone is never missing.
+  String? get _opened {
+    final String? on = file.openedOn == null
+        ? null
+        : Formatters.date(file.openedOn!.toLocal());
+    if (!showSubject) return on == null ? null : 'Opened $on';
+    return on == null ? _caseNo : '$_caseNo · opened $on';
   }
 
   /// Which way the debt has moved since the file opened — the server's own

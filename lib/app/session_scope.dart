@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/cases_controller.dart';
 import '../controllers/challans_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
@@ -41,4 +42,5 @@ void _dropSessionControllers() {
   Get.delete<TradeLicencesController>();
   Get.delete<ChallansController>();
   Get.delete<SealsController>();
+  Get.delete<CasesController>();
 }

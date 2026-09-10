@@ -26,6 +26,7 @@ export 'common/app_form_section.dart';
 export 'common/app_hero_action.dart';
 export 'common/app_hero_header.dart';
 export 'common/app_hero_ornament.dart';
+export 'common/app_list_footer.dart';
 export 'common/app_logo.dart';
 export 'common/app_measure.dart';
 export 'common/app_pinned_bar.dart';

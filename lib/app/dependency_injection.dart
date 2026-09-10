@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/cases_controller.dart';
 import '../controllers/challans_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
@@ -121,8 +122,9 @@ void setupDependencies() {
   );
   Get.lazyPut<ChallansController>(ChallansController.new, fenix: true);
   Get.lazyPut<SealsController>(SealsController.new, fenix: true);
+  Get.lazyPut<CasesController>(CasesController.new, fenix: true);
 
-  // Last, because it drops the five above when the session changes hands: a
+  // Last, because it drops the six above when the session changes hands: a
   // `fenix` controller that is deleted is rebuilt — and refetched — the next
   // time its tab asks for it.
   watchSessionScope();

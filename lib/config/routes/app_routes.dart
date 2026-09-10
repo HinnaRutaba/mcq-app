@@ -31,10 +31,16 @@ class AppRoutes {
   static const String magistrateSealed = '/magistrate/more/sealed';
   static const String magistrateProfile = '/magistrate/more/profile';
 
-  /// The `go_router` child segments for the two routes above. A nested
+  /// The enforcement case register. Reached from the two case queues on Home
+  /// as well as from the hub, which is why it is a route of its own rather
+  /// than a filter on a list somewhere else.
+  static const String magistrateCases = '/magistrate/more/cases';
+
+  /// The `go_router` child segments for the three routes above. A nested
   /// [GoRoute] takes the tail, not the whole path.
   static const String magistrateSealedSegment = 'sealed';
   static const String magistrateProfileSegment = 'profile';
+  static const String magistrateCasesSegment = 'cases';
 
   // --- Pushed full-screen routes (appear above the shell/bottom nav) ---
 

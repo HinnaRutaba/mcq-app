@@ -18,7 +18,7 @@ import '../shared/create_case_screen.dart';
 import '../shared/create_seal_screen.dart';
 import '../shared/widgets/challan_sheet.dart';
 import '../shared/widgets/create_fine_button.dart';
-import 'widgets/case_card.dart';
+import '../shared/widgets/case_card.dart';
 import 'widgets/case_timeline.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/take_action_sheet.dart';
@@ -740,6 +740,9 @@ class _Cases extends StatelessWidget {
             child: CaseCard(
               file: file,
               selected: file.id == selectedId,
+              hint: file.id == selectedId
+                  ? 'history open'
+                  : 'tap to read its history',
               onTap: file.id == null ? null : () => onSelect(file.id!),
             ),
           ),

@@ -535,7 +535,12 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
     this.timelineFailure,
     this.openFailure,
     this.caseTypeFailure,
-  });
+    List<List<Map<String, dynamic>>>? pages,
+  }) : pages = pages ?? _pages;
+
+  /// The pages `enforcement/cases` answers with. Overridden to preview an
+  /// empty register.
+  final List<List<Map<String, dynamic>>> pages;
 
   /// Mutable so a test can let the signal come back and retry.
   Object? failure;
@@ -574,16 +579,30 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
     final int wanted = page ?? 1;
     pagesRequested.add(wanted);
     if (failure != null) throw failure!;
-    final List<Map<String, dynamic>> rows = wanted <= _pages.length
-        ? _pages[wanted - 1]
+    // `magistrate_id=me` is the server's filter; here it is the rows that say
+    // they are in this officer's name.
+    final List<List<Map<String, dynamic>>> asked = assignedToMe
+        ? pages
+              .map(
+                (List<Map<String, dynamic>> rows) => rows
+                    .where((Map<String, dynamic> row) => row['is_assigned'] == true)
+                    .toList(),
+              )
+              .toList()
+        : pages;
+    final List<Map<String, dynamic>> rows = wanted <= asked.length
+        ? asked[wanted - 1]
         : const <Map<String, dynamic>>[];
     return Paginated<EnforcementCase>(
       items: rows.map(EnforcementCase.fromJson).toList(),
       meta: PageMeta(
         currentPage: wanted,
         perPage: perPage ?? 50,
-        lastPage: _pages.length,
-        total: casesPageOneJson.length + casesPageTwoJson.length,
+        lastPage: asked.length,
+        total: asked.fold<int>(
+          0,
+          (int sum, List<Map<String, dynamic>> rows) => sum + rows.length,
+        ),
       ),
     );
   }

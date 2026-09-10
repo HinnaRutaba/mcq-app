@@ -12,7 +12,7 @@ import 'package:mcq_app/models/api_refs.dart';
 import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/models/property_profile.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
-import 'package:mcq_app/views/magistrate/property/widgets/case_card.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/case_card.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/holder_actions.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/profile_header.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';

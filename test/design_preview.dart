@@ -12,6 +12,7 @@ import 'package:mcq_app/config/theme/app_radius.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/controllers/case_controller.dart';
+import 'package:mcq_app/controllers/cases_controller.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
 import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
@@ -52,6 +53,7 @@ import 'package:mcq_app/views/magistrate/trade/trade_capture_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/capture_sheet.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/licence_sheet.dart';
+import 'package:mcq_app/views/magistrate/cases/cases_screen.dart';
 import 'package:mcq_app/views/magistrate/challans/challans_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/property/widgets/take_action_sheet.dart';
@@ -325,6 +327,21 @@ void main() {
     'sealed_empty': () {
       _seedSeals(seals: const <FieldSeal>[], ready: const <FieldSeal>[]);
       return const SealedScreen();
+    },
+    // The case register, and its second reading: every file open on the beat,
+    // then the ones in this officer's name. Both are what the two case queues
+    // on Home open.
+    'cases': () {
+      _seedCases();
+      return const CasesScreen();
+    },
+    'cases_mine': () {
+      _seedCases().showFilter(CaseFilter.mine);
+      return const CasesScreen();
+    },
+    'cases_empty': () {
+      _seedCases(pages: const <List<Map<String, dynamic>>>[]);
+      return const CasesScreen();
     },
     'profile': () {
       Get.find<AuthController>().officer.value = officerFixture;
@@ -640,6 +657,9 @@ void main() {
     'sealed': 1700,
     'sealed_ready': 1700,
     'sealed_empty': 1200,
+    'cases': 1700,
+    'cases_mine': 1500,
+    'cases_empty': 1200,
     'defaulters_never_paid': 2900,
     // Short on purpose: the list has to outrun the viewport to be scrolled.
     'defaulters_collapsed': 1400,
@@ -1077,6 +1097,20 @@ SealsController _seedSeals({List<FieldSeal>? seals, List<FieldSeal>? ready}) {
   // `fenix`, so the find below builds a fresh one over the fake just put.
   Get.delete<SealsController>(force: true);
   return Get.find<SealsController>();
+}
+
+/// Puts the case register over the fixtures and drops the controller so it is
+/// rebuilt over them. Returns it, so an entry can choose the reading it means
+/// to show.
+CasesController _seedCases({List<List<Map<String, dynamic>>>? pages}) {
+  Get.delete<EnforcementCaseRepository>(force: true);
+  Get.put<EnforcementCaseRepository>(
+    FakeEnforcementCaseRepository(pages: pages),
+    permanent: true,
+  );
+  // `fenix`, so the find below builds a fresh one over the fake just put.
+  Get.delete<CasesController>(force: true);
+  return Get.find<CasesController>();
 }
 
 /// The capture form registers its own controller, so only the repository under

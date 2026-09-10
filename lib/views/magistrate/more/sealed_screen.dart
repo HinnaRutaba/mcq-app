@@ -7,6 +7,7 @@ import '../../../config/theme/app_colors.dart';
 import '../../../controllers/seals_controller.dart';
 import '../../../models/field_seal.dart';
 import '../../../widgets/widgets.dart';
+import '../shared/widgets/back_to_home_button.dart';
 import 'widgets/seal_tile.dart';
 
 class SealedScreen extends StatelessWidget {
@@ -29,6 +30,7 @@ class SealedScreen extends StatelessWidget {
                 title: 'Sealed Shops',
                 expandedHeight: _headerHeight,
                 compactTitle: true,
+                leading: const BackToHomeButton(),
                 bottom: AppSearchField(
                   controller: controller.searchController,
                   hint: 'Shop, holder, seal or case number',

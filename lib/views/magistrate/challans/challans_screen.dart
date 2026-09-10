@@ -185,7 +185,7 @@ List<Widget> _slivers(ChallansController controller) {
     SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 32),
       sliver: SliverToBoxAdapter(
-        child: _Footer(
+        child: AppListFooter(
           hasMore: controller.hasMore,
           isLoadingMore: controller.isLoadingMore.value,
           total: controller.total,
@@ -268,63 +268,6 @@ class _CountLine extends StatelessWidget {
     final int? all = total;
     if (all == null || shown >= all) return noun;
     return '$noun · $shown showing';
-  }
-}
-
-/// The bottom of the list: the next page on its way, an offer to fetch it, or
-/// the end said out loud.
-class _Footer extends StatelessWidget {
-  const _Footer({
-    required this.hasMore,
-    required this.isLoadingMore,
-    required this.total,
-    required this.onLoadMore,
-  });
-
-  final bool hasMore;
-  final bool isLoadingMore;
-  final int? total;
-  final VoidCallback onLoadMore;
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoadingMore) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(
-          child: SizedBox(
-            height: 22,
-            width: 22,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
-          ),
-        ),
-      );
-    }
-
-    // Scrolling fetches the next page on its own; this is for the thumb that
-    // stops at the gap, and it is what a test can press.
-    if (hasMore) {
-      return Center(
-        child: AppButton(
-          label: 'Load more',
-          icon: Icons.expand_more_rounded,
-          variant: AppButtonVariant.outline,
-          fullWidth: false,
-          onPressed: onLoadMore,
-        ),
-      );
-    }
-
-    final Color? muted = Theme.of(
-      context,
-    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
-
-    return Center(
-      child: AppText.caption(
-        total == null ? 'End of the list' : 'End of the list · $total in all',
-        color: muted,
-      ),
-    );
   }
 }
 

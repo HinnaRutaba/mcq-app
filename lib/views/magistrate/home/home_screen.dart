@@ -8,6 +8,7 @@ import '../../../models/auth_user.dart';
 import '../../../models/field_activity.dart';
 import '../../../models/field_beat.dart';
 import '../../../widgets/widgets.dart';
+import 'queue_destination.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
 import 'widgets/defaulter_breakdown.dart';
@@ -476,7 +477,15 @@ class _QueueGrid extends StatelessWidget {
       firstIndex: firstIndex,
       extent: BeatQueueTile.extent,
       children: <Widget>[
-        for (final FieldQueue queue in queues) BeatQueueTile(queue: queue),
+        for (final FieldQueue queue in queues)
+          // Untappable where nothing answers the queue yet — see
+          // [QueueDestination].
+          BeatQueueTile(
+            queue: queue,
+            onTap: QueueDestination.exists(queue.key)
+                ? () => QueueDestination.open(context, queue)
+                : null,
+          ),
       ],
     );
   }

@@ -15,6 +15,7 @@ import '../../views/magistrate/round/round_screen.dart';
 import '../../views/magistrate/trade/trade_capture_screen.dart';
 import '../../views/magistrate/trade/trade_licences_screen.dart';
 import '../../controllers/property_profile_controller.dart';
+import '../../views/magistrate/cases/cases_screen.dart';
 import '../../views/magistrate/challans/challans_screen.dart';
 import '../../views/magistrate/shared/create_case_screen.dart';
 import '../../views/magistrate/shared/create_seal_screen.dart';
@@ -109,6 +110,10 @@ final GoRouter appRouter = GoRouter(
                 GoRoute(
                   path: AppRoutes.magistrateProfileSegment,
                   builder: (context, state) => const MagistrateProfileScreen(),
+                ),
+                GoRoute(
+                  path: AppRoutes.magistrateCasesSegment,
+                  builder: (context, state) => const CasesScreen(),
                 ),
               ],
             ),

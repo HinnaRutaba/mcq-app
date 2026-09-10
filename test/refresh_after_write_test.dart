@@ -30,7 +30,7 @@ import 'package:mcq_app/models/enforcement_case.dart';
 import 'package:mcq_app/models/fine.dart';
 import 'package:mcq_app/models/fine_request.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
-import 'package:mcq_app/views/magistrate/property/widgets/case_card.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/case_card.dart';
 import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_seal_screen.dart';

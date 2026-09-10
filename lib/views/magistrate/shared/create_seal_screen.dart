@@ -10,7 +10,7 @@ import '../../../core/utils/form_scroll.dart';
 import '../../../models/enforcement_case.dart';
 import '../../../models/field_seal.dart';
 import '../../../widgets/widgets.dart';
-import '../property/widgets/case_card.dart';
+import 'widgets/case_card.dart';
 import 'create_case_screen.dart';
 import 'widgets/seal_applied_sheet.dart';
 import 'widgets/still_needed_note.dart';
@@ -214,6 +214,11 @@ class _CaseSection extends StatelessWidget {
                     child: CaseCard(
                       file: file,
                       selected: file.id == chosen,
+                      // The picker's own wording: a tap here hangs the seal on
+                      // the case, it does not open its history.
+                      hint: file.id == chosen
+                          ? 'the seal goes on this case'
+                          : 'tap to seal on this case',
                       onTap: file.id == null
                           ? null
                           : () => controller.chooseCase(file.id!),
