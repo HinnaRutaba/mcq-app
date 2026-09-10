@@ -14,7 +14,7 @@ import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
-import 'package:mcq_app/views/magistrate/defaulters/widgets/defaulter_tile.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/defaulter_tile.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/dashboard_fixtures.dart';

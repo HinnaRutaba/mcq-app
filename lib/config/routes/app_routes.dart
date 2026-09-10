@@ -36,11 +36,18 @@ class AppRoutes {
   /// than a filter on a list somewhere else.
   static const String magistrateCases = '/magistrate/more/cases';
 
-  /// The `go_router` child segments for the three routes above. A nested
+  /// The promises: `enforcement/field/follow-ups`. Its own screen rather than
+  /// a chip on the defaulter list, because it is its own endpoint — a list
+  /// narrowed by the `commitment` on defaulter rows answers a different
+  /// question, and the count on Home is this one's.
+  static const String magistrateFollowUps = '/magistrate/more/follow-ups';
+
+  /// The `go_router` child segments for the four routes above. A nested
   /// [GoRoute] takes the tail, not the whole path.
   static const String magistrateSealedSegment = 'sealed';
   static const String magistrateProfileSegment = 'profile';
   static const String magistrateCasesSegment = 'cases';
+  static const String magistrateFollowUpsSegment = 'follow-ups';
 
   // --- Pushed full-screen routes (appear above the shell/bottom nav) ---
 

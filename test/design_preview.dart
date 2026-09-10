@@ -18,6 +18,7 @@ import 'package:mcq_app/config/theme/app_brand.dart';
 import 'package:mcq_app/controllers/dashboard_controller.dart';
 import 'package:mcq_app/controllers/definitions_controller.dart';
 import 'package:mcq_app/controllers/fine_controller.dart';
+import 'package:mcq_app/controllers/follow_ups_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/controllers/seals_controller.dart';
@@ -43,6 +44,7 @@ import 'package:mcq_app/models/property_profile.dart';
 import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/models/unit_card.dart';
 import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
+import 'package:mcq_app/views/magistrate/followups/follow_ups_screen.dart';
 import 'package:mcq_app/views/magistrate/home/home_screen.dart';
 import 'package:mcq_app/views/magistrate/magistrate_shell.dart';
 import 'package:mcq_app/views/magistrate/more/more_screen.dart';
@@ -327,6 +329,21 @@ void main() {
     'sealed_empty': () {
       _seedSeals(seals: const <FieldSeal>[], ready: const <FieldSeal>[]);
       return const SealedScreen();
+    },
+    // The promises, and the two readings of them: the ones that have come due
+    // or been broken, and the ones still ahead. The due list is what the
+    // follow-ups queue on Home opens.
+    'follow_ups': () {
+      _seedFollowUps();
+      return const FollowUpsScreen();
+    },
+    'follow_ups_upcoming': () {
+      _seedFollowUps().showState(FollowUpState.upcoming);
+      return const FollowUpsScreen();
+    },
+    'follow_ups_empty': () {
+      _seedFollowUps(rows: const <DefaulterCard>[]);
+      return const FollowUpsScreen();
     },
     // The case register, and its second reading: every file open on the beat,
     // then the ones in this officer's name. Both are what the two case queues
@@ -657,6 +674,9 @@ void main() {
     'sealed': 1700,
     'sealed_ready': 1700,
     'sealed_empty': 1200,
+    'follow_ups': 1200,
+    'follow_ups_upcoming': 1200,
+    'follow_ups_empty': 1200,
     'cases': 1700,
     'cases_mine': 1500,
     'cases_empty': 1200,
@@ -1097,6 +1117,20 @@ SealsController _seedSeals({List<FieldSeal>? seals, List<FieldSeal>? ready}) {
   // `fenix`, so the find below builds a fresh one over the fake just put.
   Get.delete<SealsController>(force: true);
   return Get.find<SealsController>();
+}
+
+/// Puts the follow-ups list over the fixtures and drops the controller so it
+/// is rebuilt over them. Returns it, so an entry can choose the reading it
+/// means to show.
+FollowUpsController _seedFollowUps({List<DefaulterCard>? rows}) {
+  Get.delete<DefaultersRepository>(force: true);
+  Get.put<DefaultersRepository>(
+    FakeDefaultersRepository(followUpRows: rows),
+    permanent: true,
+  );
+  // `fenix`, so the find below builds a fresh one over the fake just put.
+  Get.delete<FollowUpsController>(force: true);
+  return Get.find<FollowUpsController>();
 }
 
 /// Puts the case register over the fixtures and drops the controller so it is

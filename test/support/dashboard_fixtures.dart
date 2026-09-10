@@ -353,6 +353,26 @@ List<RoundGroup> get roundFixture =>
 List<DefaulterCard> get defaultersFixture =>
     defaultersJson.map(DefaulterCard.fromJson).toList();
 
+/// What `enforcement/field/follow-ups` answers, by the `state` asked for.
+///
+/// The published spec only ever captured this list empty, so these are
+/// defaulter rows carrying a `commitment` — the shape the endpoint shares with
+/// every other `field/*` list. Abdul Samad promised on 20 Aug for a visit on
+/// 5 Sep, which has been and gone; Zubaida Bibi's date is still ahead.
+Map<FollowUpState, List<Map<String, dynamic>>> get followUpsJson =>
+    <FollowUpState, List<Map<String, dynamic>>>{
+      FollowUpState.due: <Map<String, dynamic>>[defaultersJson[1]],
+      FollowUpState.upcoming: <Map<String, dynamic>>[
+        <String, dynamic>{
+          ...defaultersJson[4],
+          'commitment': <String, dynamic>{
+            'promised_amount': '15000.00',
+            'promised_on': '2026-09-12',
+          },
+        },
+      ],
+    };
+
 AuthUser get officerFixture => AuthUser.fromJson(officerJson);
 
 /// Answers from the fixtures instead of the network.
@@ -398,8 +418,15 @@ class FakeDashboardRepository implements DashboardRepository {
 /// merely asserted on — and the arguments it sent are kept for the assertion
 /// that they were the right ones.
 class FakeDefaultersRepository implements DefaultersRepository {
-  FakeDefaultersRepository({this.failure, List<DefaulterCard>? rows})
-    : rows = rows ?? defaultersFixture;
+  FakeDefaultersRepository({
+    this.failure,
+    List<DefaulterCard>? rows,
+    this.followUpRows,
+  }) : rows = rows ?? defaultersFixture;
+
+  /// Answered for every `state` when set — for the empty follow-ups list,
+  /// which the fixtures otherwise never show.
+  final List<DefaulterCard>? followUpRows;
 
   /// Mutable so a test can let the signal come back and retry.
   Object? failure;
@@ -408,6 +435,11 @@ class FakeDefaultersRepository implements DefaultersRepository {
 
   int roundCalls = 0;
   int defaultersCalls = 0;
+  int followUpCalls = 0;
+
+  /// The `state` last asked for, so a test can prove the reading a tile named
+  /// reached the server.
+  FollowUpState? lastFollowUpState;
   int? lastAreaId;
   String? lastSearch;
   bool? lastNeverPaid;
@@ -444,8 +476,18 @@ class FakeDefaultersRepository implements DefaultersRepository {
   }
 
   @override
-  Future<List<DefaulterCard>> followUps({FollowUpState? state}) async =>
-      const <DefaulterCard>[];
+  Future<List<DefaulterCard>> followUps({FollowUpState? state}) async {
+    followUpCalls++;
+    lastFollowUpState = state;
+    if (failure != null) throw failure!;
+    if (followUpRows != null) return followUpRows!;
+    final List<Map<String, dynamic>> rows = state == null
+        ? followUpsJson.values
+              .expand((List<Map<String, dynamic>> page) => page)
+              .toList()
+        : followUpsJson[state] ?? const <Map<String, dynamic>>[];
+    return rows.map(DefaulterCard.fromJson).toList();
+  }
 
   /// Shop number, property code, the holder's name or their CNIC — the four
   /// the published search covers.

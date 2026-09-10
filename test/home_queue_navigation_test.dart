@@ -8,6 +8,7 @@ import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/controllers/cases_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
+import 'package:mcq_app/controllers/follow_ups_controller.dart';
 import 'package:mcq_app/controllers/seals_controller.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
@@ -16,8 +17,10 @@ import 'package:mcq_app/data/repositories/field_seal_repository.dart';
 import 'package:mcq_app/views/magistrate/cases/cases_screen.dart';
 import 'package:mcq_app/views/magistrate/home/queue_destination.dart';
 import 'package:mcq_app/views/magistrate/defaulters/defaulters_screen.dart';
+import 'package:mcq_app/views/magistrate/followups/follow_ups_screen.dart';
 import 'package:mcq_app/views/magistrate/home/widgets/beat_queue_tile.dart';
 import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/defaulter_tile.dart';
 
 import 'support/api_stub.dart';
 import 'support/dashboard_fixtures.dart';
@@ -32,6 +35,7 @@ import 'support/seal_fixtures.dart';
 /// an approximate list somewhere else.
 void main() {
   late FakeEnforcementCaseRepository cases;
+  late FakeDefaultersRepository defaulters;
 
   setUp(() {
     Get.reset();
@@ -45,7 +49,8 @@ void main() {
     Get.delete<DashboardRepository>(force: true);
     Get.put<DashboardRepository>(FakeDashboardRepository(), permanent: true);
     Get.delete<DefaultersRepository>(force: true);
-    Get.put<DefaultersRepository>(FakeDefaultersRepository(), permanent: true);
+    defaulters = FakeDefaultersRepository();
+    Get.put<DefaultersRepository>(defaulters, permanent: true);
     Get.delete<FieldSealRepository>(force: true);
     Get.put<FieldSealRepository>(FakeFieldSealRepository(), permanent: true);
     Get.delete<EnforcementCaseRepository>(force: true);
@@ -100,17 +105,26 @@ void main() {
     );
   });
 
-  testWidgets('the follow-ups queue opens the promises on that list', (
+  testWidgets('the follow-ups queue opens the promises that have come due', (
     WidgetTester tester,
   ) async {
     await pumpHome(tester);
     await tapQueue(tester, 'Follow-ups due');
 
-    expect(find.byType(DefaultersScreen), findsOneWidget);
-    expect(
-      Get.find<DefaultersController>().stateFilter.value,
-      DefaulterState.promised,
-    );
+    // The follow-ups endpoint's own list, not the defaulter list narrowed by
+    // the `commitment` on its rows: those are two different questions, and a
+    // tile reading 1 over a list showing none is what that cost.
+    expect(find.byType(FollowUpsScreen), findsOneWidget);
+    expect(Get.find<FollowUpsController>().state.value, FollowUpState.due);
+    expect(defaulters.lastFollowUpState, FollowUpState.due);
+
+    // Asked for once, on the reading the tile named — not the default list
+    // followed by this one.
+    expect(defaulters.followUpCalls, 1);
+
+    // And the rows are up: the count on the tile and the length of this list
+    // are the same fact.
+    expect(find.byType(DefaulterTile), findsOneWidget);
   });
 
   testWidgets('the unseal queue opens the seals cleared to come off', (

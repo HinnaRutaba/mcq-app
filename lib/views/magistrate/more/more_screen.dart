@@ -46,6 +46,13 @@ class MoreScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 MoreMenuTile(
+                  icon: Icons.event_repeat_outlined,
+                  title: 'Follow-ups',
+                  subtitle: 'Promises due or broken, and the ones ahead.',
+                  onTap: () => context.push(AppRoutes.magistrateFollowUps),
+                ),
+                const SizedBox(height: 12),
+                MoreMenuTile(
                   icon: Icons.folder_open_outlined,
                   title: 'Cases',
                   subtitle: 'Every file open on the beat, and yours in it.',

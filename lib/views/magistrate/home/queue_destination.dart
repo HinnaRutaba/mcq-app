@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../config/routes/app_routes.dart';
 import '../../../controllers/cases_controller.dart';
 import '../../../controllers/defaulters_controller.dart';
+import '../../../controllers/follow_ups_controller.dart';
 import '../../../controllers/seals_controller.dart';
+import '../../../data/repositories/defaulters_repository.dart';
 import '../../../models/field_beat.dart';
 
 /// Which screen a queue tile on Home opens, and on which reading of it.
@@ -36,11 +38,8 @@ class QueueDestination {
         'defaulters' => (BuildContext context) =>
           _defaulters(context, DefaulterState.everyone),
 
-        // The nearest list the app has: a follow-up that is due is a promise
-        // to pay whose date has come, and "Promised" is the chip that holds
-        // them. There is no follow-ups screen of its own yet.
         'follow_ups_due' => (BuildContext context) =>
-          _defaulters(context, DefaulterState.promised),
+          _followUps(context, FollowUpState.due),
 
         'awaiting_unseal' => (BuildContext context) =>
           _seals(context, SealQueue.ready),
@@ -62,6 +61,13 @@ class QueueDestination {
   static void _defaulters(BuildContext context, DefaulterState state) {
     Get.find<DefaultersController>().showState(state);
     _go(context, AppRoutes.magistrateDefaulters);
+  }
+
+  /// The promises, on the reading the tile counted. Its own endpoint, so the
+  /// figure on the tile and the length of the list agree.
+  static void _followUps(BuildContext context, FollowUpState state) {
+    FollowUpsController.open(state);
+    _go(context, AppRoutes.magistrateFollowUps);
   }
 
   static void _seals(BuildContext context, SealQueue queue) {

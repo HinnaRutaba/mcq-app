@@ -9,7 +9,7 @@ import '../../../models/defaulter_card.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/widgets/back_to_home_button.dart';
 import 'widgets/defaulter_filters.dart';
-import 'widgets/defaulter_tile.dart';
+import '../shared/widgets/defaulter_tile.dart';
 
 class DefaultersScreen extends StatelessWidget {
   const DefaultersScreen({super.key});
