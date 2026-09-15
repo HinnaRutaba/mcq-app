@@ -4,6 +4,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_brand.dart';
+import '../../../../config/theme/app_status_colors.dart';
 import '../../../../config/theme/app_radius.dart';
 import '../../../../models/api_refs.dart';
 import '../../../../widgets/widgets.dart';
@@ -21,6 +22,7 @@ class ProfileHeader extends StatefulWidget {
     required this.neverPaid,
     required this.nextVisit,
     required this.promised,
+    required this.sealed,
     required this.mobileNo,
     required this.point,
     required this.address,
@@ -37,6 +39,12 @@ class ProfileHeader extends StatefulWidget {
   final bool neverPaid;
   final DateTime? nextVisit;
   final bool promised;
+
+  /// Whether the shop stands shut. Said on the header rather than left to the
+  /// enforcement block further down the overview: it is the first thing an
+  /// officer walking up to the shutter needs to know, and the one fact that
+  /// changes what they are there to do.
+  final bool sealed;
 
   final String? mobileNo;
   final GeoPoint? point;
@@ -91,14 +99,32 @@ class ProfileHeader extends StatefulWidget {
 
   /// Which shop, then who holds it — the same two lines at both ends, because
   /// a bar that names neither is a figure belonging to nobody.
+  ///
+  /// The seal rides on the top line, so it survives the collapse with them:
+  /// the pills on the owed plate fade away as the header goes down, and this
+  /// is not a fact that may fade.
   Widget _titleBlock() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
-      if (subtitle != null) ...<Widget>[
-        AppText.body(
-          subtitle!,
-          color: Colors.white.withValues(alpha: 0.75),
-          maxLines: 1,
+      if (subtitle != null || sealed) ...<Widget>[
+        Row(
+          children: <Widget>[
+            if (subtitle != null)
+              // Flexible, and it is the half that gives: a shop number
+              // shortened to fit still names the shop, where a seal cut in
+              // half names nothing.
+              Flexible(
+                child: AppText.body(
+                  subtitle!,
+                  color: Colors.white.withValues(alpha: 0.75),
+                  maxLines: 1,
+                ),
+              ),
+            if (sealed) ...<Widget>[
+              if (subtitle != null) const SizedBox(width: 8),
+              const _SealedPill(),
+            ],
+          ],
         ),
         const SizedBox(height: 2),
       ],
@@ -111,6 +137,45 @@ class ProfileHeader extends StatefulWidget {
   static final double _actionShrink =
       HolderActions.heightFor(compact: true) /
       HolderActions.heightFor(compact: false);
+}
+
+/// "Sealed", filled rather than tinted.
+///
+/// Its own colours instead of [AppStatusBadge]'s: that pill is drawn for a
+/// card, and its tinted plate is near-invisible on the header's gradient. The
+/// filled red and the lock read at a glance in a bazaar, in sun, and the word
+/// is there for an officer who cannot tell the red from the green.
+class _SealedPill extends StatelessWidget {
+  const _SealedPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final AppStatusColors status = context.status;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+      decoration: BoxDecoration(
+        color: status.danger,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        // A hairline of the header behind it, so the pill reads as sitting on
+        // the gradient rather than punched out of it.
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(Icons.lock_rounded, size: 13, color: status.onDanger),
+          const SizedBox(width: 5),
+          AppText.caption(
+            'Sealed',
+            color: status.onDanger,
+            fontWeight: FontWeight.w800,
+            maxLines: 1,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ProfileHeaderState extends State<ProfileHeader> {

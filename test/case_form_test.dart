@@ -8,6 +8,7 @@ import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
 import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/models/api_refs.dart';
+import 'package:mcq_app/models/case_type_option.dart';
 import 'package:mcq_app/models/unit_card.dart';
 
 import 'support/api_stub.dart';
@@ -55,6 +56,19 @@ void main() {
     return controller;
   }
 
+  /// The kind of case, which the register publishes six of — so it is a real
+  /// choice the officer makes rather than something filled in for them.
+  void chooseKind(
+    CaseController controller, [
+    String code = 'unauthorised_use',
+  ]) {
+    controller.chooseCaseType(
+      controller.caseTypes.firstWhere(
+        (CaseTypeOption kind) => kind.code == code,
+      ),
+    );
+  }
+
   /// The rest of what the server insists on: the person a notice on this case
   /// would be served on. The held shop's card names them, so only the two
   /// fields it does not carry are typed here.
@@ -89,10 +103,9 @@ void main() {
   group('what goes on the wire', () {
     test('the unit, the kind, the reason and the priority travel', () async {
       final CaseController controller = await build();
-      // One kind on the register, so it is chosen for the officer; the words
-      // are the only thing this form makes them type.
       controller.reasonController.text =
           'Trading in goods the agreement does not permit.';
+      chooseKind(controller);
       nameThePerson(controller);
 
       expect(await controller.open(), OpenCaseOutcome.success);
@@ -119,6 +132,7 @@ void main() {
     test('the reason is trimmed, and the priority may be dropped', () async {
       final CaseController controller = await build();
       controller.reasonController.text = '  Sub-let to a tea stall.  ';
+      chooseKind(controller);
       nameThePerson(controller);
       controller.choosePriority(null);
 
@@ -141,6 +155,7 @@ void main() {
       controller.reasonController.text = 'Shutters replaced without approval.';
       // The profile fetched behind the id names the holder; the officer types
       // what its record does not carry.
+      chooseKind(controller);
       nameThePerson(controller);
 
       expect(await controller.open(), OpenCaseOutcome.success);
@@ -165,6 +180,7 @@ void main() {
     test('a form with no shop on it is not posted', () async {
       final CaseController controller = await build(unit: null);
       controller.reasonController.text = 'Trading outside the agreement.';
+      chooseKind(controller);
       nameThePerson(controller);
 
       expect(await controller.open(), OpenCaseOutcome.invalidForm);
@@ -177,6 +193,7 @@ void main() {
 
       expect(controller.missing, <String>[
         'the shop',
+        'what the case is about',
         'why it is being opened',
         'the name of the person it is against',
         "their father's name",
@@ -196,6 +213,7 @@ void main() {
 
       controller.offenderNameController.text = 'Noor Ahmed';
       controller.reasonController.text = 'Sub-let to a tea stall.';
+      chooseKind(controller);
       nameThePerson(controller);
       await controller.open();
 
@@ -231,6 +249,7 @@ void main() {
       );
       final CaseController controller = await build();
       controller.reasonController.text = 'Trading outside the agreement.';
+      chooseKind(controller);
       nameThePerson(controller);
 
       expect(await controller.open(), OpenCaseOutcome.failed);
@@ -255,6 +274,7 @@ void main() {
       );
       final CaseController controller = await build();
       controller.reasonController.text = 'Sub-let.';
+      chooseKind(controller);
       nameThePerson(controller);
 
       expect(await controller.open(), OpenCaseOutcome.failed);
@@ -274,6 +294,7 @@ void main() {
       );
       final CaseController controller = await build();
       controller.reasonController.text = 'Trading outside the agreement.';
+      chooseKind(controller);
       nameThePerson(controller);
 
       expect(await controller.open(), OpenCaseOutcome.failed);
@@ -286,11 +307,23 @@ void main() {
   });
 
   group("the register's own rows", () {
-    test('one kind of case is chosen without asking', () async {
+    test('the kinds are the register’s, and none is chosen for you', () async {
       final CaseController controller = await build();
 
-      expect(controller.caseTypes.length, 1);
-      expect(controller.caseType.value?.code, 'unauthorised_use');
+      expect(
+        controller.caseTypes.map((CaseTypeOption kind) => kind.code),
+        containsAll(<String>[
+          'arrears_recovery',
+          'unauthorised_use',
+          'subletting',
+          'encroachment',
+          'illegal_construction',
+          'seal_violation',
+        ]),
+      );
+      // Six kinds is a real choice — picking one for the officer would file
+      // cases under whichever row happened to be first.
+      expect(controller.caseType.value, isNull);
     });
 
     test(

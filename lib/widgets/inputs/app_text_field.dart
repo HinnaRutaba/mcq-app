@@ -77,7 +77,9 @@ class _AppTextFieldState extends State<AppTextField> {
         if (widget.label != null) ...[
           Row(
             children: [
-              AppText.label(widget.label!),
+              // Flexible, so a label longer than the field wraps rather than
+              // overflowing — which on a narrow handset it otherwise does.
+              Flexible(child: AppText.label(widget.label!)),
               if (widget.optional) ...[
                 const SizedBox(width: 6),
                 AppText.caption(

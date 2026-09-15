@@ -4,6 +4,7 @@ import '../core/network/api_exception.dart';
 import '../data/repositories/definitions_repository.dart';
 import '../models/api_refs.dart';
 import '../models/auth_user.dart';
+import '../models/case_type_option.dart';
 import '../models/enforcement_action_request.dart';
 import '../models/enforcement_definitions.dart';
 import 'auth_controller.dart';
@@ -93,6 +94,13 @@ class DefinitionsController extends GetxController {
       )
       .toList();
 
+  /// What a case may be opened about, in the register's own order. Empty
+  /// where MCQ publishes no `case_types` block — `caseTypeSeed` stands behind
+  /// that, so read this through `EnforcementCaseRepository.caseTypes()` rather
+  /// than drawing a picker straight off it.
+  List<CaseTypeOption> get caseTypes =>
+      definitions.value?.caseTypes ?? const <CaseTypeOption>[];
+
   List<LabelledValue> get caseStatuses =>
       definitions.value?.caseStatuses ?? const <LabelledValue>[];
 
@@ -122,6 +130,8 @@ class DefinitionsController extends GetxController {
 
   ActionTypeDefinition? actionTypeById(int id) =>
       definitions.value?.actionTypeById(id);
+
+  CaseTypeOption? caseType(String code) => definitions.value?.caseType(code);
 
   /// The labelled entry for a stored value, so a screen holding a bare
   /// `"part_recovered"` can print "Some money recovered" and tone it the way

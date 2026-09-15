@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../core/capture/photo_capture.dart';
 import '../core/network/api_exception.dart';
 import '../data/repositories/enforcement_case_repository.dart';
+import '../data/repositories/evidence_repository.dart';
 import '../models/enforcement_case.dart';
 import '../models/field_seal.dart';
 import '../models/seal_requests.dart';
@@ -32,7 +34,11 @@ class SealController extends GetxController {
     List<EnforcementCase>? knownCases,
     int? caseId,
     EnforcementCaseRepository? caseRepository,
+    EvidenceRepository? evidenceRepository,
+    PhotoCapture? photoCapture,
   }) : _cases = caseRepository ?? Get.find<EnforcementCaseRepository>(),
+       _evidence = evidenceRepository ?? Get.find<EvidenceRepository>(),
+       _photos = photoCapture ?? PhotoCapture(),
        cases = RxList<EnforcementCase>(knownCases ?? <EnforcementCase>[]),
        selectedCaseId = RxnInt(caseId),
        // An empty list is an answer: the caller looked and the shop has none.
@@ -42,6 +48,8 @@ class SealController extends GetxController {
   final int propertyId;
 
   final EnforcementCaseRepository _cases;
+  final EvidenceRepository _evidence;
+  final PhotoCapture _photos;
 
   /// Whether the shop's profile handed its own list over. It has already read
   /// them, and re-reading four pages of cases at a shopfront is a call the
@@ -66,6 +74,21 @@ class SealController extends GetxController {
   /// never a day that has not happened.
   final Rxn<DateTime> sealedOn = Rxn<DateTime>(DateTime.now());
 
+  /// Who stood there and saw the shutter come down.
+  ///
+  /// The server takes this **or** a photograph and refuses a seal carrying
+  /// neither: on one officer's word alone it is the first thing challenged.
+  /// See [hasCorroboration].
+  final TextEditingController witnessController = TextEditingController();
+
+  /// The photograph of the sealed shutter. [photoLocalPath] is the file on the
+  /// handset; [photoUploadedPath] is what the server gave back for it, and the
+  /// only one that may go on the request — a seal must not claim evidence the
+  /// server has never received.
+  final RxnString photoLocalPath = RxnString();
+  final RxnString photoUploadedPath = RxnString();
+  final RxBool isUploadingPhoto = RxBool(false);
+
   final RxBool isSubmitting = RxBool(false);
   final RxnString errorMessage = RxnString();
   final Rxn<FieldSeal> applied = Rxn<FieldSeal>();
@@ -82,6 +105,7 @@ class SealController extends GetxController {
   CaseSealRequest? _sent;
 
   String? _reasonServerError;
+  String? _witnessServerError;
 
   @override
   void onInit() {
@@ -92,6 +116,7 @@ class SealController extends GetxController {
   @override
   void onClose() {
     reasonController.dispose();
+    witnessController.dispose();
     super.onClose();
   }
 
@@ -147,6 +172,63 @@ class SealController extends GetxController {
     _sent = null;
   }
 
+  // --- What backs the seal up -------------------------------------------
+
+  /// Takes the photograph and puts it up straight away, so the officer learns
+  /// the upload failed while they are still standing at the shutter rather
+  /// than at the moment they press the button.
+  Future<PhotoOutcome> attachPhoto({bool fromGallery = false}) async {
+    final PhotoCaptureResult result = fromGallery
+        ? await _photos.fromGallery()
+        : await _photos.fromCamera();
+    if (result.outcome != PhotoOutcome.taken) return result.outcome;
+
+    photoLocalPath.value = result.path;
+    photoUploadedPath.value = null;
+    markEdited();
+    await _uploadPhoto();
+    return PhotoOutcome.taken;
+  }
+
+  Future<void> _uploadPhoto() async {
+    final String? path = photoLocalPath.value;
+    if (path == null) return;
+    isUploadingPhoto.value = true;
+    try {
+      final upload = await _evidence.upload(
+        filePath: path,
+        kind: EvidenceRepository.kindPhoto,
+      );
+      photoUploadedPath.value = upload.path;
+      _witnessServerError = null;
+      _sent = null;
+    } on ApiException catch (error) {
+      // The picture stays on the handset and the tile offers a retry. A
+      // photograph that will not go up is not a reason to leave a shop open —
+      // the officer can name a witness instead.
+      errorMessage.value = error.message;
+    } finally {
+      isUploadingPhoto.value = false;
+    }
+  }
+
+  Future<void> retryPhotoUpload() => _uploadPhoto();
+
+  void removePhoto() {
+    photoLocalPath.value = null;
+    photoUploadedPath.value = null;
+    markEdited();
+  }
+
+  /// Whether the seal carries what the server asks for behind it — a named
+  /// witness or a photograph it actually holds.
+  ///
+  /// A photograph still on the handset does not count: the request would name
+  /// a path the server cannot resolve.
+  bool get hasCorroboration =>
+      witnessController.text.trim().isNotEmpty ||
+      photoUploadedPath.value != null;
+
   /// Anything the officer changed makes this a different seal from the one
   /// that was refused, so the kept request — and its idempotency key — goes
   /// with it. Pressing send again without editing resends the same one.
@@ -173,6 +255,16 @@ class SealController extends GetxController {
     return null;
   }
 
+  /// The witness field's own message. A seal with neither witness nor
+  /// photograph is refused by the server, so the form says so before it is
+  /// sent rather than after.
+  String? validateWitness(String? value) {
+    final String? fromServer = _witnessServerError;
+    if (fromServer != null) return fromServer;
+    if (hasCorroboration) return null;
+    return 'Name a witness, or photograph the sealed shutter';
+  }
+
   /// What is still missing, in the order the form asks for it. Shown beside
   /// the disabled button — a button that will not press and will not say why
   /// is the thing officers give up on.
@@ -180,6 +272,8 @@ class SealController extends GetxController {
     if (selectedCaseId.value == null) 'the case to seal against',
     if (reasonController.text.trim().isEmpty) 'why it is being sealed',
     if (sealedOn.value == null) 'the day it went on',
+    // One or the other, never both: the server takes a seal backed by either.
+    if (!hasCorroboration) 'a witness’s name or a photograph',
   ];
 
   bool get isValid =>
@@ -189,6 +283,7 @@ class SealController extends GetxController {
 
   Future<SealOutcome> apply() async {
     _reasonServerError = null;
+    _witnessServerError = null;
     errorMessage.value = null;
 
     // The Form paints the messages; whether the seal may be sent is decided
@@ -207,6 +302,10 @@ class SealController extends GetxController {
       errorMessage.value = error.message;
       if (error.isValidation) {
         _reasonServerError = error.errorFor('seal_reason');
+        // `witness_name` comes back blamed with no message under it when the
+        // seal carried neither witness nor photograph; the sentence is on the
+        // refusal itself.
+        _witnessServerError = error.messageFor('witness_name');
         formKey.currentState?.validate();
       }
       return SealOutcome.failed;
@@ -215,11 +314,24 @@ class SealController extends GetxController {
     }
   }
 
-  CaseSealRequest _request() => CaseSealRequest(
-    sealReason: reasonController.text.trim(),
-    sealedOn: sealedOn.value,
-    // Both, as the endpoint documents them: `sealed_on` by example and
-    // `action_date` in the parameter table, for the same day.
-    actionDate: sealedOn.value,
-  );
+  CaseSealRequest _request() {
+    final String witness = witnessController.text.trim();
+    final String? photo = photoUploadedPath.value;
+
+    return CaseSealRequest(
+      sealReason: reasonController.text.trim(),
+      sealedOn: sealedOn.value,
+      // Both, as the endpoint documents them: `sealed_on` by example and
+      // `action_date` in the parameter table, for the same day.
+      actionDate: sealedOn.value,
+      witnessName: witness.isEmpty ? null : witness,
+      // The one photograph fills both fields the endpoint publishes for it:
+      // `seal_photo_path` is the seal's own, `photo_path` the envelope every
+      // field write carries. Sending it twice costs nothing and leaves no
+      // question which of them the server's "witness or photograph" check
+      // reads.
+      sealPhotoPath: photo,
+      photoPath: photo,
+    );
+  }
 }

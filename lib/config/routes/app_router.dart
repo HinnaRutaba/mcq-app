@@ -20,6 +20,7 @@ import '../../views/magistrate/challans/challans_screen.dart';
 import '../../views/magistrate/followups/follow_ups_screen.dart';
 import '../../views/magistrate/shared/create_case_screen.dart';
 import '../../views/magistrate/shared/create_seal_screen.dart';
+import '../../views/magistrate/shared/record_action_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/magistrate/property/property_profile_screen.dart';
 import '../../views/splash/splash_screen.dart';
@@ -150,6 +151,20 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: rootNavigatorKey,
       builder: (context, state) => CreateSealScreen(
         propertyId: int.tryParse(state.uri.queryParameters['property'] ?? '')!,
+        caseId: int.tryParse(state.uri.queryParameters['case'] ?? ''),
+        // The caller's own list, when it had one. A cold link carries none and
+        // the form reads them itself.
+        cases: state.extra is List<EnforcementCase>
+            ? state.extra! as List<EnforcementCase>
+            : null,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.recordAction,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => RecordActionScreen(
+        propertyId: int.parse(state.uri.queryParameters['property']!),
+        actionCode: state.uri.queryParameters['type']!,
         caseId: int.tryParse(state.uri.queryParameters['case'] ?? ''),
         // The caller's own list, when it had one. A cold link carries none and
         // the form reads them itself.

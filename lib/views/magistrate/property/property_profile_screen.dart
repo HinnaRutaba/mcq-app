@@ -10,12 +10,14 @@ import '../../../models/api_refs.dart';
 import '../../../models/challan.dart';
 import '../../../models/defaulter_card.dart';
 import '../../../models/enforcement_action.dart';
+import '../../../models/enforcement_action_request.dart';
 import '../../../models/enforcement_case.dart';
 import '../../../models/property_profile.dart';
 import '../../../models/shop_action.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/create_case_screen.dart';
 import '../shared/create_seal_screen.dart';
+import '../shared/record_action_screen.dart';
 import '../shared/widgets/challan_sheet.dart';
 import '../shared/widgets/create_fine_button.dart';
 import '../shared/widgets/case_card.dart';
@@ -69,6 +71,19 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
       hasOpenCase: controller.hasOpenCase,
     );
     if (choice == null || !context.mounted) return;
+
+    final String? code = choice.action.code;
+    if (code != null && EnforcementActionType.fromCode(code) != null) {
+      await RecordActionScreen.open(
+        context,
+        propertyId: controller.propertyId,
+        actionCode: code,
+        cases: controller.cases.toList(),
+        caseId: controller.liveCase?.id ?? controller.selectedCaseId.value,
+        onRecorded: controller.load,
+      );
+      return;
+    }
 
     if (choice.action == ShopAction.fine) {
       await CreateFineButton.impose(
@@ -132,6 +147,7 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
                 neverPaid: controller.neverPaid,
                 nextVisit: controller.nextVisitDate,
                 promised: controller.hasCommitment,
+                sealed: controller.isSealed,
                 mobileNo: controller.mobileNo,
                 point: controller.mapPoint,
                 address: controller.mapQuery,

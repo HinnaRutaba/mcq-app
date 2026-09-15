@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../core/utils/formatters.dart';
 import 'app_text_field.dart';
@@ -39,7 +40,20 @@ class _AppDateFieldState extends State<AppDateField> {
   void didUpdateWidget(covariant AppDateField oldWidget) {
     super.didUpdateWidget(oldWidget);
     final text = _textFor(widget.value);
-    if (_controller.text != text) _controller.text = text;
+    if (_controller.text == text) return;
+
+    // Writing the text tells the field's `Form` to rebuild — and this runs
+    // inside the parent's build whenever the field sits in an `Obx`, which is
+    // how every date on a form here is driven. Marking an ancestor mid-build
+    // throws, so the write waits for the frame to end.
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      SchedulerBinding.instance.addPostFrameCallback((Duration _) {
+        if (mounted && _controller.text != text) _controller.text = text;
+      });
+      return;
+    }
+    _controller.text = text;
   }
 
   Future<void> _pick() async {

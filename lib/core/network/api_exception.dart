@@ -102,6 +102,20 @@ class ApiException implements Exception {
     return (messages == null || messages.isEmpty) ? null : messages.first;
   }
 
+  /// Whether the server blamed [field] at all.
+  ///
+  /// Apart from [errorFor], because a refusal can name a field with no message
+  /// under it — a seal refused for having neither witness nor photograph comes
+  /// back as `"witness_name": []`, with the sentence in [message]. Read this
+  /// first and fall back to [message], or the field goes red with nothing on
+  /// it.
+  bool blames(String field) => errors.containsKey(field);
+
+  /// What to put under [field]: the server's own message for it, else the
+  /// refusal's sentence when it blamed the field without saying why.
+  String? messageFor(String field) =>
+      blames(field) ? (errorFor(field) ?? message) : null;
+
   static ApiFailure _failureForStatus(int? statusCode) => switch (statusCode) {
     401 => ApiFailure.unauthorized,
     403 => ApiFailure.forbidden,

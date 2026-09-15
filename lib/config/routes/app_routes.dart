@@ -96,6 +96,29 @@ class AppRoutes {
     },
   ).toString();
 
+  /// Recording one step against a case — a visit, a warning, a promise to
+  /// pay: `POST enforcement/cases/{case}/actions`.
+  ///
+  /// The step travels as its register code in `?type=`, and the unit as
+  /// `?property=` — the form lists that unit's cases to hang the record on,
+  /// and a case to start on rides as `?case=`. The cases the caller has
+  /// already read travel as the route's `extra`, so arriving from a shop's
+  /// profile does not re-read four pages of them.
+  static const String recordAction = '/magistrate/action/new';
+
+  static String recordActionPath({
+    required int propertyId,
+    required String actionCode,
+    int? caseId,
+  }) => Uri(
+    path: recordAction,
+    queryParameters: <String, String>{
+      'property': '$propertyId',
+      'type': actionCode,
+      if (caseId != null) 'case': '$caseId',
+    },
+  ).toString();
+
   /// Capturing an unlicensed shop. Pushed over the shell from the licences
   /// tab: a form the officer should finish or abandon in front of the
   /// shopkeeper, not wander off from into another tab.

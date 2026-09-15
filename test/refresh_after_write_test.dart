@@ -12,6 +12,7 @@ import 'package:mcq_app/controllers/dashboard_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/definitions_controller.dart';
 import 'package:mcq_app/controllers/fine_controller.dart';
+import 'package:mcq_app/controllers/record_action_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
@@ -26,6 +27,7 @@ import 'package:mcq_app/data/repositories/person_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/models/evidence_upload.dart';
+import 'package:mcq_app/models/case_type_option.dart';
 import 'package:mcq_app/models/enforcement_case.dart';
 import 'package:mcq_app/models/fine.dart';
 import 'package:mcq_app/models/fine_request.dart';
@@ -34,6 +36,7 @@ import 'package:mcq_app/views/magistrate/shared/widgets/case_card.dart';
 import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_seal_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/record_action_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_capture_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/capture_tile.dart';
@@ -313,9 +316,13 @@ void main() {
       await tester.tap(find.text('Create new case'));
       await settle(tester);
 
-      // The kind is chosen for the officer while there is one of it, so the
-      // words are all the form is short of.
+      // The register publishes six kinds, so the officer picks one.
       final CaseController file = Get.find<CaseController>();
+      file.chooseCaseType(
+        file.caseTypes.firstWhere(
+          (CaseTypeOption kind) => kind.code == 'unauthorised_use',
+        ),
+      );
       file.reasonController.text =
           'Trading in goods the agreement does not permit.';
       // The profile names the holder; the rest of the block is typed.
@@ -378,6 +385,11 @@ void main() {
       await settle(tester);
 
       final CaseController file = Get.find<CaseController>();
+      file.chooseCaseType(
+        file.caseTypes.firstWhere(
+          (CaseTypeOption kind) => kind.code == 'subletting',
+        ),
+      );
       file.reasonController.text = 'Sub-let to a tea stall.';
       file.offenderFatherController.text = 'Ghulam Nabi';
       file.offenderMobileController.text = '03007654321';
@@ -471,6 +483,7 @@ void main() {
       Get.put<PersonRepository>(FakePersonRepository(), permanent: true);
       Get.put<DefaultersRepository>(defaulters, permanent: true);
       Get.put<DashboardRepository>(FakeDashboardRepository(), permanent: true);
+      Get.put<EvidenceRepository>(_FakeEvidenceRepository(), permanent: true);
     });
 
     /// Opens the seal form the way an officer does: the Take Action button,
@@ -511,6 +524,11 @@ void main() {
         find.byType(AppTextField).first,
         'Arrears unpaid after final notice.',
       );
+      // A seal with neither witness nor photograph behind it is refused.
+      await tester.enterText(
+        find.byType(AppTextField).last,
+        'Abdul Samad, the shopkeeper next door',
+      );
       await settle(tester);
       await tester.tap(find.widgetWithText(AppButton, 'Seal the shop'));
       await settle(tester);
@@ -543,6 +561,192 @@ void main() {
       expect(cases.sealedCases, isEmpty);
       expect(reporting.profileCalls, profileCallsBefore);
     });
+  });
+
+  group('a promise', () {
+    late FakeReportingRepository reporting;
+    late FakeEnforcementCaseRepository cases;
+    late FakeDefaultersRepository defaulters;
+
+    /// The two screens a promise is written between: a shop's profile, and the
+    /// form pushed over it. Real paths, so `AppRoutes.recordActionPath`
+    /// resolves.
+    GoRouter router() => GoRouter(
+      initialLocation: '/shop',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/shop',
+          builder: (BuildContext context, GoRouterState state) =>
+              const PropertyProfileScreen(propertyId: fixturePropertyId),
+        ),
+        GoRoute(
+          path: AppRoutes.recordAction,
+          builder: (BuildContext context, GoRouterState state) =>
+              RecordActionScreen(
+                propertyId: int.parse(
+                  state.uri.queryParameters['property'] ?? '0',
+                ),
+                actionCode: state.uri.queryParameters['type'] ?? '',
+                caseId: int.tryParse(state.uri.queryParameters['case'] ?? ''),
+                cases: state.extra is List<EnforcementCase>
+                    ? state.extra! as List<EnforcementCase>
+                    : null,
+              ),
+        ),
+      ],
+    );
+
+    /// The register with all four recordable steps on it. The shared fixture
+    /// publishes only `site_visit` and `payment_promised`, and the Take Action
+    /// sheet refuses a step MCQ has not published — so a row missing here is
+    /// the register's doing, not the wiring's.
+    Map<String, dynamic> registerWithEveryStep() {
+      final Map<String, dynamic> data = definitionsData();
+      data['action_types'] = <Map<String, dynamic>>[
+        for (final (String code, String name, bool promise, bool visit)
+            in <(String, String, bool, bool)>[
+              ('site_visit', 'Site visit', false, false),
+              ('verbal_warning', 'Verbal warning', false, false),
+              ('payment_promised', 'Payment promised', true, false),
+              ('reminder_visit_set', 'Reminder visit set', false, true),
+            ])
+          <String, dynamic>{
+            'code': code,
+            'name': name,
+            'fields': <String, dynamic>{
+              'promise_date': promise,
+              'visit_date': visit,
+            },
+          },
+      ];
+      return <String, dynamic>{'data': data};
+    }
+
+    setUp(() async {
+      final StubbedApi api = StubbedApi();
+      api.stub.reply(registerWithEveryStep());
+
+      final AuthController auth = AuthController(
+        authRepository: ApiAuthRepository(
+          api: api.service,
+          storage: api.storage,
+        ),
+      );
+      Get.put<AuthController>(auth, permanent: true);
+
+      final DefinitionsController definitions = DefinitionsController(
+        definitionsRepository: ApiDefinitionsRepository(api: api.service),
+        authController: auth,
+      );
+      await definitions.load();
+      Get.put<DefinitionsController>(definitions, permanent: true);
+
+      reporting = FakeReportingRepository();
+      cases = FakeEnforcementCaseRepository();
+      defaulters = FakeDefaultersRepository();
+      Get.put<ReportingRepository>(reporting, permanent: true);
+      Get.put<EnforcementCaseRepository>(cases, permanent: true);
+      Get.put<PersonRepository>(FakePersonRepository(), permanent: true);
+      Get.put<DefaultersRepository>(defaulters, permanent: true);
+      Get.put<DashboardRepository>(FakeDashboardRepository(), permanent: true);
+    });
+
+    /// Opens the promise form the way an officer does: the Take Action button,
+    /// then the promise off the sheet.
+    Future<void> openPromiseForm(WidgetTester tester) async {
+      await tester.tap(find.byType(AppExtendedFab));
+      await settle(tester);
+      // The rows are held back before they stagger, on a plain `Timer`.
+      await tester.pump(const Duration(seconds: 1));
+      await settle(tester);
+      await tester.tap(find.text('Take promise to pay'));
+      await settle(tester);
+    }
+
+    testWidgets('the sheet opens the form, and the record re-reads the shop', (
+      WidgetTester tester,
+    ) async {
+      sizeTo(tester, height: 6000);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+      await settle(tester);
+      final int pagesRead = cases.pagesRequested.length;
+
+      await openPromiseForm(tester);
+
+      // The step is reachable from the sheet at all — the row an officer
+      // presses at a shopfront.
+      expect(find.byType(RecordActionScreen), findsOneWidget);
+      // The shop's own cases came with it, so the form asks for none again.
+      expect(cases.pagesRequested.length, pagesRead);
+      expect(find.byType(CaseCard), findsWidgets);
+
+      Get.find<RecordActionController>().setPromisedPaymentDate(
+        DateTime(2026, 9, 19),
+      );
+      await settle(tester);
+      await tester.tap(
+        find.widgetWithText(AppButton, 'Take promise to pay').last,
+      );
+      await settle(tester);
+      await tapDone(tester);
+
+      expect(cases.actionedCases, <int>[fixtureLiveCaseId]);
+      expect(
+        cases.actionedWith.single.toJson()['action_type'],
+        'payment_promised',
+      );
+      // Two profile reads before the write, and a third because the promise
+      // landed on this shop.
+      expect(reporting.profileCalls, 2);
+      expect(find.byType(AppExtendedFab), findsOneWidget);
+    });
+
+    testWidgets('leaves the shop alone when the form is abandoned', (
+      WidgetTester tester,
+    ) async {
+      sizeTo(tester, height: 6000);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+      await settle(tester);
+      final int profileCallsBefore = reporting.profileCalls;
+
+      await openPromiseForm(tester);
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await settle(tester);
+
+      expect(cases.actionedCases, isEmpty);
+      expect(reporting.profileCalls, profileCallsBefore);
+    });
+
+    // Every row the action endpoint accepts opens the same form, under its own
+    // register code. A row that goes nowhere is the one an officer standing at
+    // a shopfront gives up on.
+    for (final (String row, String code) in <(String, String)>[
+      ('Record a visit', 'site_visit'),
+      ('Give a warning', 'verbal_warning'),
+      ('Take promise to pay', 'payment_promised'),
+      ('Set reminder to visit', 'reminder_visit_set'),
+    ]) {
+      testWidgets('the sheet\u2019s "$row" row opens the form for $code', (
+        WidgetTester tester,
+      ) async {
+        sizeTo(tester, height: 6000);
+        await tester.pumpWidget(MaterialApp.router(routerConfig: router()));
+        await settle(tester);
+
+        await tester.tap(find.byType(AppExtendedFab));
+        await settle(tester);
+        await tester.pump(const Duration(seconds: 1));
+        await settle(tester);
+        await tester.tap(find.text(row));
+        await settle(tester);
+
+        expect(find.byType(RecordActionScreen), findsOneWidget);
+        expect(
+          Get.find<RecordActionController>().actionCode,
+          code,
+        );
+      });
+    }
   });
 
   group('a captured shop', () {

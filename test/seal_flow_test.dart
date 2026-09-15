@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart' show ProgressCallback;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart' hide Response;
@@ -11,6 +12,8 @@ import 'package:mcq_app/controllers/seal_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
+import 'package:mcq_app/data/repositories/evidence_repository.dart';
+import 'package:mcq_app/models/evidence_upload.dart';
 import 'package:mcq_app/data/repositories/person_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/mock/case_type_seed.dart';
@@ -100,6 +103,16 @@ void main() {
     await settle(tester);
   }
 
+  /// The server takes a seal backed by a witness or a photograph and refuses
+  /// one carrying neither, so every seal sent from here names somebody.
+  Future<void> nameWitness(
+    WidgetTester tester, [
+    String witness = 'Abdul Samad, the shopkeeper next door',
+  ]) async {
+    await tester.enterText(find.byType(AppTextField).last, witness);
+    await settle(tester);
+  }
+
   Future<void> press(WidgetTester tester, String label) async {
     await tester.tap(find.widgetWithText(AppButton, label));
     await settle(tester);
@@ -123,6 +136,7 @@ void main() {
       permanent: true,
     );
 
+    Get.put<EvidenceRepository>(_FakeEvidenceRepository(), permanent: true);
     Get.put<EnforcementCaseRepository>(caseRepository, permanent: true);
     Get.put<ReportingRepository>(FakeReportingRepository(), permanent: true);
     Get.put<PersonRepository>(FakePersonRepository(), permanent: true);
@@ -157,6 +171,7 @@ void main() {
     await pumpSeal(tester, cases: cases, caseId: cases.first.id);
 
     await writeReason(tester);
+    await nameWitness(tester);
     await press(tester, 'Seal the shop');
 
     expect(caseRepository.sealedCases, <int>[cases.first.id!]);
@@ -208,6 +223,7 @@ void main() {
     expect(Get.find<SealController>().selectedCaseId.value, opened.id);
 
     await writeReason(tester);
+    await nameWitness(tester);
     await press(tester, 'Seal the shop');
 
     expect(caseRepository.sealedCases, <int>[opened.id!]);
@@ -220,6 +236,8 @@ void main() {
     await pumpSeal(tester, cases: cases, caseId: cases.first.id);
 
     await writeReason(tester, 'no rent');
+    // Named, so the reason is the only thing wrong with the form.
+    await nameWitness(tester);
     await press(tester, 'Seal the shop');
 
     expect(caseRepository.sealedCases, isEmpty);
@@ -259,6 +277,7 @@ void main() {
     await pumpSeal(tester, cases: cases, caseId: cases.first.id);
 
     await writeReason(tester);
+    await nameWitness(tester);
     await press(tester, 'Seal the shop');
 
     expect(find.text(refused.message), findsWidgets);
@@ -285,6 +304,7 @@ void main() {
     await pumpSeal(tester, cases: cases, caseId: cases.first.id);
 
     await writeReason(tester);
+    await nameWitness(tester);
     await press(tester, 'Seal the shop');
 
     caseRepository.sealFailure = null;
@@ -295,6 +315,97 @@ void main() {
       caseRepository.sealedWith.first.clientActionUuid,
       isNot(caseRepository.sealedWith.last.clientActionUuid),
     );
+  });
+
+  testWidgets('a seal with neither witness nor photograph is not sent', (
+    WidgetTester tester,
+  ) async {
+    final List<EnforcementCase> cases = propertyCases();
+    await pumpSeal(tester, cases: cases, caseId: cases.first.id);
+
+    await writeReason(tester);
+
+    // The server refuses one carrying neither, so the form says so at the
+    // shutter rather than after a round trip.
+    expect(
+      find.textContaining('a witness’s name or a photograph'),
+      findsOneWidget,
+    );
+    final AppButton button = tester.widget<AppButton>(
+      find.widgetWithText(AppButton, 'Seal the shop'),
+    );
+    expect(button.onPressed, isNull);
+    expect(caseRepository.sealedWith, isEmpty);
+  });
+
+  testWidgets('a named witness travels as witness_name', (
+    WidgetTester tester,
+  ) async {
+    final List<EnforcementCase> cases = propertyCases();
+    await pumpSeal(tester, cases: cases, caseId: cases.first.id);
+
+    await writeReason(tester);
+    await nameWitness(tester);
+    await press(tester, 'Seal the shop');
+
+    final Map<String, dynamic> body = caseRepository.sealedWith.single.toJson();
+    expect(body['witness_name'], 'Abdul Samad, the shopkeeper next door');
+    expect(body['seal_photo_path'], isNull);
+  });
+
+  testWidgets('a photograph alone is enough, and fills both photo fields', (
+    WidgetTester tester,
+  ) async {
+    final List<EnforcementCase> cases = propertyCases();
+    await pumpSeal(tester, cases: cases, caseId: cases.first.id);
+
+    await writeReason(tester);
+    // The camera itself belongs to the OS; what matters here is the half after
+    // it — the file on the handset going up, and its returned path landing on
+    // the request. So the shot is staged and the upload driven.
+    final SealController controller = Get.find<SealController>();
+    controller.photoLocalPath.value = '/handset/shutter.jpg';
+    await controller.retryPhotoUpload();
+    await settle(tester);
+
+    expect(find.textContaining('a witness’s name or a photograph'), findsNothing);
+    await press(tester, 'Seal the shop');
+
+    final Map<String, dynamic> body = caseRepository.sealedWith.single.toJson();
+    expect(body['seal_photo_path'], 'evidence/seals/shutter.jpg');
+    // The envelope's own field as well, so it does not matter which of the two
+    // the server's "witness or photograph" check reads.
+    expect(body['photo_path'], 'evidence/seals/shutter.jpg');
+    expect(body['witness_name'], isNull);
+  });
+
+  testWidgets('the server blaming witness_name with no message still says why', (
+    WidgetTester tester,
+  ) async {
+    const String sentence =
+        'A seal needs either a named witness or a photograph of the sealed '
+        'shutter. On one officer’s word alone it is the first thing '
+        'challenged.';
+    // The refusal exactly as it comes back: the field named, the list empty,
+    // and the sentence on the envelope.
+    caseRepository.sealFailure = const ApiException(
+      message: sentence,
+      failure: ApiFailure.validation,
+      statusCode: 422,
+      code: 'validation_failed',
+      errors: <String, List<String>>{'witness_name': <String>[]},
+    );
+
+    final List<EnforcementCase> cases = propertyCases();
+    await pumpSeal(tester, cases: cases, caseId: cases.first.id);
+
+    await writeReason(tester);
+    await nameWitness(tester);
+    await press(tester, 'Seal the shop');
+
+    // Under the field it named, not only in the bar — an empty `errors` list
+    // would otherwise leave the field red and silent.
+    expect(find.text(sentence), findsWidgets);
   });
 
   testWidgets('a case MCQ has not cleared is offered, with the warning', (
@@ -309,8 +420,21 @@ void main() {
     expect(find.textContaining('has not cleared this case'), findsOneWidget);
 
     await writeReason(tester);
+    await nameWitness(tester);
     await press(tester, 'Seal the shop');
 
     expect(caseRepository.sealedCases, <int>[fresh.id!]);
   });
+}
+
+/// The evidence store, which a seal only reaches when the officer photographs
+/// the shutter instead of naming somebody.
+class _FakeEvidenceRepository implements EvidenceRepository {
+  @override
+  Future<EvidenceUpload> upload({
+    required String filePath,
+    String kind = EvidenceRepository.kindPhoto,
+    String? mimeType,
+    ProgressCallback? onProgress,
+  }) async => const EvidenceUpload(path: 'evidence/seals/shutter.jpg');
 }

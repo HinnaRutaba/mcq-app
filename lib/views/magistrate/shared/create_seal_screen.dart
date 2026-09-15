@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/routes/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
+import '../../../config/theme/app_radius.dart';
+import '../../../core/capture/photo_capture.dart';
 import '../../../controllers/defaulters_controller.dart';
 import '../../../controllers/seal_controller.dart';
 import '../../../core/utils/form_scroll.dart';
@@ -11,6 +15,7 @@ import '../../../models/enforcement_case.dart';
 import '../../../models/field_seal.dart';
 import '../../../widgets/widgets.dart';
 import 'widgets/case_card.dart';
+import 'widgets/evidence_tile.dart';
 import 'create_case_screen.dart';
 import 'widgets/seal_applied_sheet.dart';
 import 'widgets/still_needed_note.dart';
@@ -136,6 +141,8 @@ class _CreateSealScreenState extends State<CreateSealScreen> {
                     _CaseSection(controller: controller, onOpenCase: _openCase),
                     const SizedBox(height: 20),
                     _ReasonSection(controller: controller),
+                    const SizedBox(height: 20),
+                    _WitnessSection(controller: controller),
                   ],
                 ),
               ),
@@ -300,6 +307,125 @@ class _ReasonSection extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// What backs the seal up: a witness, a photograph, or both.
+///
+/// The server refuses a seal carrying neither — one officer's word alone is
+/// the first thing challenged when a shopkeeper comes to the office — so this
+/// is a required section that can be satisfied two ways, and says so.
+class _WitnessSection extends StatelessWidget {
+  const _WitnessSection({required this.controller});
+
+  final SealController controller;
+
+  Future<void> _photo(BuildContext context) async {
+    final PhotoOutcome outcome = await controller.attachPhoto();
+    if (!context.mounted) return;
+    if (outcome == PhotoOutcome.needsSettings) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: AppText.body(
+            'Allow the camera in Settings to photograph the seal.',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color? muted = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const AppText.titleMedium('Who saw it'),
+        const SizedBox(height: 3),
+        AppText.caption(
+          'A seal needs a named witness or a photograph of the shutter. '
+          'Either will do; both is better.',
+          color: muted,
+          maxLines: 2,
+        ),
+        const SizedBox(height: 10),
+        Obx(() {
+          // Read here so the field re-validates as soon as a photograph
+          // lands — naming a witness stops being required the moment one does.
+          controller.revision.value;
+          controller.photoUploadedPath.value;
+
+          return AppTextField(
+            controller: controller.witnessController,
+            label: 'The witness',
+            hint: 'e.g. Abdul Samad, the shopkeeper next door',
+            validator: controller.validateWitness,
+            onChanged: (String _) => controller.markEdited(),
+          );
+        }),
+        const SizedBox(height: 16),
+        Obx(
+          // A third of the row: the tile is a square by design, and stretched
+          // across the form it reads as an empty panel rather than a button.
+          () => Row(
+            children: <Widget>[
+              Expanded(
+                child: EvidenceTile(
+                  icon: Icons.photo_camera_outlined,
+                  label: 'Seal photo',
+                  busy: controller.isUploadingPhoto.value,
+                  state: _photoState,
+                  detail: _photoDetail,
+                  onTap: controller.photoUploadedPath.value != null
+                      ? controller.removePhoto
+                      : (controller.photoLocalPath.value != null
+                            ? controller.retryPhotoUpload
+                            : () => _photo(context)),
+                ),
+              ),
+              const Spacer(flex: 2),
+            ],
+          ),
+        ),
+        Obx(() {
+          final String? path = controller.photoLocalPath.value;
+          if (path == null) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              child: Image.file(
+                File(path),
+                height: 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                // A thumbnail that will not decode must not take the form
+                // down with it.
+                errorBuilder: (_, _, _) => const SizedBox.shrink(),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  EvidenceState get _photoState {
+    if (controller.photoUploadedPath.value != null) {
+      return EvidenceState.attached;
+    }
+    if (controller.photoLocalPath.value != null) return EvidenceState.pending;
+    return EvidenceState.empty;
+  }
+
+  String? get _photoDetail {
+    if (controller.isUploadingPhoto.value) return 'Sending';
+    if (controller.photoUploadedPath.value != null) return 'Attached';
+    if (controller.photoLocalPath.value != null) return 'Retry';
+    return null;
   }
 }
 

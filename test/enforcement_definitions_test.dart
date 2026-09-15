@@ -1,7 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mcq_app/core/network/api_service.dart';
 import 'package:mcq_app/data/repositories/definitions_repository.dart';
 import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
+import 'package:mcq_app/data/mock/case_type_seed.dart';
 import 'package:mcq_app/data/repositories/fine_repository.dart';
 import 'package:mcq_app/data/repositories/person_repository.dart';
 import 'package:mcq_app/models/models.dart';
@@ -192,6 +194,84 @@ void main() {
       adapter.reply(_definitionsResponse);
       final recovered = await repository.definitions();
       expect(recovered.fineTypes, hasLength(5));
+    });
+  });
+
+  group('what a case may be opened about', () {
+    /// The register, with the six kinds MCQ files cases under.
+    Map<String, dynamic> registerWithCaseTypes() {
+      final Map<String, dynamic> data = Map<String, dynamic>.from(
+        _definitionsResponse['data']! as Map<String, dynamic>,
+      );
+      data['case_types'] = <Map<String, dynamic>>[
+        <String, dynamic>{
+          'code': 'arrears_recovery',
+          'name': 'Arrears recovery',
+          'description': 'Rent owed on the unit.',
+        },
+        <String, dynamic>{'code': 'subletting', 'name': 'Subletting'},
+        <String, dynamic>{
+          'code': 'seal_violation',
+          'name': 'Seal broken',
+          'name_ur': 'سیل کی خلاف ورزی',
+        },
+      ];
+      return <String, dynamic>{'data': data};
+    }
+
+    test('reads the kinds the register publishes', () async {
+      adapter.reply(registerWithCaseTypes());
+
+      final kinds = await ApiEnforcementCaseRepository(
+        api: api,
+        definitionsRepository: ApiDefinitionsRepository(api: api),
+      ).caseTypes();
+
+      expect(
+        kinds.map((CaseTypeOption kind) => kind.code),
+        <String>['arrears_recovery', 'subletting', 'seal_violation'],
+        reason: 'in the register’s own order, never re-sorted here',
+      );
+      // The register's wording wins over the app's: MCQ renamed this one.
+      expect(kinds.last.name, 'Seal broken');
+      expect(kinds.last.nameUr, 'سیل کی خلاف ورزی');
+      expect(kinds.first.description, 'Rent owed on the unit.');
+    });
+
+    test('falls back to the seed when the register publishes none', () async {
+      // The shared register carries no `case_types` block.
+      adapter.reply(_definitionsResponse);
+
+      final kinds = await ApiEnforcementCaseRepository(
+        api: api,
+        definitionsRepository: ApiDefinitionsRepository(api: api),
+      ).caseTypes();
+
+      expect(kinds, same(caseTypeSeed));
+      expect(
+        kinds.map((CaseTypeOption kind) => kind.code),
+        containsAll(<String>[
+          'seal_violation',
+          'encroachment',
+          'illegal_construction',
+          'subletting',
+          'unauthorised_use',
+          'arrears_recovery',
+        ]),
+      );
+    });
+
+    test('a register that will not load still opens a case', () async {
+      adapter.fail(DioExceptionType.connectionError);
+
+      final kinds = await ApiEnforcementCaseRepository(
+        api: api,
+        definitionsRepository: ApiDefinitionsRepository(api: api),
+      ).caseTypes();
+
+      // An officer in a bazaar with no signal picks from the seed rather than
+      // from an empty drop-down.
+      expect(kinds, same(caseTypeSeed));
     });
   });
 

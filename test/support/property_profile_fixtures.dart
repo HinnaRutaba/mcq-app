@@ -529,6 +529,44 @@ const Map<String, dynamic> appliedSealJson = <String, dynamic>{
   'allottee_name': 'Muhammad Iqbal',
 };
 
+/// What `POST enforcement/cases/{case}/actions` answers a promise with — the
+/// record read back, with the date the shopkeeper was held to on it.
+const Map<String, dynamic> recordedPromiseJson = <String, dynamic>{
+  'id': 913,
+  'enforcement_case_id': fixtureLiveCaseId,
+  'action_type': <String, dynamic>{
+    'value': 'payment_promised',
+    'label': 'Promised to pay',
+    'tone': 'success',
+  },
+  'action_date': '2026-09-09',
+  'amounts': <String, dynamic>{
+    'outstanding_at_action': '187450.00',
+    'fine_amount': null,
+  },
+  'promised_payment_date': '2026-09-19',
+  'next_visit_date': null,
+  'seal_no': null,
+  'location': <String, dynamic>{
+    'latitude': null,
+    'longitude': null,
+    'accuracy_m': null,
+    'has_fix': false,
+  },
+  'photo_path': null,
+  'signature_path': null,
+  'witness_name': null,
+  'remarks': 'Said he would pay after the wedding season.',
+  'sync': <String, dynamic>{
+    'recorded_offline': false,
+    'device_recorded_at': null,
+    'synced_at': '2026-09-09T09:14:00+00:00',
+    'lag_minutes': null,
+    'client_action_uuid': 'a1b2c3d4e5f6a7b8',
+  },
+  'performed_by': <String, dynamic>{'id': 5, 'name': 'Habibullah Tareen'},
+};
+
 class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
   FakeEnforcementCaseRepository({
     this.failure,
@@ -566,6 +604,16 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
   /// The case each seal was sent against, and the body that went with it.
   final List<int> sealedCases = <int>[];
   final List<CaseSealRequest> sealedWith = <CaseSealRequest>[];
+
+  /// A refused `POST enforcement/cases/{case}/actions`.
+  Object? actionFailure;
+
+  /// The case each action was recorded against, and the body that went with
+  /// it — a retry appends again, so a test can see whether the resend carried
+  /// the same `client_action_uuid`.
+  final List<int> actionedCases = <int>[];
+  final List<EnforcementActionRequest> actionedWith =
+      <EnforcementActionRequest>[];
 
   static final List<List<Map<String, dynamic>>> _pages =
       <List<Map<String, dynamic>>>[casesPageOneJson, casesPageTwoJson];
@@ -637,7 +685,12 @@ class FakeEnforcementCaseRepository implements EnforcementCaseRepository {
   Future<EnforcementAction> recordAction(
     int caseId,
     EnforcementActionRequest request,
-  ) async => throw UnimplementedError('the profile records nothing yet');
+  ) async {
+    actionedCases.add(caseId);
+    actionedWith.add(request);
+    if (actionFailure != null) throw actionFailure!;
+    return EnforcementAction.fromJson(recordedPromiseJson);
+  }
 
   @override
   Future<FieldSeal> seal(int caseId, CaseSealRequest request) async {

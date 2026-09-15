@@ -74,7 +74,12 @@ void setupDependencies() {
     permanent: true,
   );
   Get.put<EnforcementCaseRepository>(
-    ApiEnforcementCaseRepository(api: api),
+    // The definitions go with it: the case-kind picker is drawn from the
+    // register's own `case_types`, not from a list written into the app.
+    ApiEnforcementCaseRepository(
+      api: api,
+      definitionsRepository: Get.find<DefinitionsRepository>(),
+    ),
     permanent: true,
   );
   Get.put<FineRepository>(ApiFineRepository(api: api), permanent: true);

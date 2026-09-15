@@ -1,10 +1,12 @@
 import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
+import 'case_type_option.dart';
 
 class EnforcementDefinitions {
   const EnforcementDefinitions({
     this.fineTypes = const <FineTypeDefinition>[],
     this.actionTypes = const <ActionTypeDefinition>[],
+    this.caseTypes = const <CaseTypeOption>[],
     this.caseStatuses = const <LabelledValue>[],
     this.casePriorities = const <LabelledValue>[],
     this.sealStatuses = const <LabelledValue>[],
@@ -19,6 +21,11 @@ class EnforcementDefinitions {
   /// server writes itself. See [ActionTypeDefinition.fields] before drawing a
   /// form for one.
   final List<ActionTypeDefinition> actionTypes;
+
+  /// What a case may be opened about — `arrears_recovery`, `subletting`,
+  /// `seal_violation` and the rest. Empty on a register that publishes no
+  /// `case_types` block, which is what `caseTypeSeed` stands behind.
+  final List<CaseTypeOption> caseTypes;
 
   /// e.g. Open, Notice served, Sealed, Settled.
   final List<LabelledValue> caseStatuses;
@@ -40,6 +47,9 @@ class EnforcementDefinitions {
         actionTypes: Json.list(
           json['action_types'],
         ).map(ActionTypeDefinition.fromJson).toList(),
+        caseTypes: Json.list(
+          json['case_types'],
+        ).map(CaseTypeOption.fromJson).toList(),
         caseStatuses: _labels(json['case_statuses']),
         casePriorities: _labels(json['case_priorities']),
         sealStatuses: _labels(json['seal_statuses']),
@@ -75,6 +85,16 @@ class EnforcementDefinitions {
   ActionTypeDefinition? actionTypeById(int id) {
     for (final type in actionTypes) {
       if (type.id == id) return type;
+    }
+    return null;
+  }
+
+  /// The case kind with this code, e.g. `seal_violation`. Null when the
+  /// register does not publish it — a case already on record can name a code
+  /// MCQ has since retired.
+  CaseTypeOption? caseType(String code) {
+    for (final kind in caseTypes) {
+      if (kind.code == code) return kind;
     }
     return null;
   }

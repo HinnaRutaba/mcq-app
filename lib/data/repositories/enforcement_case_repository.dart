@@ -1,4 +1,5 @@
 import '../../core/network/api_config.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/network/api_service.dart';
 import '../../models/api_response.dart';
 import '../../models/case_type_option.dart';
@@ -9,6 +10,7 @@ import '../../models/field_case_request.dart';
 import '../../models/field_seal.dart';
 import '../../models/seal_requests.dart';
 import '../mock/case_type_seed.dart';
+import 'definitions_repository.dart';
 
 /// Enforcement cases, their visit timelines, and the writes an officer makes
 /// against them from the field.
@@ -29,8 +31,9 @@ abstract class EnforcementCaseRepository {
 
   /// What a case may be opened about — the vocabulary behind `case_type`.
   ///
-  /// Asynchronous because MCQ is expected to publish these: the picker is
-  /// drawn from whatever this answers, so the endpoint lands here alone.
+  /// Read from `enforcement/definitions`, which publishes the rows MCQ files
+  /// cases under. [caseTypeSeed] stands behind a register that sends no
+  /// `case_types` block, so the picker is never empty at a shopfront.
   Future<List<CaseTypeOption>> caseTypes();
 
   /// Opens a case from the handset.
@@ -98,9 +101,16 @@ extension PropertyCases on EnforcementCaseRepository {
 }
 
 class ApiEnforcementCaseRepository implements EnforcementCaseRepository {
-  ApiEnforcementCaseRepository({required this._api});
+  ApiEnforcementCaseRepository({
+    required this._api,
+    DefinitionsRepository? definitionsRepository,
+  }) : _definitions = definitionsRepository;
 
   final ApiService _api;
+
+  /// Where the case kinds come from. Null leaves this on [caseTypeSeed] —
+  /// which is what a test that only cares about the case list passes.
+  final DefinitionsRepository? _definitions;
 
   @override
   Future<Paginated<EnforcementCase>> cases({
@@ -128,10 +138,23 @@ class ApiEnforcementCaseRepository implements EnforcementCaseRepository {
     return response.dataList.map(EnforcementAction.fromJson).toList();
   }
 
-  /// The seeded list, until MCQ publishes one. Nothing goes on the wire, and
-  /// no caller changes when it does.
+  /// The register's rows, and the seed only where it publishes none.
+  ///
+  /// A failed definitions call falls back rather than propagating: an officer
+  /// in a bazaar with no signal can still open a case, under the same codes
+  /// MCQ would have named.
   @override
-  Future<List<CaseTypeOption>> caseTypes() async => caseTypeSeed;
+  Future<List<CaseTypeOption>> caseTypes() async {
+    final DefinitionsRepository? register = _definitions;
+    if (register == null) return caseTypeSeed;
+    try {
+      final List<CaseTypeOption> published =
+          (await register.definitions()).caseTypes;
+      return published.isEmpty ? caseTypeSeed : published;
+    } on ApiException {
+      return caseTypeSeed;
+    }
+  }
 
   @override
   Future<EnforcementCase> openCase(FieldCaseRequest request) async {

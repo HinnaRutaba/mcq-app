@@ -80,6 +80,15 @@ enum ShopAction {
   /// part of the step.
   final bool needsCase;
 
+  /// The step recorded under [code], e.g. `payment_promised`. Null on a code
+  /// this app has no row of its own for — the register's wording stands in.
+  static ShopAction? byCode(String code) {
+    for (final ShopAction action in values) {
+      if (action.code == code) return action;
+    }
+    return null;
+  }
+
   /// The steps to offer for one shop. [seal] and [unseal] are the same row in
   /// two states, so only ever one of them is on the sheet.
   static List<ShopAction> forShop({required bool sealed}) {

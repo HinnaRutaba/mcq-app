@@ -68,6 +68,22 @@ class FollowUpsController extends GetxController {
   /// Safe to call again — this is the pull-to-refresh.
   Future<void> load() => _fetch();
 
+  /// Re-reads the list after a promise was taken somewhere else — from a
+  /// shop's own profile, which is where an officer standing at the counter
+  /// records one.
+  ///
+  /// Nothing to do until the screen has been opened: this controller is
+  /// registered lazily and fetches when it is first built, so a list nobody
+  /// has looked at is not stale. `isRegistered` alone will not say that —
+  /// a `lazyPut` factory answers true before it has ever been built, and
+  /// `find` would then build it, fetch through `onInit`, and fetch again
+  /// below. `isPrepared` is what tells the two apart.
+  static Future<void> reloadIfOpened() async {
+    if (!Get.isRegistered<FollowUpsController>()) return;
+    if (Get.isPrepared<FollowUpsController>()) return;
+    await Get.find<FollowUpsController>().load();
+  }
+
   /// Shows [which]. A different request, so it fetches.
   Future<void> showState(FollowUpState which) async {
     if (which == state.value) return;

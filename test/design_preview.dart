@@ -21,6 +21,7 @@ import 'package:mcq_app/controllers/fine_controller.dart';
 import 'package:mcq_app/controllers/follow_ups_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/property_profile_controller.dart';
+import 'package:mcq_app/controllers/record_action_controller.dart';
 import 'package:mcq_app/controllers/seals_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
@@ -37,7 +38,9 @@ import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
+import 'package:mcq_app/models/case_type_option.dart';
 import 'package:mcq_app/models/challan.dart';
+import 'package:mcq_app/models/enforcement_action.dart';
 import 'package:mcq_app/models/enforcement_case.dart';
 import 'package:mcq_app/models/field_seal.dart';
 import 'package:mcq_app/models/property_profile.dart';
@@ -62,6 +65,8 @@ import 'package:mcq_app/views/magistrate/property/widgets/take_action_sheet.dart
 import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_seal_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/record_action_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/action_recorded_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/case_opened_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart';
@@ -462,6 +467,53 @@ void main() {
         cases: <EnforcementCase>[],
       );
     },
+    // Taking a promise to pay, reached from the Take Action sheet: which case
+    // it goes on, the day they named, and what they actually said. The date
+    // field is here because the register says this step carries one.
+    'promise': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      _seedDefinitions(register: _registerWithEveryAction());
+      _seedPropertyProfile();
+      return RecordActionScreen(
+        propertyId: fixturePropertyId,
+        actionCode: 'payment_promised',
+        cases: _propertyCases(),
+        caseId: _propertyCases().first.id,
+      );
+    },
+    // The same form for a shop with no case yet: a promise has nowhere to go
+    // until one is opened, and that is the only way on.
+    'promise_no_case': () {
+      _seedDefinitions(register: _registerWithEveryAction());
+      _seedPropertyProfile();
+      return const RecordActionScreen(
+        propertyId: fixturePropertyId,
+        actionCode: 'payment_promised',
+        cases: <EnforcementCase>[],
+      );
+    },
+    // Filled in and refused: the server's own sentence in the bar, against the
+    // button that was just pressed.
+    'promise_refused': () {
+      _seedDefinitions(register: _registerWithEveryAction());
+      _seedPropertyProfile();
+      return RecordActionScreen(
+        propertyId: fixturePropertyId,
+        actionCode: 'payment_promised',
+        cases: _propertyCases(),
+        caseId: _propertyCases().first.id,
+      );
+    },
+    // The receipt the form ends on. The date is the whole of it: the day the
+    // shopkeeper was held to, and the day the shop comes back onto the
+    // follow-up list.
+    'promise_recorded_sheet': () => _sheet(
+      ActionRecordedSheet(
+        action: EnforcementAction.fromJson(recordedPromiseJson),
+      ),
+    ),
     // Opening a case on a shop, reached from its Take Action sheet: what the
     // case is about, why, and how urgent. The shop is never chosen here.
     'case': () {
@@ -639,8 +691,12 @@ void main() {
     'challan_sheet': 2500,
     'challan_sheet_fine': 2400,
     'case': 4200,
-    'seal': 3000,
-    'seal_no_case': 2000,
+    'seal': 3400,
+    'seal_no_case': 2400,
+    'promise': 3000,
+    'promise_no_case': 2000,
+    'promise_refused': 3000,
+    'promise_recorded_sheet': 1200,
     'case_from_property': 3400,
     'case_refused': 3400,
     'case_offender': 3000,
@@ -742,6 +798,13 @@ void main() {
     // The words an officer would actually type: what they saw, not the code.
     'case': () {
       final CaseController file = Get.find<CaseController>();
+      // The register publishes six kinds; picking one shows the wording the
+      // officer reads out at the counter and what the kind covers.
+      file.chooseCaseType(
+        file.caseTypes.firstWhere(
+          (CaseTypeOption kind) => kind.code == 'unauthorised_use',
+        ),
+      );
       file.reasonController.text =
           'Trading in general goods; the allotment is for a tailoring shop.';
       // The card names the holder and their mobile; the father's name is what
@@ -749,8 +812,31 @@ void main() {
       file.offenderFatherController.text = 'Ghulam Nabi';
       file.markEdited();
     },
+    // The day they named and what they said, as an officer would enter them.
+    'promise': () {
+      final RecordActionController step = Get.find<RecordActionController>();
+      step.setPromisedPaymentDate(DateTime(2026, 9, 19));
+      step.remarksController.text =
+          'Said he would pay after the wedding season.';
+      step.markEdited();
+    },
+    'promise_refused': () {
+      final RecordActionController step = Get.find<RecordActionController>();
+      step.setPromisedPaymentDate(DateTime(2026, 9, 19));
+      step.remarksController.text =
+          'Said he would pay after the wedding season.';
+      step.markEdited();
+      step.errorMessage.value =
+          'A promise already stands on this case until 20 Sep 2026. Record a '
+          'visit instead, or close the one outstanding.';
+    },
     'case_refused': () {
       final CaseController file = Get.find<CaseController>();
+      file.chooseCaseType(
+        file.caseTypes.firstWhere(
+          (CaseTypeOption kind) => kind.code == 'subletting',
+        ),
+      );
       file.reasonController.text =
           'Trading in general goods; the allotment is for a tailoring shop.';
       file.offenderFatherController.text = 'Ghulam Nabi';
