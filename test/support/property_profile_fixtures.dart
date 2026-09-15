@@ -449,6 +449,23 @@ PropertyProfile get vacantPropertyProfileFixture =>
       },
     });
 
+/// The same shop, shut. A sealed unit still owes the rent and still carries
+/// its case; what changes is that the officer walking up to it is looking at a
+/// closed shutter, which the screen has to say before anything else.
+PropertyProfile get sealedPropertyProfileFixture =>
+    PropertyProfile.fromJson(<String, dynamic>{
+      ...propertyProfileJson,
+      'enforcement': <String, dynamic>{
+        'seal_no': 'MCQ-SL-2627-00088',
+        'sealed_on': '2026-09-04',
+        'seal_status': 'sealed',
+        'is_sealed': true,
+        'open_case_no': 'MCQ-EC-2627-00204',
+        'case_status': 'sealed',
+        'open_legal_cases': 1,
+      },
+    });
+
 /// The property profile itself, from the fixtures.
 class FakeReportingRepository implements ReportingRepository {
   FakeReportingRepository({this.failure, PropertyProfile? profile})

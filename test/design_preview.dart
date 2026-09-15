@@ -419,6 +419,15 @@ void main() {
       _seedPropertyProfile();
       return const PropertyProfileScreen(propertyId: fixturePropertyId);
     },
+    // A shop that stands shut, said on the unit card itself — the first card
+    // on the overview — rather than only in the enforcement block under it.
+    'property_profile_sealed': () {
+      _seedPropertyProfile(profile: sealedPropertyProfileFixture);
+      return PropertyProfileScreen(
+        propertyId: fixturePropertyId,
+        card: _tappedRow,
+      );
+    },
     // The same screen for a property nobody holds — no holder, no tenancy,
     // nobody to call, and rent that may still be owed.
     'property_profile_vacant': () {
@@ -723,6 +732,7 @@ void main() {
     'property_profile_cases': 2600,
     'property_profile_history': 4400,
     'property_profile_vacant': 2200,
+    'property_profile_sealed': 2600,
     'take_action_sheet': 2400,
     'take_action_sheet_sealed': 2400,
     'take_action_sheet_arriving': 2400,

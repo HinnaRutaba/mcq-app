@@ -18,6 +18,7 @@ class OwedStrip extends StatelessWidget {
     this.neverPaid = false,
     this.nextVisit,
     this.promised = false,
+    this.sealed = false,
     this.collapse = 0,
   });
 
@@ -36,6 +37,10 @@ class OwedStrip extends StatelessWidget {
   /// defaulters list words it, so the same day does not read as two different
   /// facts across the two screens.
   final bool promised;
+
+  /// Whether the shop stands shut. It leads the pills: the figure says what is
+  /// owed, and this says the shutter is already down over it.
+  final bool sealed;
 
   /// How far the header carrying this has collapsed — 0 at rest, 1 fully
   /// down, where the plate is the label and the figure and nothing else.
@@ -146,6 +151,12 @@ class OwedStrip extends StatelessWidget {
     final DateTime? visit = nextVisit;
 
     return <Widget>[
+      if (sealed)
+        const _OwedPill(
+          label: 'Sealed',
+          tone: AppTone.danger,
+          icon: Icons.lock_rounded,
+        ),
       if (months != null && months > 0)
         _OwedPill(
           label: '$months ${months == 1 ? 'month' : 'months'} behind',
@@ -170,10 +181,14 @@ class OwedStrip extends StatelessWidget {
 /// A pill on the owed plate: white, so it stands off the gold, with the
 /// tone's own ink on it.
 class _OwedPill extends StatelessWidget {
-  const _OwedPill({required this.label, this.tone = AppTone.neutral});
+  const _OwedPill({required this.label, this.tone = AppTone.neutral, this.icon});
 
   final String label;
   final AppTone tone;
+
+  /// A glyph before the label — a second reading of the state, never the only
+  /// one: the pill is always labelled.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -188,18 +203,32 @@ class _OwedPill extends StatelessWidget {
         ],
       ),
       child: Builder(
-        builder: (BuildContext context) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-          ),
-          child: AppText.caption(
+        builder: (BuildContext context) {
+          final Color ink = tone.on(context);
+          final Widget text = AppText.caption(
             label,
-            color: tone.on(context),
+            color: ink,
             fontWeight: FontWeight.w700,
-          ),
-        ),
+          );
+
+          return Container(
+            padding: EdgeInsets.fromLTRB(icon == null ? 12 : 9, 5, 12, 5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: icon == null
+                ? text
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(icon, size: 13, color: ink),
+                      const SizedBox(width: 5),
+                      text,
+                    ],
+                  ),
+          );
+        },
       ),
     );
   }

@@ -246,7 +246,10 @@ List<Widget> _overview(PropertyProfileController controller) {
   }
 
   return <Widget>[
-    _section('The unit', _ShopCard(property: profile.property)),
+    _section(
+      'The unit',
+      _ShopCard(property: profile.property, sealed: controller.isSealed),
+    ),
     const SizedBox(height: 20),
     _section(
       'Who holds it',
@@ -390,9 +393,14 @@ bool _hasEnforcement(PropertyEnforcement enforcement) =>
     enforcement.openLegalCases > 0;
 
 class _ShopCard extends StatelessWidget {
-  const _ShopCard({required this.property});
+  const _ShopCard({required this.property, this.sealed = false});
 
   final ProfileProperty property;
+
+  /// Whether the shop stands shut. It leads the pills rather than joining
+  /// them: an officer reading this card is looking at a shutter, and the seal
+  /// is the fact that changes what they are there to do.
+  final bool sealed;
 
   @override
   Widget build(BuildContext context) {
@@ -426,6 +434,12 @@ class _ShopCard extends StatelessWidget {
             spacing: 12,
             runSpacing: 6,
             children: <Widget>[
+              if (sealed)
+                const AppStatusBadge(
+                  label: 'Sealed',
+                  tone: AppTone.danger,
+                  icon: Icons.lock_rounded,
+                ),
               if (property.categoryName != null)
                 AppStatusBadge(label: property.categoryName!),
               // Sent as bare strings with no tone of their own, so they are
