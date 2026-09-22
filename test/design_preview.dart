@@ -23,6 +23,7 @@ import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/controllers/record_action_controller.dart';
 import 'package:mcq_app/controllers/release_seal_controller.dart';
+import 'package:mcq_app/controllers/round_controller.dart';
 import 'package:mcq_app/controllers/seals_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
@@ -44,6 +45,7 @@ import 'package:mcq_app/models/challan.dart';
 import 'package:mcq_app/models/enforcement_action.dart';
 import 'package:mcq_app/models/enforcement_case.dart';
 import 'package:mcq_app/models/field_seal.dart';
+import 'package:mcq_app/models/round_group.dart';
 import 'package:mcq_app/models/property_profile.dart';
 import 'package:mcq_app/models/defaulter_card.dart';
 import 'package:mcq_app/models/unit_card.dart';
@@ -226,7 +228,35 @@ void main() {
       _seedDefaulters();
       return const DefaultersScreen();
     },
-    'round': () => const RoundScreen(),
+    // The walking order: a bazaar's head, then the stops the server picked
+    // out for it, and the same cards the defaulter list draws.
+    'round': () {
+      _seedRound();
+      return const RoundScreen();
+    },
+    // One bazaar of it, which is what a chip leaves on screen.
+    'round_one_bazaar': () {
+      _seedRound().showArea(2);
+      return const RoundScreen();
+    },
+    // Nobody behind anywhere on the beat — the good outcome, and the state a
+    // happy path never renders.
+    'round_empty': () {
+      _seedRound(groups: const <RoundGroup>[]);
+      return const RoundScreen();
+    },
+    // A person typed into the header: the bazaar they are in keeps its head
+    // and says what the whole market owes, with one stop under it.
+    'round_search': () {
+      _seedRound(query: 'zubaida');
+      return const RoundScreen();
+    },
+    // The round scrolled, so the bazaar head is on the pinned strip it
+    // collapses to — which is what an officer walking a market actually sees.
+    'round_scrolled': () {
+      _seedRound();
+      return const RoundScreen();
+    },
     // The licence round: three queues over the officer's own areas, and the
     // doorway lookup that takes the screen over when anything is typed.
     'trade_licences': () {
@@ -781,6 +811,9 @@ void main() {
     'take_action_sheet_sealed': 2400,
     'take_action_sheet_arriving': 2400,
     'defaulters': 2900,
+    // A real handset's worth of screen: the pinned bazaar strip is only worth
+    // a still at a height the round has to be scrolled at.
+    'round_scrolled': 900,
     'sealed': 1700,
     'sealed_ready': 1700,
     'sealed_empty': 1200,
@@ -812,6 +845,9 @@ void main() {
     'fine_shop_payer': 700,
     'fine_person_lookup': 900,
     'trade_capture_shop': 1500,
+    // Past the first market's stops, so its head is on the collapsed strip
+    // and the next market's head is coming up to push it off.
+    'round_scrolled': 330,
   };
 
   /// Entries caught part-way through their entrance instead of at rest. A
@@ -1277,6 +1313,28 @@ FollowUpsController _seedFollowUps({List<DefaulterCard>? rows}) {
   // `fenix`, so the find below builds a fresh one over the fake just put.
   Get.delete<FollowUpsController>(force: true);
   return Get.find<FollowUpsController>();
+}
+
+/// Puts today's round over the fixtures and drops the controller so it is
+/// rebuilt over them. Returns it, so an entry can choose the bazaar it means
+/// to show.
+/// [query] is typed into the box as well as set on the controller: the box is
+/// what an officer sees, and a preview of a narrowed round with an empty box
+/// above it is a picture of a state the app never reaches.
+RoundController _seedRound({List<RoundGroup>? groups, String? query}) {
+  Get.delete<DefaultersRepository>(force: true);
+  Get.put<DefaultersRepository>(
+    FakeDefaultersRepository(roundGroups: groups),
+    permanent: true,
+  );
+  // `fenix`, so the find below builds a fresh one over the fake just put.
+  Get.delete<RoundController>(force: true);
+  final RoundController controller = Get.find<RoundController>();
+  if (query != null) {
+    controller.searchController.text = query;
+    controller.query.value = query;
+  }
+  return controller;
 }
 
 /// Puts the case register over the fixtures and drops the controller so it is

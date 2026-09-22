@@ -9,6 +9,7 @@ import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
 import '../../../controllers/defaulters_controller.dart';
 import '../../../controllers/release_seal_controller.dart';
+import '../../../controllers/round_controller.dart';
 import '../../../controllers/seals_controller.dart';
 import '../../../core/capture/photo_capture.dart';
 import '../../../core/utils/form_scroll.dart';
@@ -51,6 +52,9 @@ class ReleaseSealScreen extends StatefulWidget {
     if (seal == null) return null;
     await SealsController.reloadIfOpened();
     await DefaultersController.reloadIfOpened();
+    // The round is the same shops grouped by bazaar, so its stops carry the
+    // same badges this write just changed.
+    await RoundController.reloadIfOpened();
     if (!context.mounted) return seal;
     await onReleased?.call();
     return seal;

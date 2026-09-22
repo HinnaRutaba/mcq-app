@@ -6,6 +6,7 @@ import '../../../config/routes/app_routes.dart';
 import '../../../controllers/defaulters_controller.dart';
 import '../../../controllers/follow_ups_controller.dart';
 import '../../../controllers/record_action_controller.dart';
+import '../../../controllers/round_controller.dart';
 import '../../../core/utils/form_scroll.dart';
 import '../../../models/enforcement_action.dart';
 import '../../../models/enforcement_case.dart';
@@ -74,6 +75,9 @@ class RecordActionScreen extends StatefulWidget {
     if (action == null) return null;
     await FollowUpsController.reloadIfOpened();
     await DefaultersController.reloadIfOpened();
+    // The round is the same shops grouped by bazaar, so its stops carry the
+    // same badges this write just changed.
+    await RoundController.reloadIfOpened();
     if (!context.mounted) return action;
     await onRecorded?.call();
     return action;

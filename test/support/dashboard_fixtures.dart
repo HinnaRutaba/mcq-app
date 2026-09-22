@@ -106,7 +106,11 @@ const Map<String, dynamic> activityJson = <String, dynamic>{
 
 /// Today's round, grouped by market. Several markets can sit in one area —
 /// which is exactly why the screen charts markets and does not roll them up.
-const List<Map<String, dynamic>> roundJson = <Map<String, dynamic>>[
+///
+/// The `stops` are rows out of [defaultersJson], which is what the server
+/// does: the round is the same shops as the flat list, grouped and cut down to
+/// the worst few per market. Not `const`, because those rows are read by index.
+List<Map<String, dynamic>> get roundJson => <Map<String, dynamic>>[
   <String, dynamic>{
     'market_name': 'Liaquat Bazaar',
     'area_name': 'Jinnah Road',
@@ -116,7 +120,7 @@ const List<Map<String, dynamic>> roundJson = <Map<String, dynamic>>[
     'never_paid': 14,
     'sealed': 0,
     'outstanding': '887458.10',
-    'stops': <dynamic>[],
+    'stops': <dynamic>[defaultersJson[0], defaultersJson[4]],
   },
   <String, dynamic>{
     'market_name': 'Prince Road Market',
@@ -127,7 +131,7 @@ const List<Map<String, dynamic>> roundJson = <Map<String, dynamic>>[
     'never_paid': 9,
     'sealed': 1,
     'outstanding': '1004812.55',
-    'stops': <dynamic>[],
+    'stops': <dynamic>[defaultersJson[1], defaultersJson[2]],
   },
   <String, dynamic>{
     'market_name': 'Kandahari Bazaar',
@@ -138,9 +142,139 @@ const List<Map<String, dynamic>> roundJson = <Map<String, dynamic>>[
     'never_paid': 3,
     'sealed': 0,
     'outstanding': '321138.45',
+    'stops': <dynamic>[defaultersJson[3], defaultersJson[5]],
+  },
+];
+
+/// A slice of `enforcement/field/round` off the live wire, so a test is
+/// looking at real keys rather than the shape the app wishes for: money and
+/// coordinates as strings, `days_overdue` and `commitment` null throughout,
+/// `months_behind` 0 on a shop that has paid recently, and a market the server
+/// sent with no stops at all.
+const List<Map<String, dynamic>> roundOffTheWireJson = <Map<String, dynamic>>[
+  <String, dynamic>{
+    'market_name': 'Kandahari Jamia Cabins',
+    'area_name': 'Jinnah Road',
+    'area_id': 1,
+    'shops': 58,
+    'broken_promises': 0,
+    'never_paid': 39,
+    'sealed': 0,
+    'outstanding': '8043306.00',
+    'stops': <dynamic>[
+      <String, dynamic>{
+        'allotment_id': 302,
+        'allotment_no': 'MCQ-AL-00302',
+        'property_id': 302,
+        'property_code': 'MCQ-KJC-0302',
+        'shop_no': '67',
+        'area_id': 1,
+        'area_name': 'Jinnah Road',
+        'market_name': 'Kandahari Jamia Cabins',
+        'allottee_id': 249,
+        'allottee_name': 'Abdul Zahir',
+        'mobile_no': '03013744675',
+        'cnic': '5440011089011',
+        'outstanding': '410200.00',
+        'months_behind': 0,
+        'days_overdue': null,
+        'never_paid': false,
+        'last_payment_date': '2026-09-14',
+        'commitment': null,
+        'next_visit_date': null,
+        'open_case_id': null,
+        'seal_no': null,
+        'is_sealed': false,
+        'map': <String, dynamic>{
+          'latitude': '30.1949340',
+          'longitude': '67.0161060',
+        },
+      },
+      <String, dynamic>{
+        'allotment_id': 265,
+        'allotment_no': 'MCQ-AL-00265',
+        'property_id': 265,
+        'property_code': 'MCQ-KJC-0265',
+        'shop_no': '30',
+        'area_id': 1,
+        'area_name': 'Jinnah Road',
+        'market_name': 'Kandahari Jamia Cabins',
+        'allottee_id': 135,
+        'allottee_name': 'Jameel Ahmed',
+        'mobile_no': '03003872067',
+        'cnic': '5999900546376',
+        'outstanding': '338400.00',
+        'months_behind': 5,
+        'days_overdue': null,
+        'never_paid': true,
+        'last_payment_date': null,
+        'commitment': null,
+        'next_visit_date': null,
+        'open_case_id': null,
+        'seal_no': null,
+        'is_sealed': false,
+        'map': <String, dynamic>{
+          'latitude': '30.1959340',
+          'longitude': '67.0157060',
+        },
+      },
+    ],
+  },
+  <String, dynamic>{
+    'market_name': 'Baldia Plaza',
+    'area_name': 'Jinnah Road',
+    'area_id': 1,
+    'shops': 50,
+    'broken_promises': 0,
+    'never_paid': 33,
+    'sealed': 1,
+    'outstanding': '8201942.00',
+    'stops': <dynamic>[
+      <String, dynamic>{
+        'allotment_id': 51,
+        'allotment_no': 'MCQ-AL-00051',
+        'property_id': 51,
+        'property_code': 'MCQ-BDP-0051',
+        'shop_no': '29',
+        'area_id': 1,
+        'area_name': 'Jinnah Road',
+        'market_name': 'Baldia Plaza',
+        'allottee_id': 45,
+        'allottee_name': 'Muhammad Ashraf',
+        'mobile_no': '03413897024',
+        'cnic': '5440083159425',
+        'outstanding': '483600.00',
+        'months_behind': 5,
+        'days_overdue': null,
+        'never_paid': true,
+        'last_payment_date': null,
+        'commitment': null,
+        'next_visit_date': null,
+        'open_case_id': null,
+        'seal_no': 'MCQ-SL-2627-00001',
+        'is_sealed': true,
+        'map': <String, dynamic>{
+          'latitude': '30.1955030',
+          'longitude': '67.0164490',
+        },
+      },
+    ],
+  },
+  <String, dynamic>{
+    'market_name': 'Prince Road Shops',
+    'area_name': 'Prince Road',
+    'area_id': 2,
+    'shops': 7,
+    'broken_promises': 0,
+    'never_paid': 4,
+    'sealed': 0,
+    'outstanding': '776419.00',
     'stops': <dynamic>[],
   },
 ];
+
+List<RoundGroup> get roundOffTheWire =>
+    roundOffTheWireJson.map(RoundGroup.fromJson).toList();
 
 /// The defaulter list, as `enforcement/field/defaulters` returns it: worst
 /// first, money as strings, and every state a row can be in represented at
@@ -422,11 +556,16 @@ class FakeDefaultersRepository implements DefaultersRepository {
     this.failure,
     List<DefaulterCard>? rows,
     this.followUpRows,
+    this.roundGroups,
   }) : rows = rows ?? defaultersFixture;
 
   /// Answered for every `state` when set — for the empty follow-ups list,
   /// which the fixtures otherwise never show.
   final List<DefaulterCard>? followUpRows;
+
+  /// Answered in place of [roundFixture] — for the empty round, and for a
+  /// round over one bazaar, neither of which the fixtures otherwise show.
+  final List<RoundGroup>? roundGroups;
 
   /// Mutable so a test can let the signal come back and retry.
   Object? failure;
@@ -449,7 +588,7 @@ class FakeDefaultersRepository implements DefaultersRepository {
   Future<List<RoundGroup>> round() async {
     roundCalls++;
     if (failure != null) throw failure!;
-    return roundFixture;
+    return roundGroups ?? roundFixture;
   }
 
   @override

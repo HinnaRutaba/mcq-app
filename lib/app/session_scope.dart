@@ -6,6 +6,7 @@ import '../controllers/challans_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/defaulters_controller.dart';
 import '../controllers/follow_ups_controller.dart';
+import '../controllers/round_controller.dart';
 import '../controllers/seals_controller.dart';
 import '../controllers/trade_licences_controller.dart';
 import '../models/auth_user.dart';
@@ -45,4 +46,5 @@ void _dropSessionControllers() {
   Get.delete<SealsController>();
   Get.delete<CasesController>();
   Get.delete<FollowUpsController>();
+  Get.delete<RoundController>();
 }

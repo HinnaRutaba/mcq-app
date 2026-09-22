@@ -9,6 +9,7 @@ import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
 import '../../../core/capture/photo_capture.dart';
 import '../../../controllers/defaulters_controller.dart';
+import '../../../controllers/round_controller.dart';
 import '../../../controllers/seal_controller.dart';
 import '../../../core/utils/form_scroll.dart';
 import '../../../models/enforcement_case.dart';
@@ -61,6 +62,9 @@ class CreateSealScreen extends StatefulWidget {
     );
     if (seal == null) return null;
     await DefaultersController.reloadIfOpened();
+    // The round is the same shops grouped by bazaar, so its stops carry the
+    // same badges this write just changed.
+    await RoundController.reloadIfOpened();
     if (!context.mounted) return seal;
     await onSealed?.call();
     return seal;

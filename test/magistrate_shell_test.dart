@@ -7,6 +7,7 @@ import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/config/routes/app_router.dart';
 import 'package:mcq_app/controllers/challans_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
+import 'package:mcq_app/controllers/round_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
 import 'package:mcq_app/data/repositories/field_seal_repository.dart';
 import 'package:mcq_app/models/field_seal.dart';
@@ -241,13 +242,16 @@ void main() {
   ) async {
     // Pumped one at a time rather than through the router: reaching them via
     // the shell would build Home's branch and put the dashboard's fetch on
-    // the wire. Defaulters, Licences and Challans want a controller, which they
-    // get over the fixtures — the arrow is what is under test, not the lists.
+    // the wire. Every tab but More wants a controller, which they get over the
+    // fixtures — the arrow is what is under test, not the lists.
     Get.put<DefaultersController>(
       DefaultersController(
         defaultersRepository: FakeDefaultersRepository(),
         dashboardRepository: FakeDashboardRepository(),
       ),
+    );
+    Get.put<RoundController>(
+      RoundController(defaultersRepository: FakeDefaultersRepository()),
     );
     Get.put<TradeLicencesController>(
       TradeLicencesController(tradeRepository: FakeTradeRepository()),

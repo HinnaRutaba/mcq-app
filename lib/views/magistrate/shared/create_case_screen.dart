@@ -6,6 +6,7 @@ import '../../../config/routes/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../controllers/case_controller.dart';
 import '../../../controllers/defaulters_controller.dart';
+import '../../../controllers/round_controller.dart';
 import '../../../core/utils/form_scroll.dart';
 import '../../../models/api_refs.dart';
 import '../../../models/case_type_option.dart';
@@ -38,6 +39,9 @@ class CreateCaseScreen extends StatefulWidget {
     );
     if (opened == null) return null;
     await DefaultersController.reloadIfOpened();
+    // The round is the same shops grouped by bazaar, so its stops carry the
+    // same badges this write just changed.
+    await RoundController.reloadIfOpened();
     if (!context.mounted) return opened;
     await onOpened?.call();
     return opened;

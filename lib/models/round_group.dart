@@ -4,7 +4,7 @@ import 'defaulter_card.dart';
 /// Today's round, one entry per bazaar: the same defaulters as the flat list,
 /// grouped by market with broken promises first and a handful of stops each.
 class RoundGroup {
-  const RoundGroup({
+  RoundGroup({
     this.marketName,
     this.areaName,
     this.areaId,
@@ -14,7 +14,8 @@ class RoundGroup {
     this.sealed = 0,
     required this.outstanding,
     this.stops = const <DefaulterCard>[],
-  });
+    int? shortlisted,
+  }) : shortlisted = shortlisted ?? stops.length;
 
   final String? marketName;
   final String? areaName;
@@ -36,6 +37,11 @@ class RoundGroup {
   /// The stops the server suggests making here, worst first.
   final List<DefaulterCard> stops;
 
+  /// How many stops the server picked out — [stops] as it arrived. Kept apart
+  /// because a search narrows [stops] and does not change what the server
+  /// shortlisted, and the head says which of the two figures it is quoting.
+  final int shortlisted;
+
   factory RoundGroup.fromJson(Map<String, dynamic> json) => RoundGroup(
     marketName: Json.string(json['market_name']),
     areaName: Json.string(json['area_name']),
@@ -46,5 +52,20 @@ class RoundGroup {
     sealed: Json.integerOr(json['sealed']),
     outstanding: Json.moneyOr(json['outstanding']),
     stops: Json.list(json['stops']).map(DefaulterCard.fromJson).toList(),
+  );
+
+  /// The same market carrying [stops] instead — how a search narrows a group
+  /// to the shops it matched without touching what the market owes.
+  RoundGroup withStops(List<DefaulterCard> stops) => RoundGroup(
+    marketName: marketName,
+    areaName: areaName,
+    areaId: areaId,
+    shops: shops,
+    brokenPromises: brokenPromises,
+    neverPaid: neverPaid,
+    sealed: sealed,
+    outstanding: outstanding,
+    stops: stops,
+    shortlisted: shortlisted,
   );
 }
