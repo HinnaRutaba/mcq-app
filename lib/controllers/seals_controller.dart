@@ -87,6 +87,22 @@ class SealsController extends GetxController {
   /// list it emptied.
   bool get isSearching => query.value.isNotEmpty;
 
+  /// Re-reads both lists after a seal was taken off somewhere else — from a
+  /// shop's own profile, which is where an officer standing at the shutter
+  /// releases one.
+  ///
+  /// Nothing to do until the screen has been opened: this controller is
+  /// registered lazily and fetches when it is first built, so a list nobody
+  /// has looked at is not stale. `isRegistered` alone will not say that — a
+  /// `lazyPut` factory answers true before it has ever been built, and `find`
+  /// would then build it, fetch through `onInit`, and fetch again below.
+  /// `isPrepared` is what tells the two apart.
+  static Future<void> reloadIfOpened() async {
+    if (!Get.isRegistered<SealsController>()) return;
+    if (Get.isPrepared<SealsController>()) return;
+    await Get.find<SealsController>().load();
+  }
+
   /// Both readings of the list. Safe to call again — this is the
   /// pull-to-refresh.
   Future<void> load() async {

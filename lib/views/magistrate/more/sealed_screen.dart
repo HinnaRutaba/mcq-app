@@ -8,7 +8,7 @@ import '../../../controllers/seals_controller.dart';
 import '../../../models/field_seal.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/widgets/back_to_home_button.dart';
-import 'widgets/seal_tile.dart';
+import '../shared/widgets/seal_tile.dart';
 
 class SealedScreen extends StatelessWidget {
   const SealedScreen({super.key});

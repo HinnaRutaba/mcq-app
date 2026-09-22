@@ -21,6 +21,7 @@ import '../../views/magistrate/followups/follow_ups_screen.dart';
 import '../../views/magistrate/shared/create_case_screen.dart';
 import '../../views/magistrate/shared/create_seal_screen.dart';
 import '../../views/magistrate/shared/record_action_screen.dart';
+import '../../views/magistrate/shared/release_seal_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/magistrate/property/property_profile_screen.dart';
 import '../../views/splash/splash_screen.dart';
@@ -157,6 +158,14 @@ final GoRouter appRouter = GoRouter(
         cases: state.extra is List<EnforcementCase>
             ? state.extra! as List<EnforcementCase>
             : null,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.releaseSeal,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => ReleaseSealScreen(
+        propertyId: int.parse(state.uri.queryParameters['property']!),
+        sealId: int.tryParse(state.uri.queryParameters['seal'] ?? ''),
       ),
     ),
     GoRoute(

@@ -119,6 +119,22 @@ class AppRoutes {
     },
   ).toString();
 
+  /// Taking a seal off: `POST enforcement/field/seals/{seal}/release`.
+  ///
+  /// The unit travels as `?property=` — the form lists that unit's seals to
+  /// take off — and a seal to start on as `?seal=`. Unlike the seal form this
+  /// carries no `extra`: a shop's profile holds seal *numbers*, not the rows
+  /// the release endpoint needs, so the form reads them itself.
+  static const String releaseSeal = '/magistrate/seal/release';
+
+  static String releaseSealPath({required int propertyId, int? sealId}) => Uri(
+    path: releaseSeal,
+    queryParameters: <String, String>{
+      'property': '$propertyId',
+      if (sealId != null) 'seal': '$sealId',
+    },
+  ).toString();
+
   /// Capturing an unlicensed shop. Pushed over the shell from the licences
   /// tab: a form the officer should finish or abandon in front of the
   /// shopkeeper, not wander off from into another tab.

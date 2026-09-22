@@ -8,6 +8,9 @@ import '../../../../widgets/widgets.dart';
 
 /// One seal on the register: who holds the shop, which shop, and whether it
 /// may be opened again.
+///
+/// Read in two places — the sealed list under More, and the release form's
+/// picker — which is why it lives here rather than beside either.
 class SealTile extends StatelessWidget {
   const SealTile({
     super.key,

@@ -6,7 +6,7 @@ import 'package:mcq_app/controllers/seals_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/models/field_seal.dart';
 import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
-import 'package:mcq_app/views/magistrate/more/widgets/seal_tile.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/seal_tile.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
 import 'support/seal_fixtures.dart';

@@ -22,6 +22,7 @@ import 'package:mcq_app/controllers/follow_ups_controller.dart';
 import 'package:mcq_app/controllers/defaulters_controller.dart';
 import 'package:mcq_app/controllers/property_profile_controller.dart';
 import 'package:mcq_app/controllers/record_action_controller.dart';
+import 'package:mcq_app/controllers/release_seal_controller.dart';
 import 'package:mcq_app/controllers/seals_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
@@ -66,6 +67,8 @@ import 'package:mcq_app/views/magistrate/shared/create_case_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_fine_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/create_seal_screen.dart';
 import 'package:mcq_app/views/magistrate/shared/record_action_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/release_seal_screen.dart';
+import 'package:mcq_app/views/magistrate/shared/widgets/seal_released_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/action_recorded_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/case_opened_sheet.dart';
 import 'package:mcq_app/views/magistrate/shared/widgets/challan_sheet.dart';
@@ -467,6 +470,44 @@ void main() {
         caseId: _propertyCases().first.id,
       );
     },
+    // Taking the seal off, reached from a sealed shop's Take Action sheet:
+    // which seal, and why. MCQ has cleared this one, so the reason is all it
+    // asks for.
+    'unseal': () {
+      Get.find<ThemeController>().setColorScheme(
+        AppColorScheme.balochistanGreen,
+      );
+      final FieldSeal cleared = sealOnProperty(fixturePropertyId, id: 88);
+      _seedSeals(seals: <FieldSeal>[cleared], ready: <FieldSeal>[cleared]);
+      return const ReleaseSealScreen(propertyId: fixturePropertyId);
+    },
+    // The same form on a seal MCQ has *not* cleared: the shop still owes, so
+    // opening it needs the override the server insists on — said where the
+    // seal is, and asked for under the reason.
+    'unseal_override': () {
+      _seedSeals(
+        seals: <FieldSeal>[sealOnProperty(fixturePropertyId, id: 88)],
+        ready: <FieldSeal>[],
+      );
+      return const ReleaseSealScreen(propertyId: fixturePropertyId);
+    },
+    // The receipt the form ends on: the number that was on the physical seal
+    // being cut, and the shop open again.
+    'seal_released_sheet': () => _sheet(
+      SealReleasedSheet(
+        seal: FieldSeal.fromJson(<String, dynamic>{
+          ...appliedSealJson,
+          'is_sealed': false,
+          'released_on': '2026-09-15',
+          'unseal_reason': 'Fine paid in full, receipt MCQ-RC-2627-00123.',
+          'seal_status': <String, dynamic>{
+            'value': 'released',
+            'label': 'Seal released',
+            'tone': 'success',
+          },
+        }),
+      ),
+    ),
     // The same form for a shop with no case yet: there is nothing to hang a
     // seal on, so the only way on is to open one.
     'seal_no_case': () {
@@ -702,6 +743,9 @@ void main() {
     'case': 4200,
     'seal': 3400,
     'seal_no_case': 2400,
+    'unseal': 2800,
+    'unseal_override': 3200,
+    'seal_released_sheet': 1300,
     'promise': 3000,
     'promise_no_case': 2000,
     'promise_refused': 3000,
@@ -839,6 +883,12 @@ void main() {
       step.errorMessage.value =
           'A promise already stands on this case until 20 Sep 2026. Record a '
           'visit instead, or close the one outstanding.';
+    },
+    'unseal_override': () {
+      final ReleaseSealController release = Get.find<ReleaseSealController>();
+      release.reasonController.text =
+          'Shutter opened on the Deputy Commissioner’s order.';
+      release.markEdited();
     },
     'case_refused': () {
       final CaseController file = Get.find<CaseController>();

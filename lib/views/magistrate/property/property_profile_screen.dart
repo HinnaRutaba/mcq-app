@@ -18,6 +18,7 @@ import '../../../widgets/widgets.dart';
 import '../shared/create_case_screen.dart';
 import '../shared/create_seal_screen.dart';
 import '../shared/record_action_screen.dart';
+import '../shared/release_seal_screen.dart';
 import '../shared/widgets/challan_sheet.dart';
 import '../shared/widgets/create_fine_button.dart';
 import '../shared/widgets/case_card.dart';
@@ -102,6 +103,17 @@ class _PropertyProfileScreenState extends State<PropertyProfileScreen> {
         context,
         propertyId: controller.propertyId,
         onOpened: controller.load,
+      );
+      return;
+    }
+
+    if (choice.action == ShopAction.unseal) {
+      // The seal rather than the case: the release hangs off the seal's own
+      // id, which this screen does not hold — the form reads it.
+      await ReleaseSealScreen.open(
+        context,
+        propertyId: controller.propertyId,
+        onReleased: controller.load,
       );
       return;
     }

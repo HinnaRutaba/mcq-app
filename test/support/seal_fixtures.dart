@@ -49,6 +49,30 @@ Map<String, dynamic> _seal({
   'sealed_by': <String, dynamic>{'id': 5, 'name': 'Shahid Rutaba'},
 };
 
+/// A seal standing on one particular unit.
+///
+/// The release form reads the officer's whole list and keeps the rows naming
+/// the shop, so a test of it needs a seal whose `property_id` is that shop's
+/// rather than the fixtures' own numbering.
+FieldSeal sealOnProperty(
+  int propertyId, {
+  int id = 88,
+  bool sealed = true,
+  bool? readyToRelease,
+}) => FieldSeal.fromJson(<String, dynamic>{
+  ..._seal(
+    id: id,
+    sealNo: 'MCQ-SL-2627-000$id',
+    shopNo: 'S-22',
+    allotteeName: 'Muhammad Iqbal',
+    outstanding: '187450.00',
+    caseNo: 'MCQ-EC-2627-00204',
+    sealed: sealed,
+    readyToRelease: readyToRelease,
+  ),
+  'property_id': propertyId,
+});
+
 /// A shop still owing, so the seal stays on.
 final FieldSeal sealStillOwing = FieldSeal.fromJson(
   _seal(
@@ -157,10 +181,34 @@ class FakeFieldSealRepository implements FieldSealRepository {
     return readyOnly ? readyRows : all;
   }
 
+  /// A refused `POST enforcement/field/seals/{seal}/release`.
+  Object? releaseFailure;
+
+  /// The seal each release was sent against, and the body that went with it —
+  /// a retry appends again, so a test can see whether the resend carried the
+  /// same `client_action_uuid`.
+  final List<int> releasedSeals = <int>[];
+  final List<SealReleaseRequest> releasedWith = <SealReleaseRequest>[];
+
   @override
   Future<FieldSeal> release(int sealId, SealReleaseRequest request) async {
-    throw UnimplementedError(
-      'The register reads; a seal comes off from the shop it is on.',
-    );
+    releasedSeals.add(sealId);
+    releasedWith.add(request);
+    if (releaseFailure != null) throw releaseFailure!;
+    return FieldSeal.fromJson(<String, dynamic>{
+      ..._seal(
+        id: sealId,
+        sealNo: 'MCQ-SL-2627-000$sealId',
+        shopNo: 'S-22',
+        allotteeName: 'Muhammad Iqbal',
+        sealed: false,
+        releasedOn: '2026-09-15',
+      ),
+      'seal_status': <String, dynamic>{
+        'value': 'released',
+        'label': 'Seal released',
+        'tone': 'success',
+      },
+    });
   }
 }
