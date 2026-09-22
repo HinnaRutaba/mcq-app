@@ -1,5 +1,6 @@
 import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
+import 'defaulter_card.dart';
 
 /// One unit from the search list — every unit on the register, not only the
 /// defaulters.
@@ -96,4 +97,32 @@ class UnitCard {
   );
 
   bool get hasOpenCase => openCaseId != null;
+
+  /// The same unit as a defaulter row, for the property profile to draw its
+  /// header from while its own three calls are still out.
+  ///
+  /// The two lists answer different questions — this one includes the shops
+  /// that owe nothing — but a header reads the same facts off either. What
+  /// only the defaulter list knows (how far behind, a promise, the next visit)
+  /// is left null rather than guessed at.
+  DefaulterCard asDefaulterCard() => DefaulterCard(
+    allotmentId: allotmentId,
+    allotmentNo: allotmentNo,
+    propertyId: propertyId,
+    propertyCode: propertyCode,
+    shopNo: shopNo,
+    areaId: areaId,
+    areaName: areaName,
+    marketName: marketName,
+    allotteeId: allotteeId,
+    allotteeName: allotteeName,
+    mobileNo: mobileNo,
+    cnic: cnic,
+    outstanding: outstanding,
+    lastPaymentDate: lastPaymentDate,
+    openCaseId: openCaseId,
+    sealNo: sealNo,
+    isSealed: isSealed,
+    map: map,
+  );
 }

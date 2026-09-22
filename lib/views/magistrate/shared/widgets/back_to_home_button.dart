@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../widgets/widgets.dart';
+
 class BackToHomeButton extends StatelessWidget {
   const BackToHomeButton({super.key});
 
@@ -22,27 +24,6 @@ class BackToHomeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sized to the header's own title line — `titleLarge`, the style
-    // `AppHeroHeader` draws the title in — so the arrow rides in space the
-    // block already occupies. Anything taller sets the row height itself and
-    // pushes the whole gradient header down, which a filled circle did.
-    final TextStyle? title = Theme.of(context).textTheme.titleLarge;
-    final double line = (title?.fontSize ?? 18) * (title?.height ?? 1.3);
-
-    return InkResponse(
-      onTap: () => goHome(context),
-      radius: line,
-      // Wider than the glyph on purpose: width is free here — only height
-      // feeds back into the header — so the target takes what it can get.
-      child: SizedBox(
-        height: line,
-        width: 32,
-        child: const Icon(
-          Icons.arrow_back_rounded,
-          color: Colors.white,
-          size: 24,
-        ),
-      ),
-    );
+    return AppHeaderBackButton(onTap: () => goHome(context));
   }
 }

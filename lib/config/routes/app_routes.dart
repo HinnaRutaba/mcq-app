@@ -153,6 +153,13 @@ class AppRoutes {
     return Uri(path: tradeCapture, queryParameters: query).toString();
   }
 
+  /// Finding any shop on the register: `enforcement/field/units`, which is
+  /// every unit and not only the ones that owe something. Pushed over the
+  /// shell from Home's search box, and it grows out of it — the rectangle that
+  /// box was drawn at travels as the route's `extra`, and a cold link simply
+  /// carries none.
+  static const String unitSearch = '/magistrate/search';
+
   /// The property profile — one shop read end to end. Pushed over the shell
   /// from Defaulters, from the Round and from Find, which is why it has a
   /// directory of its own (`views/magistrate/property/`) rather than sitting

@@ -28,6 +28,7 @@ import 'package:mcq_app/controllers/seals_controller.dart';
 import 'package:mcq_app/controllers/theme_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
+import 'package:mcq_app/controllers/unit_search_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/challan_repository.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
@@ -38,6 +39,7 @@ import 'package:mcq_app/data/repositories/enforcement_case_repository.dart';
 import 'package:mcq_app/data/repositories/field_seal_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
+import 'package:mcq_app/data/repositories/units_repository.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 import 'package:mcq_app/models/case_type_option.dart';
@@ -57,6 +59,7 @@ import 'package:mcq_app/views/magistrate/more/more_screen.dart';
 import 'package:mcq_app/views/magistrate/more/profile_screen.dart';
 import 'package:mcq_app/views/magistrate/more/sealed_screen.dart';
 import 'package:mcq_app/views/magistrate/round/round_screen.dart';
+import 'package:mcq_app/views/magistrate/search/unit_search_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_capture_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/views/magistrate/trade/widgets/capture_sheet.dart';
@@ -86,6 +89,7 @@ import 'support/person_fixtures.dart';
 import 'support/property_profile_fixtures.dart';
 import 'support/seal_fixtures.dart';
 import 'support/trade_fixtures.dart';
+import 'support/units_fixtures.dart';
 
 /// Renders every screen to a PNG under `test/preview/` so a change can be
 /// looked at, not merely analysed. Run it deliberately:
@@ -192,6 +196,23 @@ void main() {
         ),
       );
       return const MagistrateHomeScreen();
+    },
+    // What Home's search box opens: every unit on the register, the shops that
+    // owe nothing and the ones nobody holds included.
+    'search': () {
+      _seedUnits();
+      return const UnitSearchScreen();
+    },
+    // Typed into: the list narrowed to one holder's name.
+    'search_match': () {
+      _seedUnits();
+      return const UnitSearchScreen();
+    },
+    // Typed into and nothing matched, which is the state an officer meets
+    // when the shop number on the shutter is not the one on the register.
+    'search_none': () {
+      _seedUnits();
+      return const UnitSearchScreen();
     },
     // One per tab on the bottom bar, so a restructure of the shell shows up
     // as a picture and not only as a passing test.
@@ -893,6 +914,20 @@ void main() {
         Get.find<TradeLicencesController>().retryLookup(),
     'trade_licences_renewal': () =>
         Get.find<TradeLicencesController>().retryLookup(),
+    // Typed after the page is up, because the box belongs to a screen the
+    // builder cannot reach before the widget it registers exists. The fetch
+    // behind it is debounced, and the 500ms the harness pumps after a nudge
+    // is what lets it fire.
+    'search_match': () {
+      final UnitSearchController search = Get.find<UnitSearchController>();
+      search.searchController.text = 'Abdul';
+      search.search('Abdul');
+    },
+    'search_none': () {
+      final UnitSearchController search = Get.find<UnitSearchController>();
+      search.searchController.text = 'Shop 404';
+      search.search('Shop 404');
+    },
     // The words an officer would actually type: what they saw, not the code.
     'case': () {
       final CaseController file = Get.find<CaseController>();
@@ -1148,6 +1183,20 @@ void _seedDashboard({Object? failure}) {
     permanent: true,
   );
   Get.delete<DashboardController>(force: true);
+}
+
+/// Puts the unit register over the fixture, so the search page answers from
+/// the payload the staging server returns instead of reaching for the network.
+///
+/// No controller to drop: the search page registers its own when it opens and
+/// deletes it when it closes.
+void _seedUnits({Object? failure}) {
+  Get.find<AuthController>().officer.value = officerFixture;
+  Get.delete<UnitsRepository>(force: true);
+  Get.put<UnitsRepository>(
+    FakeUnitsRepository(failure: failure),
+    permanent: true,
+  );
 }
 
 /// Puts the offence register over the fixture and rebuilds the controller that

@@ -11,6 +11,7 @@ import '../../../widgets/widgets.dart';
 import 'queue_destination.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
+import 'widgets/home_search_button.dart';
 import 'widgets/defaulter_breakdown.dart';
 import '../../../config/theme/app_radius.dart';
 
@@ -34,15 +35,27 @@ class _Header extends StatelessWidget {
   static const double _withScope = 166;
   static const double _nameOnly = 86;
 
+  /// Room for two circles instead of one, or the title runs under the search
+  /// action on a long name.
+  static const double _twoActions = 128;
+
   @override
   Widget build(BuildContext context) {
     return AppSliverHeroHeader(
       expandedHeight: scope == null ? _nameOnly : _withScope,
       subtitle: officer?.designation ?? 'Signed in',
       title: officer?.name ?? 'Home',
-      trailing: const AppCircleIconButton(
-        icon: Icons.notifications_none_rounded,
-        badge: true,
+      trailingInset: _twoActions,
+      trailing: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          HomeSearchButton(),
+          SizedBox(width: 10),
+          AppCircleIconButton(
+            icon: Icons.notifications_none_rounded,
+            badge: true,
+          ),
+        ],
       ),
       bottom: scope == null ? null : _ScopeStrip(scope: scope!),
     );

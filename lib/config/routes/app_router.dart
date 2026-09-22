@@ -12,6 +12,7 @@ import '../../views/magistrate/more/more_screen.dart';
 import '../../views/magistrate/more/profile_screen.dart';
 import '../../views/magistrate/more/sealed_screen.dart';
 import '../../views/magistrate/round/round_screen.dart';
+import '../../views/magistrate/search/unit_search_screen.dart';
 import '../../views/magistrate/trade/trade_capture_screen.dart';
 import '../../views/magistrate/trade/trade_licences_screen.dart';
 import '../../controllers/property_profile_controller.dart';
@@ -25,6 +26,8 @@ import '../../views/magistrate/shared/release_seal_screen.dart';
 import '../../views/magistrate/shared/create_fine_screen.dart';
 import '../../views/magistrate/property/property_profile_screen.dart';
 import '../../views/splash/splash_screen.dart';
+import '../theme/app_brand.dart';
+import '../../widgets/widgets.dart';
 import 'app_routes.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -188,6 +191,35 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => TradeCaptureScreen(
         searched: state.uri.queryParameters['q'],
         areaId: int.tryParse(state.uri.queryParameters['area'] ?? ''),
+      ),
+    ),
+    // Grown out of the box that opened it rather than slid in from the right:
+    // the search box on Home becomes the search page. See [AppContainerPage].
+    GoRoute(
+      path: AppRoutes.unitSearch,
+      parentNavigatorKey: rootNavigatorKey,
+      pageBuilder: (context, state) => CustomTransitionPage<void>(
+        key: state.pageKey,
+        transitionDuration: AppContainerPage.openDuration,
+        reverseTransitionDuration: AppContainerPage.closeDuration,
+        transitionsBuilder:
+            (
+              BuildContext context,
+              Animation<double> animation,
+              Animation<double> secondaryAnimation,
+              Widget child,
+            ) => AppContainerPage.grow(
+              context,
+              animation,
+              child,
+              // The circle that was pressed, when the officer came from one.
+              from: state.extra is Rect ? state.extra! as Rect : null,
+              // It sits on the hero header, and so does the top of the page it
+              // opens: the surface growing out of it is that same green rather
+              // than a white plate flashing across the header.
+              fromColor: context.brand.headerFrom,
+            ),
+        child: const UnitSearchScreen(),
       ),
     ),
     GoRoute(

@@ -23,13 +23,18 @@ class AppCircleIconButton extends StatelessWidget {
   final double size;
   final bool badge;
 
+  /// The fill a circle on a hero header carries: a wash of white over the
+  /// gradient. Named, because a transition that flies out of one has to start
+  /// from the same colour.
+  static final Color headerFill = Colors.white.withValues(alpha: 0.16);
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: background ?? Colors.white.withValues(alpha: 0.16),
+          color: background ?? headerFill,
           shape: const CircleBorder(),
           child: InkWell(
             customBorder: const CircleBorder(),
