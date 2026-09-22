@@ -33,26 +33,33 @@ class QueueDestination {
 
   /// The one mapping. Known keys are the enforcement beat's own — see
   /// [FieldQueue.key].
-  static void Function(BuildContext context)? _screenFor(String key) =>
-      switch (key) {
-        'defaulters' => (BuildContext context) =>
-          _defaulters(context, DefaulterState.everyone),
+  static void Function(BuildContext context)? _screenFor(
+    String key,
+  ) => switch (key) {
+    'defaulters' => (BuildContext context) => _defaulters(
+      context,
+      DefaulterState.everyone,
+    ),
 
-        'follow_ups_due' => (BuildContext context) =>
-          _followUps(context, FollowUpState.due),
+    'follow_ups_due' => (BuildContext context) => _followUps(
+      context,
+      FollowUpState.due,
+    ),
 
-        'awaiting_unseal' => (BuildContext context) =>
-          _seals(context, SealQueue.ready),
-        'sealed_shops' => (BuildContext context) =>
-          _seals(context, SealQueue.all),
+    'awaiting_unseal' => (BuildContext context) => _seals(
+      context,
+      SealQueue.ready,
+    ),
+    'sealed_shops' => (BuildContext context) => _seals(context, SealQueue.all),
 
-        'open_cases' => (BuildContext context) =>
-          _cases(context, CaseFilter.all),
-        'assigned_to_me' => (BuildContext context) =>
-          _cases(context, CaseFilter.mine),
+    'open_cases' => (BuildContext context) => _cases(context, CaseFilter.all),
+    'assigned_to_me' => (BuildContext context) => _cases(
+      context,
+      CaseFilter.mine,
+    ),
 
-        _ => null,
-      };
+    _ => null,
+  };
 
   /// The defaulter list, on one of its state chips.
   ///

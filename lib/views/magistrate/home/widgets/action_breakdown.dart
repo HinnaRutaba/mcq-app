@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../config/theme/app_radius.dart';
 import '../../../../config/theme/app_series_colors.dart';
 import '../../../../widgets/widgets.dart';
 
@@ -56,6 +57,9 @@ class ActionBreakdown extends StatelessWidget {
     );
 
     return AppCard(
+      lift: AppLift.soft,
+      radius: AppRadius.lg,
+      padding: const EdgeInsets.all(14),
       child: AppBarList(
         // The ladder's order is the point; sorting by count would undo it.
         sorted: false,

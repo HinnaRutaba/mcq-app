@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mcq_app/views/magistrate/home/widgets/defaulter_breakdown.dart';
 
+import '../../../config/theme/app_brand.dart';
 import '../../../config/theme/app_colors.dart';
+import '../../../config/theme/app_radius.dart';
+import '../../../config/theme/app_shadows.dart';
 import '../../../controllers/dashboard_controller.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/auth_user.dart';
@@ -13,7 +16,6 @@ import 'queue_destination.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
 import 'widgets/home_search_button.dart';
-import '../../../config/theme/app_radius.dart';
 
 class MagistrateHomeScreen extends StatelessWidget {
   const MagistrateHomeScreen({super.key});
@@ -284,7 +286,7 @@ List<Widget> _bodySlivers(DashboardController controller) {
       sliver: SliverList.list(
         children: <Widget>[
           for (int i = 0; i < sections.length; i++) ...[
-            if (i > 0) const SizedBox(height: 22),
+            if (i > 0) const SizedBox(height: 20),
             sections[i],
           ],
         ],
@@ -315,9 +317,35 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppEntrance(index: titleIndex, child: AppText.titleMedium(title)),
+        AppEntrance(index: titleIndex, child: _SectionTitle(title)),
         const SizedBox(height: 10),
         child,
+      ],
+    );
+  }
+}
+
+/// A heading with the brand's rule stood on end beside it — enough to break a
+/// long scroll into blocks without another card doing it.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 4,
+          height: 17,
+          decoration: BoxDecoration(
+            color: context.brand.primary,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+        ),
+        const SizedBox(width: 9),
+        Flexible(child: AppText.titleMedium(title, maxLines: 1)),
       ],
     );
   }
@@ -338,7 +366,8 @@ class _ActivitySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fines = Formatters.money(activity.finesAmount);
+    final fines = activity.finesAmount;
+    final collected = activity.collectedInYourAreas;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,52 +376,48 @@ class _ActivitySection extends StatelessWidget {
           firstIndex: firstIndex,
           extent: AppStatTile.extent,
           children: [
-            AppStatTile(
+            AppStatTile.count(
+              activity.visits,
               label: 'Visits',
-              value: '${activity.visits}',
               icon: Icons.directions_walk_rounded,
-              filled: true,
             ),
-            AppStatTile(
+            AppStatTile.count(
+              activity.finesImposed,
               label: 'Fines imposed',
-              value: '${activity.finesImposed}',
               icon: Icons.gavel_rounded,
-              filled: true,
             ),
-            AppStatTile(
+            AppStatTile.count(
+              activity.shopsSealed,
               label: 'Shops sealed',
-              value: '${activity.shopsSealed}',
               icon: Icons.lock_outline_rounded,
-              filled: true,
             ),
-            AppStatTile(
+            AppStatTile.count(
+              activity.sealsReleased,
               label: 'Seals released',
-              value: '${activity.sealsReleased}',
               icon: Icons.lock_open_outlined,
-              filled: true,
             ),
           ],
         ),
         if (fines != null) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _MoneyCard(
             icon: Icons.gavel_rounded,
             title: 'Value of fines imposed',
-            value: fines,
+            amount: fines,
             notes: <String>[
               'Across ${activity.finesImposed} fines in the last '
                   '${activity.periodDays} days.',
             ],
           ),
         ],
-        if (activity.collectedInYourAreas != null) ...[
-          const SizedBox(height: 12),
+        if (collected != null) ...[
+          const SizedBox(height: 10),
           _CollectedCard(activity: activity, scope: scope),
         ],
         if (activity.byActionType.isNotEmpty) ...[
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           const _SectionTitle('How far things went'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           ActionBreakdown(byActionType: activity.byActionType),
         ],
       ],
@@ -400,44 +425,157 @@ class _ActivitySection extends StatelessWidget {
   }
 }
 
+/// A money figure given the room a money figure is worth.
+///
+/// The one dark block on a page of pale cards: the brand gradient, a curved
+/// wash clipped across it and a warm glow out of the corner, so the two
+/// figures an officer is actually judged on do not read as two more rows.
+///
+/// Dark mode does not use the header gradient — it is near-black, and a
+/// near-black card on a near-black page is not a card. There the plate is the
+/// raised surface with the brand mixed into it.
 class _MoneyCard extends StatelessWidget {
   const _MoneyCard({
     required this.icon,
     required this.title,
-    required this.value,
+    required this.amount,
     required this.notes,
   });
 
   final IconData icon;
   final String title;
-  final String value;
+
+  /// The server's own decimal string, printed by [AppCountUp.money] and never
+  /// totalled with another.
+  final String amount;
+
   final List<String> notes;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final muted = Theme.of(
-      context,
-    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+    final theme = Theme.of(context);
+    final brand = context.brand;
+    final dark = theme.brightness == Brightness.dark;
+    final corner = BorderRadius.circular(AppRadius.lg);
 
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: scheme.primary),
-              const SizedBox(width: 10),
-              Expanded(child: AppText.titleMedium(title, maxLines: 1)),
+    final List<Color> plate = dark
+        ? <Color>[
+            Color.lerp(
+              theme.colorScheme.surfaceContainerHigh,
+              brand.primary,
+              0.14,
+            )!,
+            theme.colorScheme.surfaceContainerLow,
+          ]
+        : <Color>[brand.headerFrom, brand.headerTo];
+    final Color ink = dark ? theme.colorScheme.onSurface : Colors.white;
+    final Color muted = ink.withValues(alpha: 0.72);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: corner,
+        boxShadow: AppShadows.lifted(context),
+      ),
+      child: ClipRRect(
+        borderRadius: corner,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: plate,
+            ),
+            border: Border.all(color: ink.withValues(alpha: 0.12)),
+            borderRadius: corner,
+          ),
+          child: Stack(
+            children: <Widget>[
+              // The accent's glow, low and out of the right-hand corner — the
+              // warm note the scheme already carries, not a second brand.
+              Positioned(
+                right: -50,
+                bottom: -66,
+                child: _Glow(color: brand.accent, size: 190),
+              ),
+              Positioned.fill(
+                child: ClipPath(
+                  clipper: const AppSweepClipper(
+                    begin: 0.86,
+                    end: 0.40,
+                    bow: 0.16,
+                  ),
+                  child: ColoredBox(color: ink.withValues(alpha: 0.055)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          height: 28,
+                          width: 28,
+                          decoration: BoxDecoration(
+                            color: ink.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(icon, size: 16, color: ink),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AppText.titleMedium(
+                            title,
+                            color: ink,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    AppCountUp.money(
+                      amount,
+                      variant: AppTextVariant.headlineLarge,
+                      color: ink,
+                    ),
+                    for (final String note in notes) ...[
+                      const SizedBox(height: 5),
+                      AppText.caption(note, color: muted),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          AppText.headlineMedium(value, maxLines: 1),
-          for (final String note in notes) ...[
-            const SizedBox(height: 5),
-            AppText.caption(note, color: muted),
-          ],
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A soft disc of colour, for the corner of a plate.
+class _Glow extends StatelessWidget {
+  const _Glow({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: <Color>[
+              color.withValues(alpha: 0.30),
+              color.withValues(alpha: 0),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -456,7 +594,7 @@ class _CollectedCard extends StatelessWidget {
     return _MoneyCard(
       icon: Icons.payments_outlined,
       title: 'Collected in your areas',
-      value: Formatters.money(activity.collectedInYourAreas)!,
+      amount: activity.collectedInYourAreas!,
       notes: <String>[
         '${activity.receiptsInYourAreas} receipts over the last '
             '${activity.periodDays} days'
@@ -540,13 +678,4 @@ class _Grid extends StatelessWidget {
           : AppEntrance(index: firstIndex! + index, child: children[index]),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => AppText.titleMedium(title);
 }

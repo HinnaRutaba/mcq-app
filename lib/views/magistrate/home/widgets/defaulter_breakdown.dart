@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
+import '../../../../config/theme/app_radius.dart';
 import '../../../../config/theme/app_series_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../models/round_group.dart';
@@ -35,28 +36,37 @@ class DefaulterBreakdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppCard(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+          lift: AppLift.soft,
+          radius: AppRadius.lg,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _Stat(
                 value: brokenPromises,
                 label: 'Missed payment',
+                icon: Icons.event_busy_outlined,
                 tone: AppTone.danger,
               ),
               const _Divider(),
               _Stat(
                 value: neverPaid,
                 label: 'Never paid',
+                icon: Icons.money_off_csred_outlined,
                 tone: AppTone.warning,
               ),
               const _Divider(),
               // No tone: a seal count is a fact, not a severity, and a third
               // status colour in the row would make it read as one.
-              _Stat(value: sealed, label: 'Sealed'),
+              _Stat(
+                value: sealed,
+                label: 'Sealed',
+                icon: Icons.lock_outline_rounded,
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Builder(
           builder: (BuildContext context) {
             // Colour is assigned here, once, from each bazaar's place in the
@@ -73,6 +83,9 @@ class DefaulterBreakdown extends StatelessWidget {
               children: [
                 if (total != null && total > 0) ...[
                   AppCard(
+                    lift: AppLift.soft,
+                    radius: AppRadius.lg,
+                    padding: const EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -85,7 +98,7 @@ class DefaulterBreakdown extends StatelessWidget {
                             context,
                           ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 11),
                         AppCompositionBar(
                           total: total,
                           slices: <CompositionSlice>[
@@ -102,14 +115,17 @@ class DefaulterBreakdown extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                 ],
                 AppCard(
+                  lift: AppLift.soft,
+                  radius: AppRadius.lg,
+                  padding: const EdgeInsets.all(14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const AppText.titleMedium('Outstanding by bazaar'),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 11),
                       AppBarList(
                         // Already sorted; keeping the caller's order means the
                         // bars and the share bar above stay in step.
@@ -159,10 +175,16 @@ class DefaulterBreakdown extends StatelessWidget {
 }
 
 class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label, this.tone});
+  const _Stat({
+    required this.value,
+    required this.label,
+    required this.icon,
+    this.tone,
+  });
 
   final int value;
   final String label;
+  final IconData icon;
 
   /// Null for a figure that carries no severity — it wears the ordinary ink.
   final AppTone? tone;
@@ -171,14 +193,32 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     // Nothing to be alarmed by at zero: no missed payments is the good
     // outcome, and a red 0 reads as one more thing to chase.
-    final colour = (value == 0 || tone == null) ? null : tone!.on(context);
+    final bool live = value > 0 && tone != null;
+    final Color colour = live
+        ? tone!.on(context)
+        : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Expanded(
       child: Column(
         children: [
-          AppText.headlineSmall('$value', color: colour, maxLines: 1),
-          const SizedBox(height: 4),
-          AppText.caption(label, maxLines: 1, textAlign: TextAlign.center),
+          Container(
+            height: 26,
+            width: 26,
+            decoration: BoxDecoration(
+              color: colour.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(icon, size: 14, color: colour),
+          ),
+          const SizedBox(height: 6),
+          AppCountUp.count(value, color: live ? colour : null),
+          const SizedBox(height: 3),
+          AppText.caption(
+            label,
+            maxLines: 1,
+            fontWeight: FontWeight.w600,
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -189,6 +229,10 @@ class _Divider extends StatelessWidget {
   const _Divider();
 
   @override
-  Widget build(BuildContext context) =>
-      Container(width: 1, height: 34, color: Theme.of(context).dividerColor);
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 44,
+    margin: const EdgeInsets.only(top: 4),
+    color: Theme.of(context).dividerColor,
+  );
 }
