@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:mcq_app/core/network/api_log_interceptor.dart';
@@ -75,6 +77,54 @@ Map<String, String> installInMemoryKeychain() {
     data,
   );
   return data;
+}
+
+/// Answers the platform-view channel, so a screen carrying a map can be pumped.
+///
+/// `GoogleMap` is a platform view: the engine is asked to create one the moment
+/// the render object is given a size, and in a test nothing is listening — the
+/// `create` throws `MissingPluginException` out of an async gap and fails
+/// whatever was on screen. Answering with a texture id keeps the widget tree
+/// honest; there are simply no tiles drawn into it, which is the most a test
+/// can say about a map anyway.
+void installPlatformViewStub({int maps = 64}) {
+  GoogleMapsFlutterPlatform.instance = _TestableGoogleMaps();
+
+  final TestDefaultBinaryMessenger messenger =
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+
+  messenger.setMockMethodCallHandler(SystemChannels.platform_views, (
+    MethodCall call,
+  ) async {
+    // `create` answers the texture the view would be drawn into; every other
+    // call — resize, setDirection, dispose — answers nothing.
+    return call.method == 'create' ? 0 : null;
+  });
+
+  // The map plugin then talks to the view it was given on a channel named
+  // after it, and waits on `map#waitForMap` before it will do anything else.
+  // The id is handed out per platform view created in the isolate, so a run
+  // with several maps in it climbs — hence a range rather than one channel.
+  for (int id = 0; id < maps; id++) {
+    messenger.setMockMethodCallHandler(
+      MethodChannel('plugins.flutter.io/google_maps_$id'),
+      (MethodCall call) async => null,
+    );
+  }
+}
+
+/// The map plugin's own method-channel implementation with its one gap filled.
+///
+/// `updateGroundOverlays` is unimplemented there — the handset gets a platform
+/// implementation registered by the plugin, and a test gets this one. `GoogleMap`
+/// calls it on every rebuild, which on a screen with a search box on it is
+/// every keystroke.
+class _TestableGoogleMaps extends MethodChannelGoogleMapsFlutter {
+  @override
+  Future<void> updateGroundOverlays(
+    GroundOverlayUpdates groundOverlayUpdates, {
+    required int mapId,
+  }) async {}
 }
 
 /// Swaps in a keychain that refuses every write, keeping [data] as its reads.

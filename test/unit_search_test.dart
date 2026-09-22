@@ -15,6 +15,8 @@ import 'package:mcq_app/data/repositories/units_repository.dart';
 import 'package:mcq_app/views/magistrate/home/widgets/home_search_button.dart';
 import 'package:mcq_app/views/magistrate/property/property_profile_screen.dart';
 import 'package:mcq_app/views/magistrate/search/unit_search_screen.dart';
+import 'package:mcq_app/views/magistrate/search/widgets/pin_card.dart';
+import 'package:mcq_app/views/magistrate/search/widgets/unit_map.dart';
 import 'package:mcq_app/views/magistrate/search/widgets/unit_tile.dart';
 
 import 'support/api_stub.dart';
@@ -35,6 +37,9 @@ void main() {
   setUp(() {
     Get.reset();
     installInMemoryKeychain();
+    // The map is a platform view: without an answer on its channel, drawing
+    // one throws out of an async gap and fails whatever was on screen.
+    installPlatformViewStub();
     setupDependencies();
 
     // Swap the repositories, not the controllers: `Get.put` is
@@ -48,7 +53,7 @@ void main() {
     units = FakeUnitsRepository();
     Get.put<UnitsRepository>(units, permanent: true);
     Get.delete<ReportingRepository>(force: true);
-    reporting = FakeReportingRepository();
+    reporting = FakeReportingRepository(pins: mapPinsFixture);
     Get.put<ReportingRepository>(reporting, permanent: true);
     Get.delete<EnforcementCaseRepository>(force: true);
     Get.put<EnforcementCaseRepository>(
@@ -79,6 +84,13 @@ void main() {
 
     appRouter.go(AppRoutes.magistrateHome);
     await tester.pumpWidget(MaterialApp.router(routerConfig: appRouter));
+    await settle(tester);
+  }
+
+  /// Reads the same shops as a map. The icon is the one on the header, which
+  /// is the only map glyph on the page.
+  Future<void> openMap(WidgetTester tester) async {
+    await tester.tap(find.byIcon(Icons.map_outlined));
     await settle(tester);
   }
 
@@ -162,5 +174,76 @@ void main() {
     // Home and pressing the box again is a new one.
     expect(find.byType(UnitSearchScreen), findsNothing);
     expect(Get.isRegistered<UnitSearchController>(), isFalse);
+  });
+
+  testWidgets('the map icon places the shops the register could place', (
+    WidgetTester tester,
+  ) async {
+    await openSearch(tester);
+    await openMap(tester);
+
+    expect(find.byType(UnitMap), findsOneWidget);
+    expect(find.byType(UnitTile), findsNothing);
+
+    // The map is its own endpoint — the whole beat, not the search's 50.
+    expect(reporting.mapCalls, 1);
+    expect(reporting.lastMapLimit, UnitSearchController.pinPageSize);
+
+    // And what it could not place is said out loud rather than left to imply
+    // the bazaar is six shops big.
+    expect(find.text('6 shops placed · 5 without a fix'), findsOneWidget);
+  });
+
+  testWidgets('searching on the map opens the shop it found', (
+    WidgetTester tester,
+  ) async {
+    await openSearch(tester);
+    await openMap(tester);
+
+    await tester.enterText(find.byType(TextFormField), 'Abdul Zahir');
+    await settle(tester);
+
+    // The camera goes to the pin — see `UnitMap` — and the card names it.
+    final UnitSearchController controller = Get.find<UnitSearchController>();
+    expect(controller.selectedPin.value?.propertyId, 302);
+    // The holder comes off the search row: a pin names nobody. Scoped to the
+    // card, because the same words are sitting in the search box.
+    expect(find.widgetWithText(PinCard, 'Abdul Zahir'), findsOneWidget);
+    expect(
+      find.widgetWithText(PinCard, '67 · Kandahari Jamia Cabins'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a shop the map never placed is placed from its own fix', (
+    WidgetTester tester,
+  ) async {
+    await openSearch(tester);
+    await openMap(tester);
+
+    // On the register and in the search, but not among the six pins.
+    await tester.enterText(find.byType(TextFormField), 'Muhammad Iqbal');
+    await settle(tester);
+
+    final UnitSearchController controller = Get.find<UnitSearchController>();
+    expect(controller.selectedPin.value?.propertyId, 268);
+    expect(find.byType(PinCard), findsOneWidget);
+  });
+
+  testWidgets('the icon goes back to the list, and the pins are kept', (
+    WidgetTester tester,
+  ) async {
+    await openSearch(tester);
+    await openMap(tester);
+
+    await tester.tap(find.byIcon(Icons.format_list_bulleted_rounded));
+    await settle(tester);
+    expect(find.byType(UnitTile), findsWidgets);
+    expect(find.byType(UnitMap), findsNothing);
+
+    await openMap(tester);
+    expect(find.byType(UnitMap), findsOneWidget);
+    // A whole beat read twice for two presses of the same icon.
+    expect(reporting.mapCalls, 1);
   });
 }

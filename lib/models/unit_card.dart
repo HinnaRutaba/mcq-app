@@ -1,6 +1,7 @@
 import '../core/utils/json_parse.dart';
 import 'api_refs.dart';
 import 'defaulter_card.dart';
+import 'map_pins.dart';
 
 /// One unit from the search list — every unit on the register, not only the
 /// defaulters.
@@ -97,6 +98,28 @@ class UnitCard {
   );
 
   bool get hasOpenCase => openCaseId != null;
+
+  /// The same unit as a map pin, for a shop the map's own pins did not carry:
+  /// `reporting/map` is capped and drops whatever has no coordinates, and a
+  /// search can perfectly well find a unit outside that list.
+  ///
+  /// Null where the register holds no fix for it — there is nothing to place.
+  MapPin? asMapPin() {
+    final GeoPoint? point = map;
+    if (point == null || !point.hasFix) return null;
+    return MapPin(
+      propertyId: propertyId,
+      propertyCode: propertyCode,
+      shopNo: shopNo,
+      latitude: point.latitude,
+      longitude: point.longitude,
+      areaName: areaName,
+      marketName: marketName,
+      occupancyStatus: occupancyStatus,
+      outstanding: outstanding,
+      sealed: isSealed,
+    );
+  }
 
   /// The same unit as a defaulter row, for the property profile to draw its
   /// header from while its own three calls are still out.

@@ -468,16 +468,26 @@ PropertyProfile get sealedPropertyProfileFixture =>
 
 /// The property profile itself, from the fixtures.
 class FakeReportingRepository implements ReportingRepository {
-  FakeReportingRepository({this.failure, PropertyProfile? profile})
-    : profile = profile ?? propertyProfileFixture;
+  FakeReportingRepository({
+    this.failure,
+    PropertyProfile? profile,
+    this.pins = const MapPins(),
+  }) : profile = profile ?? propertyProfileFixture;
 
   /// Mutable so a test can let the signal come back and retry.
   Object? failure;
 
   final PropertyProfile profile;
 
+  /// What the map answers. Empty by default: most screens never ask, and a
+  /// map of nothing is the honest stand-in for a beat nobody has placed.
+  final MapPins pins;
+
   int profileCalls = 0;
+  int mapCalls = 0;
   int? lastPropertyId;
+  int? lastMapLimit;
+  bool? lastDefaultersOnly;
 
   @override
   Future<PropertyProfile> propertyProfile(int propertyId) async {
@@ -488,8 +498,13 @@ class FakeReportingRepository implements ReportingRepository {
   }
 
   @override
-  Future<MapPins> mapPins({bool defaultersOnly = false, int? limit}) async =>
-      throw UnimplementedError('the property profile does not read the map');
+  Future<MapPins> mapPins({bool defaultersOnly = false, int? limit}) async {
+    mapCalls++;
+    lastDefaultersOnly = defaultersOnly;
+    lastMapLimit = limit;
+    if (failure != null) throw failure!;
+    return pins;
+  }
 }
 
 /// The file `POST enforcement/field/cases` answers with — a conduct case

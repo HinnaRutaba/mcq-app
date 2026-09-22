@@ -1,4 +1,5 @@
 import 'package:mcq_app/data/repositories/units_repository.dart';
+import 'package:mcq_app/models/map_pins.dart';
 import 'package:mcq_app/models/unit_card.dart';
 
 /// `enforcement/field/units` as the staging server returns it — the search
@@ -314,6 +315,122 @@ const List<Map<String, dynamic>> unitsJson = <Map<String, dynamic>>[
 ];
 
 List<UnitCard> get unitsFixture => unitsJson.map(UnitCard.fromJson).toList();
+
+/// `reporting/map` — the same shops as [unitsJson], placed.
+///
+/// Fewer than the rows on purpose, and that is the payload's own shape: the
+/// endpoint drops whatever the register holds no coordinates for and reports
+/// the shortfall in `meta.unmapped`, which the map has to say out loud rather
+/// than implying it is showing everything.
+const Map<String, dynamic> mapPinsJson = <String, dynamic>{
+  'pins': <Map<String, dynamic>>[
+    <String, dynamic>{
+      'property_id': 51,
+      'property_code': 'MCQ-BDP-0051',
+      'shop_no': '29',
+      'lat': '30.1955030',
+      'lng': '67.0164490',
+      'category_name': 'Building / Plaza Unit',
+      'area_name': 'Jinnah Road',
+      'market_name': 'Baldia Plaza',
+      'occupancy_status': 'allotted',
+      'physical_status': 'closed',
+      'outstanding': '483600.00',
+      'unpaid_months': 26,
+      'sealed': true,
+      'severity': 'owing',
+    },
+    <String, dynamic>{
+      'property_id': 55,
+      'property_code': 'MCQ-BDP-0055',
+      'shop_no': '33',
+      'lat': '30.1954860',
+      'lng': '67.0164130',
+      'category_name': 'Building / Plaza Unit',
+      'area_name': 'Jinnah Road',
+      'market_name': 'Baldia Plaza',
+      'occupancy_status': 'allotted',
+      'physical_status': 'open',
+      'outstanding': '454302.00',
+      'unpaid_months': 24,
+      'sealed': false,
+      'severity': 'owing',
+    },
+    <String, dynamic>{
+      'property_id': 20,
+      'property_code': 'MCQ-BDP-0020',
+      'shop_no': '2',
+      'lat': '30.1952590',
+      'lng': '67.0168050',
+      'category_name': 'Building / Plaza Unit',
+      'area_name': 'Jinnah Road',
+      'market_name': 'Baldia Plaza',
+      'occupancy_status': 'allotted',
+      'physical_status': 'open',
+      'outstanding': '426000.00',
+      'unpaid_months': 22,
+      'sealed': false,
+      'severity': 'owing',
+    },
+    <String, dynamic>{
+      'property_id': 302,
+      'property_code': 'MCQ-KJC-0302',
+      'shop_no': '67',
+      'lat': '30.1949340',
+      'lng': '67.0161060',
+      'category_name': 'Kiosk / Cabin',
+      'area_name': 'Jinnah Road',
+      'market_name': 'Kandahari Jamia Cabins',
+      'occupancy_status': 'allotted',
+      'physical_status': 'open',
+      'outstanding': '410200.00',
+      'unpaid_months': 21,
+      'sealed': false,
+      'severity': 'owing',
+    },
+    <String, dynamic>{
+      'property_id': 230,
+      'property_code': 'MCQ-CTC-0230',
+      'shop_no': '31',
+      'lat': '30.1952910',
+      'lng': '67.0161490',
+      'category_name': 'Kiosk / Cabin',
+      'area_name': 'Jinnah Road',
+      'market_name': 'City Thana Cabins',
+      'occupancy_status': 'allotted',
+      'physical_status': 'open',
+      'outstanding': '373000.00',
+      'unpaid_months': 19,
+      'sealed': false,
+      'severity': 'owing',
+    },
+    <String, dynamic>{
+      'property_id': 61,
+      'property_code': 'MCQ-BDP-0061',
+      'shop_no': '39',
+      'lat': '30.1955110',
+      'lng': '67.0164610',
+      'category_name': 'Building / Plaza Unit',
+      'area_name': 'Jinnah Road',
+      'market_name': 'Baldia Plaza',
+      'occupancy_status': 'vacant',
+      'physical_status': 'closed',
+      'outstanding': '0.00',
+      'unpaid_months': 0,
+      'sealed': false,
+      'severity': null,
+    },
+  ],
+  'meta': <String, dynamic>{
+    'returned': 6,
+    'total': 6,
+    'truncated': false,
+    'limit': 500,
+    'unmapped': 5,
+  },
+};
+
+MapPins get mapPinsFixture => MapPins.fromJson(mapPinsJson);
 
 class FakeUnitsRepository implements UnitsRepository {
   FakeUnitsRepository({this.failure, List<UnitCard>? rows})

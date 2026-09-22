@@ -132,6 +132,9 @@ void main() {
   setUpAll(() async {
     Get.reset();
     installInMemoryKeychain();
+    // The map screen is a platform view, which a golden draws as an empty
+    // plate rather than failing on.
+    installPlatformViewStub();
     setupDependencies();
     await _loadRealFonts();
   });
@@ -211,6 +214,18 @@ void main() {
     // Typed into and nothing matched, which is the state an officer meets
     // when the shop number on the shutter is not the one on the register.
     'search_none': () {
+      _seedUnits();
+      return const UnitSearchScreen();
+    },
+    // The same shops read as a map. The tiles themselves are a platform view,
+    // which a golden cannot draw — what is worth looking at here is the
+    // chrome over it: the toggle, what the map says it could not place, and
+    // the card a pin opens.
+    'search_map': () {
+      _seedUnits();
+      return const UnitSearchScreen();
+    },
+    'search_map_pin': () {
       _seedUnits();
       return const UnitSearchScreen();
     },
@@ -928,6 +943,14 @@ void main() {
       search.searchController.text = 'Shop 404';
       search.search('Shop 404');
     },
+    'search_map': () => Get.find<UnitSearchController>().showMap(true),
+    // A pin pressed. Taken from the fixture rather than from the controller,
+    // which has not read the pins yet at the moment the nudge is given.
+    'search_map_pin': () {
+      final UnitSearchController search = Get.find<UnitSearchController>()
+        ..showMap(true);
+      search.selectPin(mapPinsFixture.pins.first);
+    },
     // The words an officer would actually type: what they saw, not the code.
     'case': () {
       final CaseController file = Get.find<CaseController>();
@@ -1195,6 +1218,12 @@ void _seedUnits({Object? failure}) {
   Get.delete<UnitsRepository>(force: true);
   Get.put<UnitsRepository>(
     FakeUnitsRepository(failure: failure),
+    permanent: true,
+  );
+  // The pins come from a second endpoint, and the map is half this screen.
+  Get.delete<ReportingRepository>(force: true);
+  Get.put<ReportingRepository>(
+    FakeReportingRepository(pins: mapPinsFixture),
     permanent: true,
   );
 }

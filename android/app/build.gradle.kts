@@ -13,6 +13,17 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+// The Google Maps key the map screen renders with. Kept in local.properties,
+// which is not committed: a key in the manifest is a key in the repository.
+// Missing, the app still builds and the map draws empty tiles — which is the
+// honest failure, not a crash.
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+val mapsApiKey: String = localProperties.getProperty("maps.apiKey") ?: ""
+
 android {
     namespace = "com.lrm.mcq"
     // flutter.compileSdkVersion is 36 on Flutter 3.44, but flutter_secure_storage
@@ -37,6 +48,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Read by the `com.google.android.geo.API_KEY` meta-data in the
+        // manifest.
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     signingConfigs {

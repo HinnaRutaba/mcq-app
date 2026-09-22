@@ -1,0 +1,5 @@
+// The Google Maps key the map screen renders with.
+//
+// Copy this file to `Maps.xcconfig` beside it and paste the iOS key in. That
+// copy is not committed — a key in the repository is a key anyone can bill.
+MAPS_API_KEY=

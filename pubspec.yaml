@@ -51,6 +51,11 @@ dependencies:
   geolocator: ^14.0.2    # the GPS fix, with the accuracy the OS reports
   signature: ^6.4.0      # the witness signature, drawn on the handset
 
+  # The bazaar seen from above: the shops on the register as pins, from
+  # `reporting/map`. Needs a Google Maps key per platform — see
+  # `android/local.properties` and `ios/Flutter/Maps.xcconfig`.
+  google_maps_flutter: ^2.18.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -64,6 +69,9 @@ dev_dependencies:
   connectivity_plus_platform_interface: ^2.1.0
   flutter_secure_storage_platform_interface: ^2.0.3
   flutter_launcher_icons: ^0.14.4
+  # For the one gap the map plugin's method-channel implementation leaves, so
+  # a screen carrying a map can be pumped — see test/support/api_stub.dart.
+  google_maps_flutter_platform_interface: ^2.17.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
