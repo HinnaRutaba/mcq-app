@@ -31,6 +31,11 @@ class RoundController extends GetxController {
 
   final TextEditingController searchController = TextEditingController();
 
+  /// The markets folded shut, by [RoundGroup.key]. Kept here rather than in
+  /// the head's own state so a market stays folded across a refresh — an
+  /// officer who has walked a bazaar has finished with it.
+  final RxSet<String> collapsed = RxSet<String>();
+
   final RxBool isLoading = RxBool(false);
 
   final RxnString errorMessage = RxnString();
@@ -57,18 +62,23 @@ class RoundController extends GetxController {
   /// A bazaar whose own name matches keeps all of its stops — the officer
   /// asked for the market, not for a shop in it. Otherwise the market keeps
   /// only the stops that match, and drops out when none do.
+  /// The markets to draw: what the server sent, narrowed to the chosen bazaar
+  /// and to what was typed, in the server's order.
+  ///
+  /// A market whose own name matches the search keeps all of its stops — the
+  /// officer asked for the market, not for a shop in it. Otherwise it keeps
+  /// only the stops that match and drops out when none do. A market the server
+  /// sent no stops for survives, because "7 behind, none picked out yet" is a
+  /// fact about the round worth showing.
   List<RoundGroup> get visible {
     final int area = areaId.value;
     final String term = query.value.trim().toLowerCase();
-
-    final List<RoundGroup> inArea = area == allAreas
-        ? groups.toList()
-        : groups.where((RoundGroup group) => group.areaId == area).toList();
-    if (term.isEmpty) return inArea;
+    final bool searching = term.isNotEmpty;
 
     final List<RoundGroup> matched = <RoundGroup>[];
-    for (final RoundGroup group in inArea) {
-      if (_placeMatches(group, term)) {
+    for (final RoundGroup group in groups) {
+      if (area != allAreas && group.areaId != area) continue;
+      if (!searching || _placeMatches(group, term)) {
         matched.add(group);
         continue;
       }
@@ -84,7 +94,8 @@ class RoundController extends GetxController {
 
   /// Whether a chip or the search box is what emptied the screen — the way out
   /// of a dead end belongs in the dead end.
-  bool get isNarrowed => areaId.value != allAreas || query.value.isNotEmpty;
+  bool get isNarrowed =>
+      areaId.value != allAreas || query.value.isNotEmpty;
 
   /// How many shops the round would have the officer call at, over the markets
   /// on screen. The stops the server picked out, not the markets' shop counts.
@@ -107,11 +118,6 @@ class RoundController extends GetxController {
     return ids;
   }
 
-  /// Whether there is anything to pick between. Two, because [areaOptions]
-  /// always leads with "everywhere" — a beat with one bazaar would otherwise
-  /// offer two chips holding the same markets.
-  bool get hasAreaChoice => areaOptions.length > 2;
-
   String areaLabel(int id) {
     if (id == allAreas) return 'All bazaars';
     for (final RoundGroup group in groups) {
@@ -121,8 +127,8 @@ class RoundController extends GetxController {
   }
 
   /// How many markets [id] has left after the search — the figure on its chip.
-  /// It counts what the chip would actually show, so a chip reading 6 never
-  /// opens onto 2.
+  /// It counts what the chip would actually show, so a chip reading 2 never
+  /// opens onto nothing.
   int marketsIn(int id) {
     final String term = query.value.trim().toLowerCase();
     return groups
@@ -135,6 +141,11 @@ class RoundController extends GetxController {
         )
         .length;
   }
+
+  /// Whether there is anything to pick between. Two, because [areaOptions]
+  /// always leads with "everywhere" — a beat with one bazaar would otherwise
+  /// offer two chips holding the same markets.
+  bool get hasAreaChoice => areaOptions.length > 2;
 
   /// Safe to call again — this is the pull-to-refresh.
   Future<void> load() => _fetch();
@@ -155,9 +166,18 @@ class RoundController extends GetxController {
     await Get.find<RoundController>().load();
   }
 
+  /// Whether [group] is folded shut.
+  bool isCollapsed(RoundGroup group) => collapsed.contains(group.key);
+
+  /// Folds a market away once it has been walked, or opens it again.
+  void toggleCollapsed(RoundGroup group) {
+    final String key = group.key;
+    if (!collapsed.remove(key)) collapsed.add(key);
+  }
+
   /// No call: every market arrived in one payload, and the chip is a slice of
   /// what is already in hand.
-  void showArea(int id) => areaId.value = id;
+  void showArea(int? id) => areaId.value = id ?? allAreas;
 
   /// Called per keystroke, and no call goes out either.
   void search(String term) => query.value = term.trim();

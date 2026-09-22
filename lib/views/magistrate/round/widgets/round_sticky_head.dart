@@ -15,9 +15,20 @@ import '../../../../widgets/widgets.dart';
 /// the section scrolls: a pinned block that kept its full height would eat the
 /// screen the stops need.
 class RoundStickyHead extends StatefulWidget {
-  const RoundStickyHead({super.key, required this.group});
+  const RoundStickyHead({
+    super.key,
+    required this.group,
+    required this.collapsed,
+    required this.onToggle,
+  });
 
   final RoundGroup group;
+
+  /// Whether this market is folded shut — which is what the chevron says and
+  /// what the section under it does.
+  final bool collapsed;
+
+  final VoidCallback onToggle;
 
   @override
   State<RoundStickyHead> createState() => _RoundStickyHeadState();
@@ -78,10 +89,13 @@ class _RoundStickyHeadState extends State<RoundStickyHead> {
       pinned: true,
       delegate: _HeadDelegate(
         group: widget.group,
+        folded: widget.collapsed,
+        onToggle: widget.onToggle,
         expandedHeight: _expanded,
         collapsedHeight: _collapsed,
         plate: context.brand.filledPlate,
         ink: ink,
+        owed: AppTone.danger.resolve(Brightness.light),
         divider: Theme.of(context).dividerColor,
         measures: _measures(ink),
       ),
@@ -92,19 +106,25 @@ class _RoundStickyHeadState extends State<RoundStickyHead> {
 class _HeadDelegate extends SliverPersistentHeaderDelegate {
   const _HeadDelegate({
     required this.group,
+    required this.folded,
+    required this.onToggle,
     required this.expandedHeight,
     required this.collapsedHeight,
     required this.plate,
     required this.ink,
+    required this.owed,
     required this.divider,
     required this.measures,
   });
 
   final RoundGroup group;
+  final bool folded;
+  final VoidCallback onToggle;
   final double expandedHeight;
   final double collapsedHeight;
   final Gradient plate;
   final Color ink;
+  final Color owed;
   final Color divider;
   final Widget measures;
 
@@ -141,6 +161,9 @@ class _HeadDelegate extends SliverPersistentHeaderDelegate {
               child: RoundBazaarHead(
                 group: group,
                 ink: ink,
+                owed: owed,
+                folded: folded,
+                onToggle: onToggle,
                 // Gone before the strip finishes collapsing, so the last of
                 // the scroll is a clean name line and not half a word under it.
                 briefingOpacity: (1 - t * 1.6).clamp(0.0, 1.0),
@@ -155,10 +178,12 @@ class _HeadDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_HeadDelegate old) =>
       group != old.group ||
+      folded != old.folded ||
       expandedHeight != old.expandedHeight ||
       collapsedHeight != old.collapsedHeight ||
       plate != old.plate ||
       ink != old.ink ||
+      owed != old.owed ||
       divider != old.divider ||
       measures != old.measures;
 }
@@ -170,6 +195,9 @@ class RoundBazaarHead extends StatelessWidget {
     super.key,
     required this.group,
     required this.ink,
+    this.owed,
+    this.folded = false,
+    this.onToggle,
     this.briefing = true,
     this.briefingOpacity = 1,
   });
@@ -178,6 +206,15 @@ class RoundBazaarHead extends StatelessWidget {
 
   /// The ink the brand plate carries — near-black in both themes.
   final Color ink;
+
+  /// The ink the arrears figure wears. Null in a measurement, where nothing
+  /// is painted and only the height matters.
+  final Color? owed;
+
+  /// Whether the market is folded shut, which is which way the chevron points.
+  final bool folded;
+
+  final VoidCallback? onToggle;
 
   /// Whether the two briefing lines are in the block at all. False is the
   /// collapsed strip, whose height is what the pinned head shrinks to.
@@ -188,22 +225,30 @@ class RoundBazaarHead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
+    final Widget block = Padding(
+      padding: const EdgeInsets.fromLTRB(12, 11, 16, 11),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(Icons.storefront_rounded, size: 17, color: ink),
-              const SizedBox(width: 8),
+              // The chevron says the market folds, and takes the place of the
+              // shop glyph: the plate already says this is a heading, and two
+              // icons on one line is one more thing to read.
+              AnimatedRotation(
+                turns: folded ? -0.25 : 0,
+                duration: const Duration(milliseconds: 160),
+                child: Icon(Icons.expand_more_rounded, size: 20, color: ink),
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: AppText.titleMedium(_name, color: ink, maxLines: 1),
               ),
               const SizedBox(width: 12),
               AppText.titleMedium(
                 Formatters.money(group.outstanding) ?? group.outstanding,
-                color: ink,
+                color: owed ?? ink,
+                fontWeight: FontWeight.w700,
                 maxLines: 1,
               ),
             ],
@@ -211,32 +256,45 @@ class RoundBazaarHead extends StatelessWidget {
           if (briefing)
             Opacity(
               opacity: briefingOpacity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const SizedBox(height: 3),
-                  AppText.caption(
-                    _where,
-                    color: ink.withValues(alpha: 0.7),
-                    maxLines: 1,
-                  ),
-                  if (counts(group).isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 5),
-                    _Counts(group: group, ink: ink),
+              child: Padding(
+                // Under the name, clear of the chevron.
+                padding: const EdgeInsets.only(left: 26, top: 3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    AppText.caption(
+                      _where,
+                      color: ink.withValues(alpha: 0.72),
+                      maxLines: 1,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 6, runSpacing: 6, children: _chips()),
                   ],
-                ],
+                ),
               ),
             ),
         ],
+      ),
+    );
+
+    if (onToggle == null) return block;
+
+    return Semantics(
+      button: true,
+      label: folded ? 'Open $_name' : 'Fold $_name away',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onToggle,
+        child: block,
       ),
     );
   }
 
   String get _name => group.marketName ?? group.areaName ?? 'Unnamed bazaar';
 
-  /// Where the market is, how many of its shops are behind, and how many of
-  /// those the server picked out — three figures that read as a contradiction
-  /// unless the last one says it is a shortlist.
+  /// Where the market is, and how many of its shops the server picked out —
+  /// the shortlist beside the "shops behind" chip, which would otherwise read
+  /// as a contradiction.
   ///
   /// The bazaar is named only when it adds something the market name has not
   /// already said: "Prince Road Market · Prince Road" is noise.
@@ -250,7 +308,6 @@ class RoundBazaarHead extends StatelessWidget {
 
     return <String>[
       if (!nameSaysIt) area,
-      '${group.shops} ${group.shops == 1 ? 'shop' : 'shops'} behind',
       if (stops == 0)
         'none picked out yet'
       else if (stops >= group.shops)
@@ -260,71 +317,28 @@ class RoundBazaarHead extends StatelessWidget {
     ].join(' · ');
   }
 
-  /// The states that are actually true of this market, worst first. A row of
-  /// zeroes is three more things to read and nothing to act on.
+  /// The market as the round describes it, straight off the payload: `shops`,
+  /// `broken_promises`, `never_paid` and `sealed`.
   ///
-  /// Toned against light on purpose: the brand plate is a light tint in both
-  /// themes, so the dark scheme's own status colours — picked to sit on
-  /// near-black — would wash out on it.
-  static List<({String label, Color colour})> counts(RoundGroup group) {
-    final int broken = group.brokenPromises;
-    return <({String label, Color colour})>[
-      if (broken > 0)
-        (
-          label:
-              '$broken ${broken == 1 ? 'broke a promise' : 'broke promises'}',
-          colour: AppTone.danger.resolve(Brightness.light),
-        ),
-      if (group.neverPaid > 0)
-        (
-          label: '${group.neverPaid} never paid',
-          colour: AppTone.warning.resolve(Brightness.light),
-        ),
-      if (group.sealed > 0)
-        (
-          label: '${group.sealed} sealed',
-          colour: AppTone.info.resolve(Brightness.light),
-        ),
-    ];
-  }
-}
+  /// Every one of them, zeroes included — the four together are the state of
+  /// the bazaar, and a chip that appears only when it is non-zero makes an
+  /// officer wonder whether it was checked.
+  ///
+  /// Toned against light, because the brand plate under them is a light tint
+  /// in both themes.
+  List<Widget> _chips() => <Widget>[
+    _chip('Shops behind', group.shops, AppTone.neutral),
+    _chip('Broken promises', group.brokenPromises, AppTone.danger),
+    _chip('Never paid', group.neverPaid, AppTone.warning),
+    _chip('Sealed', group.sealed, AppTone.info),
+  ];
 
-/// The market's states on one line, each in its own colour, cut off rather
-/// than wrapped — the strip has a declared height and no room to grow.
-class _Counts extends StatelessWidget {
-  const _Counts({required this.group, required this.ink});
+  /// Nothing to be alarmed by at zero: no broken promise is the good outcome,
+  /// and a red 0 reads as one more thing to chase.
+  static Widget _chip(String label, int count, AppTone tone) => AppStatusBadge(
+    label: '$label · $count',
+    tone: count == 0 ? AppTone.neutral : tone,
+    brightness: Brightness.light,
+  );
 
-  final RoundGroup group;
-  final Color ink;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<({String label, Color colour})> entries =
-        RoundBazaarHead.counts(group);
-
-    return ClipRect(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const NeverScrollableScrollPhysics(),
-        child: Row(
-          children: <Widget>[
-            for (int i = 0; i < entries.length; i++) ...<Widget>[
-              if (i > 0)
-                AppText.caption(
-                  ' · ',
-                  color: ink.withValues(alpha: 0.45),
-                  maxLines: 1,
-                ),
-              AppText.caption(
-                entries[i].label,
-                color: entries[i].colour,
-                fontWeight: FontWeight.w700,
-                maxLines: 1,
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
 }

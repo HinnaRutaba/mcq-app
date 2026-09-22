@@ -54,6 +54,10 @@ class RoundGroup {
     stops: Json.list(json['stops']).map(DefaulterCard.fromJson).toList(),
   );
 
+  /// Distinct per market: two markets can share a bazaar, so the bazaar alone
+  /// would collide. What a folded market and a section's element are keyed by.
+  String get key => '${areaId ?? 0}-${marketName ?? areaName ?? ''}';
+
   /// The same market carrying [stops] instead — how a search narrows a group
   /// to the shops it matched without touching what the market owes.
   RoundGroup withStops(List<DefaulterCard> stops) => RoundGroup(

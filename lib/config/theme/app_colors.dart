@@ -189,6 +189,35 @@ extension AppToneColors on AppTone {
     }
   }
 
+  /// The tinted plate this tone sits on at [brightness], rather than at the
+  /// theme's. For a pill drawn on a plate whose own colour does not follow the
+  /// theme — the brand's filled plate is a light tint in both.
+  ///
+  /// [primary] and [neutral] have no container in the status palette, so they
+  /// get a wash mixed off the tone itself.
+  Color containerIn(Brightness brightness) {
+    final AppStatusColors status = brightness == Brightness.dark
+        ? AppStatusColors.dark
+        : AppStatusColors.light;
+    switch (this) {
+      case AppTone.danger:
+        return status.dangerContainer;
+      case AppTone.warning:
+        return status.warningContainer;
+      case AppTone.success:
+        return status.successContainer;
+      case AppTone.info:
+        return status.infoContainer;
+      case AppTone.primary:
+      case AppTone.neutral:
+        return Color.lerp(
+          resolve(brightness),
+          brightness == Brightness.dark ? Colors.black : Colors.white,
+          0.86,
+        )!;
+    }
+  }
+
   Color resolve(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     switch (this) {

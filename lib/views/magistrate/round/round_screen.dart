@@ -36,6 +36,7 @@ class RoundScreen extends StatelessWidget {
                 expandedHeight: _headerHeight,
                 compactTitle: true,
                 leading: const BackToHomeButton(),
+                bottomSpacing: 16,
                 bottom: AppSearchField(
                   controller: controller.searchController,
                   hint: 'Bazaar, holder, shop or CNIC',
@@ -125,32 +126,35 @@ List<Widget> _slivers(BuildContext context, RoundController controller) {
     // off, rather than every head in the round stacking up.
     for (final RoundGroup group in groups)
       SliverMainAxisGroup(
-        key: ValueKey<String>('market-${_key(group)}'),
+        key: ValueKey<String>('market-${group.key}'),
         slivers: <Widget>[
-          RoundStickyHead(group: group),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-            sliver: SliverList.builder(
-              itemCount: group.stops.length,
-              itemBuilder: (BuildContext context, int index) => Padding(
-                padding: EdgeInsets.only(
-                  bottom: index == group.stops.length - 1 ? 0 : 12,
+          RoundStickyHead(
+            group: group,
+            collapsed: controller.isCollapsed(group),
+            onToggle: () => controller.toggleCollapsed(group),
+          ),
+          // Folded, the market keeps its head and loses its stops — the head
+          // still says what the bazaar owes, so a walked market is put away
+          // rather than hidden.
+          if (!controller.isCollapsed(group))
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+              sliver: SliverList.builder(
+                itemCount: group.stops.length,
+                itemBuilder: (BuildContext context, int index) => Padding(
+                  padding: EdgeInsets.only(
+                    bottom: index == group.stops.length - 1 ? 0 : 12,
+                  ),
+                  child: _Stop(card: group.stops[index], index: index),
                 ),
-                child: _Stop(card: group.stops[index], index: index),
               ),
             ),
-          ),
         ],
       ),
 
     const SliverToBoxAdapter(child: SizedBox(height: 24)),
   ];
 }
-
-/// Distinct per market, so a section keeps its element across a refresh: two
-/// markets can share a bazaar, and the bazaar alone would collide.
-String _key(RoundGroup group) =>
-    '${group.areaId ?? 0}-${group.marketName ?? group.areaName ?? ''}';
 
 /// One shop to call at. The same card the defaulter list draws, opening the
 /// same profile.

@@ -4,11 +4,12 @@ import 'package:get/get.dart';
 import '../../../../controllers/round_controller.dart';
 import '../../../../widgets/widgets.dart';
 
-/// The bar over the round: which bazaar to walk, and how many markets are in
-/// it.
+/// The bar over the round: which bazaar to walk.
 ///
-/// The counts are honest here — every market arrived in one payload, so the
-/// chip an officer is not looking at is still in hand.
+/// The counts are honest here without a call — the whole round arrived in one
+/// payload — and each chip counts the markets it would actually leave on
+/// screen. The markets' own figures are on their heads, not here: they are
+/// four facts about a bazaar, not four things to filter by.
 class RoundFilters extends StatelessWidget {
   const RoundFilters({super.key, required this.controller});
 

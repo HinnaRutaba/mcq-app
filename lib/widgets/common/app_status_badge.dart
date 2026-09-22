@@ -10,10 +10,16 @@ class AppStatusBadge extends StatelessWidget {
     required this.label,
     this.tone = AppTone.neutral,
     this.icon,
+    this.brightness,
   });
 
   final String label;
   final AppTone tone;
+
+  /// The brightness to resolve [tone] against, for a pill drawn on a plate
+  /// whose colour does not follow the theme — the brand's filled plate is a
+  /// light tint in both. Null follows the theme, which is almost always right.
+  final Brightness? brightness;
 
   /// A glyph before the label — a second reading of the state, never the only
   /// one: the pill is always labelled.
@@ -21,7 +27,8 @@ class AppStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = tone.on(context);
+    final Brightness? on = brightness;
+    final color = on == null ? tone.on(context) : tone.resolve(on);
     final Widget text = AppText.caption(
       label,
       color: color,
@@ -31,7 +38,7 @@ class AppStatusBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(icon == null ? 10 : 8, 5, 10, 5),
       decoration: BoxDecoration(
-        color: tone.container(context),
+        color: on == null ? tone.container(context) : tone.containerIn(on),
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
       child: icon == null

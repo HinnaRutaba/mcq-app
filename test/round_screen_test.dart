@@ -124,16 +124,26 @@ void main() {
       expect(find.text('Rs 887,458'), findsOneWidget);
       // 25 behind and 2 stops are different figures; side by side they read
       // as a contradiction unless the shortlist says it is one.
-      expect(
-        find.text('Jinnah Road · 25 shops behind · worst 2 to call at'),
-        findsOneWidget,
-      );
+      // Two markets share Jinnah Road and both carry two stops, so the line
+      // is the same on each of their heads — what tells them apart is on the
+      // chips.
+      expect(find.text('Jinnah Road · worst 2 to call at'), findsNWidgets(2));
 
-      // Only the states that are true of the market — Liaquat has no broken
-      // promise and no seal, so it carries one count and not three.
-      expect(find.text('14 never paid'), findsOneWidget);
-      expect(find.text('2 broke promises'), findsOneWidget);
-      expect(find.text('1 sealed'), findsOneWidget);
+      // The four figures the round sends per market, zeroes included: a chip
+      // that appeared only when non-zero would leave an officer wondering
+      // whether it had been checked.
+      expect(find.text('Shops behind · 25'), findsOneWidget);
+      expect(find.text('Broken promises · 0'), findsOneWidget);
+      expect(find.text('Never paid · 14'), findsOneWidget);
+
+      // And Prince Road Market's own, which differ on every one of them.
+      expect(find.text('Shops behind · 21'), findsOneWidget);
+      expect(find.text('Broken promises · 2'), findsOneWidget);
+      expect(find.text('Never paid · 9'), findsOneWidget);
+      expect(find.text('Sealed · 1'), findsOneWidget);
+
+      // Nothing sealed in either Jinnah Road market, and both say so.
+      expect(find.text('Sealed · 0'), findsNWidgets(2));
     });
 
     testWidgets('the stops are the same cards the defaulter list draws', (
@@ -167,7 +177,8 @@ void main() {
       await pumpRound(tester, width: 900);
 
       // Two bazaars over three markets, and the count is markets — which is
-      // what the chip narrows the screen to.
+      // what the chip narrows the screen to. The round names its own areas on
+      // every entry, so this costs no second call.
       expect(find.text('All bazaars · 3'), findsOneWidget);
       expect(find.text('Jinnah Road · 2'), findsOneWidget);
       expect(find.text('Prince Road · 1'), findsOneWidget);
@@ -177,7 +188,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await pumpRound(tester, width: 900);
-      final int beforeTap = defaulters.roundCalls;
+      final int beforePick = defaulters.roundCalls;
 
       await tester.tap(find.text('Prince Road · 1'));
       await settle(tester);
@@ -187,8 +198,8 @@ void main() {
       expect(find.text('1 bazaar · 2 stops'), findsOneWidget);
       expect(
         defaulters.roundCalls,
-        beforeTap,
-        reason: 'every market arrived in one payload; a chip is not a call',
+        beforePick,
+        reason: 'every market arrived in one payload; a bazaar is not a call',
       );
     });
 
@@ -214,9 +225,8 @@ void main() {
       await settle(tester);
       expect(marketsOnScreen(tester), <String>['Prince Road Market']);
 
-      // Prince Road pays up overnight, so the next refresh carries no chip for
-      // it — and the officer would be left staring at an empty round.
-      defaulters = FakeDefaultersRepository();
+      // Prince Road pays up overnight, so the next refresh carries no chip
+      // for it — and the officer would be left staring at an empty round.
       final List<RoundGroup> withoutPrinceRoad = roundFixture
           .where((RoundGroup group) => group.areaId != 2)
           .toList();
@@ -282,10 +292,7 @@ void main() {
       expect(stopsOnScreen(tester), <String>['S-4']);
       expect(find.text('Rs 887,458'), findsOneWidget);
       // The head still counts the market, not the search.
-      expect(
-        find.text('Jinnah Road · 25 shops behind · worst 2 to call at'),
-        findsOneWidget,
-      );
+      expect(find.text('Jinnah Road · worst 2 to call at'), findsOneWidget);
       expect(find.text('1 bazaar · 1 stop'), findsOneWidget);
     });
 
@@ -309,23 +316,20 @@ void main() {
       }
     });
 
-    testWidgets('the chips re-count as the search narrows the round', (
+    testWidgets('every bazaar keeps its chip while typing', (
       WidgetTester tester,
     ) async {
       await pumpRound(tester, width: 900);
-      expect(find.text('All bazaars · 3'), findsOneWidget);
 
       await searchFor(tester, 'jinnah');
 
-      // The chip has to count what it would actually show — a chip reading 1
-      // that opens onto nothing is the bug this guards.
-      expect(find.text('All bazaars · 2'), findsOneWidget);
-      expect(find.text('Jinnah Road · 2'), findsOneWidget);
+      // The chips come off the whole round, not off what is left, so the
+      // bazaar an officer is reaching for cannot vanish from under their
+      // thumb mid-word — it reads 0 instead.
       expect(find.text('Prince Road · 0'), findsOneWidget);
 
-      // And the bazaar it is filtered by stays on the bar, so it cannot
-      // vanish from under the officer's thumb mid-word.
-      await searchFor(tester, 'jinnah road market that is not there');
+      await searchFor(tester, 'nothing answers to this');
+      expect(find.text('Jinnah Road · 0'), findsOneWidget);
       expect(find.text('Prince Road · 0'), findsOneWidget);
     });
 
@@ -488,10 +492,7 @@ void main() {
           .height;
 
       final double expanded = headHeight();
-      expect(
-        find.text('Jinnah Road · 25 shops behind · worst 2 to call at'),
-        findsOneWidget,
-      );
+      expect(find.text('Jinnah Road · worst 2 to call at'), findsOneWidget);
 
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -400));
       await settle(tester);
@@ -526,6 +527,60 @@ void main() {
       expect(briefing.opacity, 0);
       expect(find.text('Liaquat Bazaar'), findsOneWidget);
       expect(find.text('Rs 887,458'), findsOneWidget);
+    });
+  });
+
+  group('folding a market away', () {
+    testWidgets('the head keeps the market, the stops go', (
+      WidgetTester tester,
+    ) async {
+      final RoundController controller = await pumpRound(tester);
+      expect(stopsOnScreen(tester).length, 6);
+
+      await tester.tap(find.text('Liaquat Bazaar'));
+      await settle(tester);
+
+      // Walked and put away, not hidden: the head is still there and still
+      // says what the bazaar owes.
+      expect(marketsOnScreen(tester).length, 3);
+      expect(find.text('Rs 887,458'), findsOneWidget);
+      expect(stopsOnScreen(tester), <String>['F-3', 'F-11', 'K-7', 'K-19']);
+      expect(controller.isCollapsed(controller.groups.first), isTrue);
+
+      await tester.tap(find.text('Liaquat Bazaar'));
+      await settle(tester);
+
+      expect(stopsOnScreen(tester).length, 6);
+    });
+
+    testWidgets('a folded market stays folded across a refresh', (
+      WidgetTester tester,
+    ) async {
+      final RoundController controller = await pumpRound(tester);
+
+      await tester.tap(find.text('Kandahari Bazaar'));
+      await settle(tester);
+      expect(stopsOnScreen(tester), <String>['S-22', 'S-4', 'F-3', 'F-11']);
+
+      // An officer who has walked a bazaar has finished with it; a pull to
+      // refresh is not them asking for it back.
+      await controller.load();
+      await settle(tester);
+
+      expect(stopsOnScreen(tester), <String>['S-22', 'S-4', 'F-3', 'F-11']);
+    });
+
+    testWidgets('folding one market leaves the others alone', (
+      WidgetTester tester,
+    ) async {
+      await pumpRound(tester);
+
+      await tester.tap(find.text('Prince Road Market'));
+      await settle(tester);
+
+      // Two markets share Jinnah Road, so a key that was the bazaar alone
+      // would fold both of them.
+      expect(stopsOnScreen(tester), <String>['S-22', 'S-4', 'K-7', 'K-19']);
     });
   });
 
@@ -588,9 +643,10 @@ void main() {
       // 7 behind and nothing picked out: the head says so rather than
       // standing over a gap.
       expect(
-        find.text('Prince Road · 7 shops behind · none picked out yet'),
+        find.text('Prince Road · none picked out yet'),
         findsOneWidget,
       );
+      expect(find.text('Shops behind · 7'), findsOneWidget);
       expect(find.text('Rs 8,043,306'), findsOneWidget);
       // No overdue reading on the wire, so the tile shows none.
       expect(find.textContaining('days overdue'), findsNothing);

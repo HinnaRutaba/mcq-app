@@ -245,6 +245,14 @@ void main() {
       _seedRound(groups: const <RoundGroup>[]);
       return const RoundScreen();
     },
+    // The first bazaar walked and folded away: its head stays, with what it
+    // owes on it, and its stops are put away.
+    'round_folded': () {
+      // By key, not off `groups`: the controller's own fetch has not landed
+      // at the moment this entry is built.
+      _seedRound().collapsed.add(roundFixture.first.key);
+      return const RoundScreen();
+    },
     // A person typed into the header: the bazaar they are in keeps its head
     // and says what the whole market owes, with one stop under it.
     'round_search': () {
