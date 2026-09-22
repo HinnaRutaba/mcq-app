@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mcq_app/views/magistrate/home/widgets/defaulter_breakdown.dart';
 
 import '../../../config/theme/app_colors.dart';
 import '../../../controllers/dashboard_controller.dart';
@@ -12,7 +13,6 @@ import 'queue_destination.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
 import 'widgets/home_search_button.dart';
-import 'widgets/defaulter_breakdown.dart';
 import '../../../config/theme/app_radius.dart';
 
 class MagistrateHomeScreen extends StatelessWidget {

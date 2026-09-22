@@ -11,7 +11,7 @@ class BeatQueueTile extends StatelessWidget {
 
   final FieldQueue queue;
   final VoidCallback? onTap;
-  static const double extent = 100;
+  static const double extent = 84;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class BeatQueueTile extends StatelessWidget {
 
     return AppCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(9),
       // Every tile sits on its tone's light plate, so the grid reads as one
       // set rather than two coloured cards among four white ones. A queue
       // with no tone — or an empty one, since nought defaulters is not a
@@ -36,8 +36,8 @@ class BeatQueueTile extends StatelessWidget {
           Row(
             children: [
               Container(
-                height: 26,
-                width: 26,
+                height: 22,
+                width: 22,
                 decoration: BoxDecoration(
                   // Filled for a real tone; a deeper wash of the same grey
                   // for neutral. A *filled* neutral chip is light-on-black in
@@ -48,11 +48,11 @@ class BeatQueueTile extends StatelessWidget {
                 ),
                 child: Icon(
                   _icon(queue.key),
-                  size: 15,
+                  size: 13,
                   color: toned ? shown.onFilled(context) : ink,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 7),
               Flexible(
                 child: AppText.headlineSmall(
                   '${queue.count}',
