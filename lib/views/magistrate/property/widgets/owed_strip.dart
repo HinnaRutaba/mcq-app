@@ -181,7 +181,11 @@ class OwedStrip extends StatelessWidget {
 /// A pill on the owed plate: white, so it stands off the gold, with the
 /// tone's own ink on it.
 class _OwedPill extends StatelessWidget {
-  const _OwedPill({required this.label, this.tone = AppTone.neutral, this.icon});
+  const _OwedPill({
+    required this.label,
+    this.tone = AppTone.neutral,
+    this.icon,
+  });
 
   final String label;
   final AppTone tone;

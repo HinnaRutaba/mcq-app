@@ -92,48 +92,40 @@ List<Widget> _slivers(BuildContext context, FollowUpsController controller) {
 
   // A failure over rows that are already up rides at the top of the list: it
   // is a note, not a wall, and the rows below it are the last good ones.
-  final int alert = error == null ? 0 : 1;
-
   return <Widget>[
     SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
-      sliver: SliverList.builder(
-        itemCount: rows.length + alert,
+      sliver: AppSliverTiles(
+        lead: <Widget>[
+          if (error != null)
+            AppAlert(
+              message: error,
+              tone: AppTone.warning,
+              icon: Icons.wifi_off_rounded,
+            ),
+        ],
+        itemCount: rows.length,
         itemBuilder: (BuildContext context, int index) {
-          if (index < alert) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: AppAlert(
-                message: error!,
-                tone: AppTone.warning,
-                icon: Icons.wifi_off_rounded,
-              ),
-            );
-          }
-
-          final DefaulterCard card = rows[index - alert];
+          final DefaulterCard card = rows[index];
           final int? propertyId = card.propertyId;
 
           // Keyed by the unit, so a row keeps its element when the reading is
           // switched: unkeyed, every rebuild would restart the entrance.
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: AppEntrance(
-              key: ValueKey<Object>(
-                card.allotmentId ?? propertyId ?? card.allotmentNo ?? index,
-              ),
-              index: index,
-              child: DefaulterTile(
-                card: card,
-                onTap: propertyId == null
-                    ? null
-                    : () => context.push(
-                        AppRoutes.propertyProfilePath(propertyId),
-                        // The profile draws its header from this while its own
-                        // calls are still out.
-                        extra: card,
-                      ),
-              ),
+          return AppEntrance(
+            key: ValueKey<Object>(
+              card.allotmentId ?? propertyId ?? card.allotmentNo ?? index,
+            ),
+            index: index,
+            child: DefaulterTile(
+              card: card,
+              onTap: propertyId == null
+                  ? null
+                  : () => context.push(
+                      AppRoutes.propertyProfilePath(propertyId),
+                      // The profile draws its header from this while its own
+                      // calls are still out.
+                      extra: card,
+                    ),
             ),
           );
         },

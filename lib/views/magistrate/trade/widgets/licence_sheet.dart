@@ -108,10 +108,7 @@ class LicenceSheet extends StatelessWidget {
           const AppText.titleMedium('The licence'),
           const SizedBox(height: 8),
           if (licence.licenceNo != null)
-            AppDetailRow(
-              icon: Icons.badge_outlined,
-              value: licence.licenceNo!,
-            ),
+            AppDetailRow(icon: Icons.badge_outlined, value: licence.licenceNo!),
           if (licence.verificationCode != null)
             AppDetailRow(
               // What a shopkeeper shows and an officer checks.

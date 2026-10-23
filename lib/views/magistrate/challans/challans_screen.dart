@@ -136,46 +136,37 @@ List<Widget> _slivers(ChallansController controller) {
   return <Widget>[
     SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      sliver: SliverList.builder(
-        itemCount: lead.length + rows.length,
+      sliver: AppSliverTiles(
+        lead: lead,
+        itemCount: rows.length,
         itemBuilder: (BuildContext context, int index) {
-          if (index < lead.length) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: lead[index],
-            );
-          }
-
-          final Challan challan = rows[index - lead.length];
+          final Challan challan = rows[index];
           final int? propertyId = challan.property?.id;
 
           // Keyed by the bill, so a row keeps its element as pages append:
           // unkeyed, every rebuild would restart the entrance and the list
           // would flicker each time the next page lands.
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: AppEntrance(
-              key: ValueKey<Object>(challan.id ?? challan.challanNo ?? index),
-              index: index,
-              child: ChallanTile(
+          return AppEntrance(
+            key: ValueKey<Object>(challan.id ?? challan.challanNo ?? index),
+            index: index,
+            child: ChallanTile(
+              challan: challan,
+              // The bill itself, off the row already in hand — its whole
+              // breakdown, with no second call and nothing lost. The shop
+              // behind it is one more press, from inside the sheet.
+              onTap: () => ChallanSheet.show(
+                context,
                 challan: challan,
-                // The bill itself, off the row already in hand — its whole
-                // breakdown, with no second call and nothing lost. The shop
-                // behind it is one more press, from inside the sheet.
-                onTap: () => ChallanSheet.show(
-                  context,
-                  challan: challan,
-                  onOpenShop: propertyId == null
-                      ? null
-                      : () => context.push(
-                          // Straight to the bills rather than the overview:
-                          // the officer got here by tapping one.
-                          AppRoutes.propertyProfilePath(
-                            propertyId,
-                            tab: ProfileTab.owed.name,
-                          ),
+                onOpenShop: propertyId == null
+                    ? null
+                    : () => context.push(
+                        // Straight to the bills rather than the overview:
+                        // the officer got here by tapping one.
+                        AppRoutes.propertyProfilePath(
+                          propertyId,
+                          tab: ProfileTab.owed.name,
                         ),
-                ),
+                      ),
               ),
             ),
           );

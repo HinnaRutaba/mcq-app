@@ -195,9 +195,10 @@ List<Widget> _lookupSlivers(
 
   return <Widget>[
     SliverPadding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 32),
-      sliver: SliverList.list(
-        children: <Widget>[
+      // 20 under, on top of the 12 the tiles leave under every row.
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+      sliver: AppSliverTiles(
+        lead: <Widget>[
           AppEntrance(
             key: ValueKey<String>('answer-${answer.searched}'),
             child: LookupAnswer(
@@ -209,18 +210,16 @@ List<Widget> _lookupSlivers(
               ),
             ),
           ),
-          for (int i = 0; i < licences.length; i++) ...<Widget>[
-            const SizedBox(height: 12),
-            AppEntrance(
-              key: ValueKey<Object>(licences[i].id ?? i),
-              index: i + 1,
-              child: LicenceTile(
-                licence: licences[i],
-                onTap: () => LicenceSheet.show(context, licence: licences[i]),
-              ),
-            ),
-          ],
         ],
+        itemCount: licences.length,
+        itemBuilder: (BuildContext context, int i) => AppEntrance(
+          key: ValueKey<Object>(licences[i].id ?? i),
+          index: i + 1,
+          child: LicenceTile(
+            licence: licences[i],
+            onTap: () => LicenceSheet.show(context, licence: licences[i]),
+          ),
+        ),
       ),
     ),
   ];
@@ -279,44 +278,33 @@ List<Widget> _queueSlivers(
   return <Widget>[
     SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
-      sliver: SliverList.builder(
-        itemCount: lead.length + rows,
-        itemBuilder: (BuildContext context, int index) {
-          if (index < lead.length) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: lead[index],
-            );
-          }
-
-          final int row = index - lead.length;
-
+      sliver: AppSliverTiles(
+        lead: lead,
+        itemCount: rows,
+        itemBuilder: (BuildContext context, int row) {
           // Keyed by the record, so a row keeps its element as the queue
           // reloads: unkeyed, every rebuild would restart the entrance and the
           // list would flicker each time a figure lands.
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: AppEntrance(
-              key: ValueKey<String>(
-                row < licences.length
-                    ? 'licence-${licences[row].id ?? row}'
-                    : 'capture-${captures[row - licences.length].id ?? row}',
-              ),
-              index: index,
-              child: row < licences.length
-                  ? LicenceTile(
-                      licence: licences[row],
-                      onTap: () =>
-                          LicenceSheet.show(context, licence: licences[row]),
-                    )
-                  : CaptureTile(
-                      capture: captures[row - licences.length],
-                      onTap: () => CaptureSheet.show(
-                        context,
-                        application: captures[row - licences.length],
-                      ),
-                    ),
+          return AppEntrance(
+            key: ValueKey<String>(
+              row < licences.length
+                  ? 'licence-${licences[row].id ?? row}'
+                  : 'capture-${captures[row - licences.length].id ?? row}',
             ),
+            index: row,
+            child: row < licences.length
+                ? LicenceTile(
+                    licence: licences[row],
+                    onTap: () =>
+                        LicenceSheet.show(context, licence: licences[row]),
+                  )
+                : CaptureTile(
+                    capture: captures[row - licences.length],
+                    onTap: () => CaptureSheet.show(
+                      context,
+                      application: captures[row - licences.length],
+                    ),
+                  ),
           );
         },
       ),

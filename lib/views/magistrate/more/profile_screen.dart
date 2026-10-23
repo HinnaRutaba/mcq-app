@@ -6,13 +6,6 @@ import '../../../widgets/widgets.dart';
 import 'widgets/appearance_settings.dart';
 import 'widgets/officer_card.dart';
 
-/// The officer's own page: who is signed in, how the app should look, and the
-/// way out.
-///
-/// The identity card lives here rather than on the dashboard. Home is for the
-/// work waiting; an officer does not need to be told their own name every time
-/// they open the app, but they do need somewhere to check which account this
-/// handset is signed in as before they seal a shop under it.
 class MagistrateProfileScreen extends StatelessWidget {
   const MagistrateProfileScreen({super.key});
 
@@ -48,13 +41,6 @@ class MagistrateProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 const AppearanceSettings(),
-                const SizedBox(height: 32),
-                AppButton(
-                  label: 'Log out',
-                  icon: Icons.logout_rounded,
-                  variant: AppButtonVariant.outline,
-                  onPressed: () => AppSignOutDialog.confirmAndSignOut(context),
-                ),
                 const SizedBox(height: 10),
                 AppText.caption(
                   'Signing out revokes this handset’s access. Other '

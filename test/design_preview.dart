@@ -814,7 +814,7 @@ void main() {
   // would crop the half worth reviewing — the activity figures — out of the
   // picture, which is how a layout problem goes unseen.
   // Logical sizes for entries previewed wider than a phone.
-  const wide = <String, Size>{
+  final wide = <String, Size>{
     'login_tablet': Size(820, 1180),
     'login_tablet_landscape': Size(1180, 820),
     'login_desktop': Size(1440, 900),
@@ -1109,6 +1109,24 @@ void main() {
           'This CNIC already holds a licence for this trade in this bazaar.';
     },
   };
+
+  // The list screens again at tablet width, two cards to a row.
+  for (final String name in <String>[
+    'defaulters',
+    'round',
+    'trade_licences',
+    'trade_licences_lookup',
+    'challans',
+    'sealed',
+    'follow_ups',
+    'cases',
+    'search_match',
+  ]) {
+    screens['${name}_tablet'] = screens[name]!;
+    wide['${name}_tablet'] = const Size(820, 1400);
+    final void Function()? nudged = nudge[name];
+    if (nudged != null) nudge['${name}_tablet'] = nudged;
+  }
 
   for (final entry in screens.entries) {
     for (final mode in <String>['light', 'dark']) {

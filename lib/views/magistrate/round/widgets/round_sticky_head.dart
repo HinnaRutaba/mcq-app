@@ -340,5 +340,4 @@ class RoundBazaarHead extends StatelessWidget {
     tone: count == 0 ? AppTone.neutral : tone,
     brightness: Brightness.light,
   );
-
 }

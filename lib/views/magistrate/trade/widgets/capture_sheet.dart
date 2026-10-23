@@ -248,11 +248,7 @@ class CaptureSheet extends StatelessWidget {
               ),
               if (_subtitle(receipt) != null) ...<Widget>[
                 const SizedBox(height: 2),
-                AppText.caption(
-                  _subtitle(receipt)!,
-                  color: muted,
-                  maxLines: 2,
-                ),
+                AppText.caption(_subtitle(receipt)!, color: muted, maxLines: 2),
               ],
             ],
           ),

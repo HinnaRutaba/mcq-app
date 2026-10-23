@@ -138,15 +138,12 @@ List<Widget> _slivers(BuildContext context, RoundController controller) {
           // rather than hidden.
           if (!controller.isCollapsed(group))
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-              sliver: SliverList.builder(
+              // 4 under, on top of the 12 the tiles leave under every row.
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+              sliver: AppSliverTiles(
                 itemCount: group.stops.length,
-                itemBuilder: (BuildContext context, int index) => Padding(
-                  padding: EdgeInsets.only(
-                    bottom: index == group.stops.length - 1 ? 0 : 12,
-                  ),
-                  child: _Stop(card: group.stops[index], index: index),
-                ),
+                itemBuilder: (BuildContext context, int index) =>
+                    _Stop(card: group.stops[index], index: index),
               ),
             ),
         ],

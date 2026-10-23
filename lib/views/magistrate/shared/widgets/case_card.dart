@@ -133,9 +133,7 @@ class CaseCard extends StatelessWidget {
   /// The case number, unless the card is naming the shopfront — then the
   /// holder leads and the number moves down to the opened line, because a
   /// list of case numbers is not something an officer can read a beat off.
-  String get _title => showSubject
-      ? (_holder ?? _unit ?? _caseNo)
-      : _caseNo;
+  String get _title => showSubject ? (_holder ?? _unit ?? _caseNo) : _caseNo;
 
   String get _caseNo => file.caseNo ?? 'Case #${file.id}';
 
@@ -144,7 +142,8 @@ class CaseCard extends StatelessWidget {
   /// name on the file.
   String? get _holder => file.allottee?.fullName ?? file.offender?.name;
 
-  String? get _unit => file.property?.displayName ?? file.property?.propertyCode;
+  String? get _unit =>
+      file.property?.displayName ?? file.property?.propertyCode;
 
   /// The shop and its bazaar, dropped when the title above is already the
   /// shop. Only ever drawn under a card that is naming its subject.

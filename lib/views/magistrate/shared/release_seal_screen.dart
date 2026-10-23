@@ -66,10 +66,7 @@ class ReleaseSealScreen extends StatefulWidget {
 
 class _ReleaseSealScreenState extends State<ReleaseSealScreen> {
   late final ReleaseSealController controller = Get.put(
-    ReleaseSealController(
-      propertyId: widget.propertyId,
-      sealId: widget.sealId,
-    ),
+    ReleaseSealController(propertyId: widget.propertyId, sealId: widget.sealId),
   );
 
   @override

@@ -118,44 +118,35 @@ List<Widget> _slivers(BuildContext context, CasesController controller) {
   return <Widget>[
     SliverPadding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-      sliver: SliverList.builder(
-        itemCount: lead.length + rows.length,
+      sliver: AppSliverTiles(
+        lead: lead,
+        itemCount: rows.length,
         itemBuilder: (BuildContext context, int index) {
-          if (index < lead.length) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: lead[index],
-            );
-          }
-
-          final EnforcementCase file = rows[index - lead.length];
+          final EnforcementCase file = rows[index];
           final int? propertyId = file.property?.id;
 
           // Keyed by the file, so a row keeps its element as pages append:
           // unkeyed, every rebuild would restart the entrance and the list
           // would flicker each time the next page lands.
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: AppEntrance(
-              key: ValueKey<Object>(file.id ?? file.caseNo ?? index),
-              index: index,
-              child: CaseCard(
-                file: file,
-                // The register spans the beat, so every row has to say which
-                // shopfront it is about.
-                showSubject: true,
-                hint: propertyId == null ? null : 'tap to open the shop',
-                onTap: propertyId == null
-                    ? null
-                    : () => context.push(
-                        // Straight to the shop's own cases: the officer got
-                        // here by tapping one of them.
-                        AppRoutes.propertyProfilePath(
-                          propertyId,
-                          tab: ProfileTab.cases.name,
-                        ),
+          return AppEntrance(
+            key: ValueKey<Object>(file.id ?? file.caseNo ?? index),
+            index: index,
+            child: CaseCard(
+              file: file,
+              // The register spans the beat, so every row has to say which
+              // shopfront it is about.
+              showSubject: true,
+              hint: propertyId == null ? null : 'tap to open the shop',
+              onTap: propertyId == null
+                  ? null
+                  : () => context.push(
+                      // Straight to the shop's own cases: the officer got
+                      // here by tapping one of them.
+                      AppRoutes.propertyProfilePath(
+                        propertyId,
+                        tab: ProfileTab.cases.name,
                       ),
-              ),
+                    ),
             ),
           );
         },

@@ -145,7 +145,8 @@ class _RecordActionScreenState extends State<RecordActionScreen> {
             // The register's name is the fallback, read once: the header is
             // not the place to flicker from "Record a step" to "Payment
             // promised" when the definitions land.
-            title: step?.label ?? controller.definition?.name ?? 'Record a step',
+            title:
+                step?.label ?? controller.definition?.name ?? 'Record a step',
             subtitle: step?.description ?? 'On the case, with what was said.',
             leading: AppCircleIconButton(
               icon: Icons.arrow_back_rounded,
