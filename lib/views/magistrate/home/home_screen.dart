@@ -5,8 +5,8 @@ import 'package:mcq_app/views/magistrate/home/widgets/defaulter_breakdown.dart';
 import '../../../config/theme/app_brand.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
-import '../../../config/theme/app_shadows.dart';
 import '../../../controllers/dashboard_controller.dart';
+import '../../../core/utils/screen_type.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../models/auth_user.dart';
 import '../../../models/field_activity.dart';
@@ -15,6 +15,7 @@ import '../../../widgets/widgets.dart';
 import 'queue_destination.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
+import 'widgets/brand_plate.dart';
 import 'widgets/home_search_button.dart';
 
 class MagistrateHomeScreen extends StatelessWidget {
@@ -439,11 +440,28 @@ class _ActivitySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final fines = activity.finesAmount;
     final collected = activity.collectedInYourAreas;
+    final wide = !context.isMobile;
+
+    final money = <Widget>[
+      if (fines != null)
+        _MoneyCard(
+          icon: Icons.gavel_rounded,
+          title: 'Value of fines imposed',
+          amount: fines,
+          notes: <String>[
+            'Across ${activity.finesImposed} fines in the last '
+                '${activity.periodDays} days.',
+          ],
+        ),
+      if (collected != null) _CollectedCard(activity: activity, scope: scope),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _Grid(
+          // One row of four wider than a phone.
+          columns: wide ? 4 : 2,
           firstIndex: firstIndex,
           extent: AppStatTile.extent,
           children: [
@@ -469,22 +487,25 @@ class _ActivitySection extends StatelessWidget {
             ),
           ],
         ),
-        if (fines != null) ...[
+        // Side by side wider than a phone, stretched to the taller card so
+        // the two plates line up.
+        if (wide && money.length == 2) ...[
           const SizedBox(height: 10),
-          _MoneyCard(
-            icon: Icons.gavel_rounded,
-            title: 'Value of fines imposed',
-            amount: fines,
-            notes: <String>[
-              'Across ${activity.finesImposed} fines in the last '
-                  '${activity.periodDays} days.',
-            ],
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(child: money[0]),
+                const SizedBox(width: 10),
+                Expanded(child: money[1]),
+              ],
+            ),
           ),
-        ],
-        if (collected != null) ...[
-          const SizedBox(height: 10),
-          _CollectedCard(activity: activity, scope: scope),
-        ],
+        ] else
+          for (final Widget card in money) ...[
+            const SizedBox(height: 10),
+            card,
+          ],
         if (activity.byActionType.isNotEmpty) ...[
           const SizedBox(height: 20),
           const _SectionTitle('How far things went'),
@@ -496,15 +517,9 @@ class _ActivitySection extends StatelessWidget {
   }
 }
 
-/// A money figure given the room a money figure is worth.
-///
-/// The one dark block on a page of pale cards: the brand gradient, a curved
-/// wash clipped across it and a warm glow out of the corner, so the two
-/// figures an officer is actually judged on do not read as two more rows.
-///
-/// Dark mode does not use the header gradient — it is near-black, and a
-/// near-black card on a near-black page is not a card. There the plate is the
-/// raised surface with the brand mixed into it.
+/// A money figure given the room a money figure is worth, on the brand plate
+/// so the two figures an officer is actually judged on do not read as two
+/// more rows.
 class _MoneyCard extends StatelessWidget {
   const _MoneyCard({
     required this.icon,
@@ -524,129 +539,41 @@ class _MoneyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final brand = context.brand;
-    final dark = theme.brightness == Brightness.dark;
-    final corner = BorderRadius.circular(AppRadius.lg);
-
-    final List<Color> plate = dark
-        ? <Color>[
-            Color.lerp(
-              theme.colorScheme.surfaceContainerHigh,
-              brand.primary,
-              0.14,
-            )!,
-            theme.colorScheme.surfaceContainerLow,
-          ]
-        : <Color>[brand.headerFrom, brand.headerTo];
-    final Color ink = dark ? theme.colorScheme.onSurface : Colors.white;
+    final Color ink = BrandPlate.inkOf(context);
     final Color muted = ink.withValues(alpha: 0.72);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: corner,
-        boxShadow: AppShadows.lifted(context),
-      ),
-      child: ClipRRect(
-        borderRadius: corner,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: plate,
-            ),
-            border: Border.all(color: ink.withValues(alpha: 0.12)),
-            borderRadius: corner,
-          ),
-          child: Stack(
-            children: <Widget>[
-              // The accent's glow, low and out of the right-hand corner — the
-              // warm note the scheme already carries, not a second brand.
-              Positioned(
-                right: -50,
-                bottom: -66,
-                child: _Glow(color: brand.accent, size: 190),
-              ),
-              Positioned.fill(
-                child: ClipPath(
-                  clipper: const AppSweepClipper(
-                    begin: 0.86,
-                    end: 0.40,
-                    bow: 0.16,
-                  ),
-                  child: ColoredBox(color: ink.withValues(alpha: 0.055)),
+    return BrandPlate(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                height: 28,
+                width: 28,
+                decoration: BoxDecoration(
+                  color: ink.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
+                child: Icon(icon, size: 16, color: ink),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 13, 16, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          height: 28,
-                          width: 28,
-                          decoration: BoxDecoration(
-                            color: ink.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                          ),
-                          child: Icon(icon, size: 16, color: ink),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: AppText.titleMedium(
-                            title,
-                            color: ink,
-                            maxLines: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    AppCountUp.money(
-                      amount,
-                      variant: AppTextVariant.headlineLarge,
-                      color: ink,
-                    ),
-                    for (final String note in notes) ...[
-                      const SizedBox(height: 5),
-                      AppText.caption(note, color: muted),
-                    ],
-                  ],
-                ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: AppText.titleMedium(title, color: ink, maxLines: 1),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A soft disc of colour, for the corner of a plate.
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color, required this.size});
-
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[
-              color.withValues(alpha: 0.30),
-              color.withValues(alpha: 0),
-            ],
+          const SizedBox(height: 10),
+          AppCountUp.money(
+            amount,
+            variant: AppTextVariant.headlineLarge,
+            color: ink,
           ),
-        ),
+          for (final String note in notes) ...[
+            const SizedBox(height: 5),
+            AppText.caption(note, color: muted),
+          ],
+        ],
       ),
     );
   }

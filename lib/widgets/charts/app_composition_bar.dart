@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 import '../text/app_text.dart';
 import '../../config/theme/app_radius.dart';
@@ -37,15 +37,14 @@ class CompositionSlice {
 /// gap rather than quietly scaled away; a bar that always fills would be
 /// hiding the one thing worth noticing.
 ///
-/// Drawn by `fl_chart` as a single rod turned on its side, so it grows into
-/// place when the screen arrives instead of appearing finished. A stacked bar
-/// rather than a ring: at a glance forty per cent and forty-five look alike on
+/// Each segment springs out in turn when the screen arrives, instead of the
+/// bar appearing finished. A stacked bar rather than a ring: at a glance forty per cent and forty-five look alike on
 /// a pie, and along a bar they do not.
 ///
 /// Use it only where the parts genuinely belong to the whole. Counts that can
 /// overlap — a visit that both served a notice and imposed a fine — are not a
 /// composition, and stacking them would invent a total nobody can defend.
-class AppCompositionBar extends StatefulWidget {
+class AppCompositionBar extends StatelessWidget {
   const AppCompositionBar({
     super.key,
     required this.slices,
@@ -61,17 +60,6 @@ class AppCompositionBar extends StatefulWidget {
   /// What to call the part the slices do not account for.
   final String remainderLabel;
 
-  @override
-  State<AppCompositionBar> createState() => _AppCompositionBarState();
-}
-
-class _AppCompositionBarState extends State<AppCompositionBar> {
-  /// fl_chart animates *between* states, so a bar built once at its final
-  /// values never moves. Starting empty and swapping on the first frame is
-  /// what makes it grow. A post-frame callback rather than a timer, so a
-  /// widget test settles without one left pending.
-  bool _grown = false;
-
   static const double _height = 22;
 
   /// The surface showing between segments. Two pixels, so adjacent fills read
@@ -79,29 +67,20 @@ class _AppCompositionBarState extends State<AppCompositionBar> {
   static const double _gapPixels = 2;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _grown = true);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (widget.slices.isEmpty || widget.total <= 0) {
+    if (slices.isEmpty || total <= 0) {
       return const SizedBox.shrink();
     }
 
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
     final still = MediaQuery.disableAnimationsOf(context);
-    final grown = _grown || still;
 
-    final accounted = widget.slices.fold<double>(
+    final accounted = slices.fold<double>(
       0,
       (double sum, CompositionSlice s) => sum + s.value,
     );
-    final remainder = (widget.total - accounted).clamp(0.0, widget.total);
+    final remainder = (total - accounted).clamp(0.0, total);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,43 +89,30 @@ class _AppCompositionBarState extends State<AppCompositionBar> {
           height: _height,
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-              // The gap is a spacer segment in the data, sized from the real
-              // width so it lands as two pixels rather than as some fraction
-              // that changes with the screen.
-              final gap = constraints.maxWidth <= 0
-                  ? 0.0
-                  : widget.total * (_gapPixels / constraints.maxWidth);
+              // The gap is sized from the real width so it lands as two
+              // pixels rather than as some fraction that changes with the
+              // screen.
+              final width = constraints.maxWidth;
+              final gap = width <= 0 ? 0.0 : total * (_gapPixels / width);
+              final segments = _segments(theme, remainder, gap);
 
-              return BarChart(
-                duration: still
-                    ? Duration.zero
-                    : const Duration(milliseconds: 700),
-                curve: Curves.easeOutCubic,
-                BarChartData(
-                  // Turned on its side: one rod, running left to right.
-                  rotationQuarterTurns: 1,
-                  alignment: BarChartAlignment.center,
-                  maxY: widget.total,
-                  minY: 0,
-                  gridData: const FlGridData(show: false),
-                  titlesData: const FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  barTouchData: BarTouchData(enabled: false),
-                  barGroups: <BarChartGroupData>[
-                    BarChartGroupData(
-                      x: 0,
-                      barRods: <BarChartRodData>[
-                        BarChartRodData(
-                          toY: grown ? widget.total : 0,
-                          width: _height,
-                          borderRadius: BorderRadius.circular(AppRadius.xs),
-                          color: Colors.transparent,
-                          rodStackItems: grown
-                              ? _stack(theme, remainder, gap)
-                              : const <BarChartRodStackItem>[],
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+                child: Stack(
+                  children: <Widget>[
+                    for (int i = 0; i < segments.length; i++)
+                      Positioned(
+                        left: segments[i].from / total * width,
+                        width:
+                            (segments[i].to - segments[i].from) / total * width,
+                        top: 0,
+                        bottom: 0,
+                        child: _spring(
+                          ColoredBox(color: segments[i].color),
+                          i,
+                          still,
                         ),
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               );
@@ -157,20 +123,20 @@ class _AppCompositionBarState extends State<AppCompositionBar> {
         // The legend carries the figure and the share, so the segments are
         // never the only way to read the chart — and a reader who cannot tell
         // two of the colours apart loses nothing.
-        for (int i = 0; i < widget.slices.length; i++) ...[
+        for (int i = 0; i < slices.length; i++) ...[
           if (i > 0) const SizedBox(height: 9),
           _LegendRow(
-            color: widget.slices[i].color,
-            label: widget.slices[i].label,
-            value: widget.slices[i].valueLabel,
-            share: _share(widget.slices[i].value),
+            color: slices[i].color,
+            label: slices[i].label,
+            value: slices[i].valueLabel,
+            share: _share(slices[i].value),
           ),
         ],
         if (remainder > 0) ...[
           const SizedBox(height: 9),
           _LegendRow(
             color: theme.colorScheme.surfaceContainerHighest,
-            label: widget.remainderLabel,
+            label: remainderLabel,
             value: '',
             share: _share(remainder),
             muted: muted,
@@ -180,47 +146,58 @@ class _AppCompositionBarState extends State<AppCompositionBar> {
     );
   }
 
-  /// Segments end to end along the rod, each one separated from the next by a
-  /// sliver of the card's own colour.
-  List<BarChartRodStackItem> _stack(
+  /// One segment springing out from its own left edge, a beat after the one
+  /// before it. Its overshoot runs into the next segment's room before that
+  /// one arrives. The wait is on the effect, not on `animate`, which uses a
+  /// `Timer` a test's settle never runs out.
+  static Widget _spring(Widget segment, int index, bool still) {
+    if (still) return segment;
+    return segment.animate().scaleX(
+      delay: 250.ms + 140.ms * index,
+      begin: 0,
+      end: 1,
+      alignment: Alignment.centerLeft,
+      duration: 900.ms,
+      curve: const ElasticOutCurve(0.55),
+    );
+  }
+
+  /// Segments end to end along the bar, with the gaps between them left
+  /// empty so the card shows through.
+  List<({double from, double to, Color color})> _segments(
     ThemeData theme,
     double remainder,
     double gap,
   ) {
-    final surface = theme.cardTheme.color ?? theme.colorScheme.surface;
     final parts = <(double, Color)>[
-      for (final CompositionSlice slice in widget.slices)
+      for (final CompositionSlice slice in slices)
         if (slice.value > 0) (slice.value, slice.color),
       if (remainder > 0) (remainder, theme.colorScheme.surfaceContainerHighest),
     ];
-    if (parts.isEmpty) return const <BarChartRodStackItem>[];
+    if (parts.isEmpty) return const <({double from, double to, Color color})>[];
 
     // The separators come out of the bar's length rather than being added to
     // it: laid end to end past the total, the last segment starts beyond the
-    // axis. Gaps that would not fit are dropped instead.
+    // bar's end. Gaps that would not fit are dropped instead.
     final gaps = gap * (parts.length - 1);
-    final spaced = gaps > 0 && gaps < widget.total;
-    final scale = spaced ? (widget.total - gaps) / widget.total : 1.0;
+    final spaced = gaps > 0 && gaps < total;
+    final scale = spaced ? (total - gaps) / total : 1.0;
 
-    final items = <BarChartRodStackItem>[];
+    final items = <({double from, double to, Color color})>[];
     var at = 0.0;
     for (final (double value, Color color) in parts) {
-      if (spaced && items.isNotEmpty) {
-        final to = math.min(at + gap, widget.total);
-        items.add(BarChartRodStackItem(at, to, surface));
-        at = to;
-      }
+      if (spaced && items.isNotEmpty) at = math.min(at + gap, total);
       // Parts adding up past the server's total are cut off at it — the bar
       // never draws beyond its own end.
-      final end = math.min(at + value * scale, widget.total);
-      items.add(BarChartRodStackItem(at, end, color));
+      final end = math.min(at + value * scale, total);
+      items.add((from: at, to: end, color: color));
       at = end;
     }
     return items;
   }
 
   String _share(double value) {
-    final percent = (value / widget.total) * 100;
+    final percent = (value / total) * 100;
     return percent >= 10 || percent == 0
         ? '${percent.round()}%'
         : '${percent.toStringAsFixed(1)}%';

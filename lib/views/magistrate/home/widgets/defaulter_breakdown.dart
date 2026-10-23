@@ -4,8 +4,10 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_radius.dart';
 import '../../../../config/theme/app_series_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/screen_type.dart';
 import '../../../../models/round_group.dart';
 import '../../../../widgets/widgets.dart';
+import 'brand_plate.dart';
 
 class DefaulterBreakdown extends StatelessWidget {
   const DefaulterBreakdown({
@@ -32,12 +34,12 @@ class DefaulterBreakdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color ink = BrandPlate.inkOf(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppCard(
-          lift: AppLift.soft,
-          radius: AppRadius.lg,
+        BrandPlate(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,22 +48,25 @@ class DefaulterBreakdown extends StatelessWidget {
                 value: brokenPromises,
                 label: 'Missed payment',
                 icon: Icons.event_busy_outlined,
+                ink: ink,
                 tone: AppTone.danger,
               ),
-              const _Divider(),
+              _Divider(ink: ink),
               _Stat(
                 value: neverPaid,
                 label: 'Never paid',
                 icon: Icons.money_off_csred_outlined,
+                ink: ink,
                 tone: AppTone.warning,
               ),
-              const _Divider(),
+              _Divider(ink: ink),
               // No tone: a seal count is a fact, not a severity, and a third
               // status colour in the row would make it read as one.
               _Stat(
                 value: sealed,
                 label: 'Sealed',
                 icon: Icons.lock_outline_rounded,
+                ink: ink,
               ),
             ],
           ),
@@ -78,11 +83,8 @@ class DefaulterBreakdown extends StatelessWidget {
             };
             final total = double.tryParse(totalOutstanding?.trim() ?? '');
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (total != null && total > 0) ...[
-                  AppCard(
+            final Widget? share = total != null && total > 0
+                ? AppCard(
                     lift: AppLift.soft,
                     radius: AppRadius.lg,
                     padding: const EdgeInsets.all(14),
@@ -114,37 +116,68 @@ class DefaulterBreakdown extends StatelessWidget {
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                AppCard(
-                  lift: AppLift.soft,
-                  radius: AppRadius.lg,
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const AppText.titleMedium('Outstanding by bazaar'),
-                      const SizedBox(height: 11),
-                      AppBarList(
-                        // Already sorted; keeping the caller's order means the
-                        // bars and the share bar above stay in step.
-                        sorted: false,
-                        data: <BarDatum>[
-                          for (final RoundGroup group in groups)
-                            BarDatum(
-                              label: _name(group),
-                              value: _amount(group),
-                              valueLabel:
-                                  Formatters.money(group.outstanding) ??
-                                  group.outstanding,
-                              caption: _caption(group),
-                              color: colours[_name(group)],
-                            ),
-                        ],
-                      ),
+                  )
+                : null;
+
+            final Widget outstanding = AppCard(
+              lift: AppLift.soft,
+              radius: AppRadius.lg,
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AppText.titleMedium('Outstanding by bazaar'),
+                  const SizedBox(height: 11),
+                  AppBarList(
+                    // Already sorted; keeping the caller's order means the
+                    // bars and the share bar above stay in step.
+                    sorted: false,
+                    data: <BarDatum>[
+                      for (final RoundGroup group in groups)
+                        BarDatum(
+                          label: _name(group),
+                          value: _amount(group),
+                          valueLabel:
+                              Formatters.money(group.outstanding) ??
+                              group.outstanding,
+                          caption: _caption(group),
+                          color: colours[_name(group)],
+                        ),
                     ],
                   ),
+                ],
+              ),
+            );
+
+            if (share == null || context.isMobile) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (share != null) ...[share, const SizedBox(height: 10)],
+                  outstanding,
+                ],
+              );
+            }
+
+            // Side by side wider than a phone. A table rather than
+            // `IntrinsicHeight`, which the charts' `LayoutBuilder`s refuse:
+            // the bar list sets the row's height and the share card fills it.
+            return Table(
+              columnWidths: const <int, TableColumnWidth>{
+                0: FlexColumnWidth(),
+                1: FixedColumnWidth(10),
+                2: FlexColumnWidth(),
+              },
+              children: <TableRow>[
+                TableRow(
+                  children: <Widget>[
+                    TableCell(
+                      verticalAlignment: TableCellVerticalAlignment.fill,
+                      child: share,
+                    ),
+                    const SizedBox.shrink(),
+                    outstanding,
+                  ],
                 ),
               ],
             );
@@ -179,12 +212,16 @@ class _Stat extends StatelessWidget {
     required this.value,
     required this.label,
     required this.icon,
+    required this.ink,
     this.tone,
   });
 
   final int value;
   final String label;
   final IconData icon;
+
+  /// The plate's ink, for everything that carries no tone.
+  final Color ink;
 
   /// Null for a figure that carries no severity — it wears the ordinary ink.
   final AppTone? tone;
@@ -194,9 +231,10 @@ class _Stat extends StatelessWidget {
     // Nothing to be alarmed by at zero: no missed payments is the good
     // outcome, and a red 0 reads as one more thing to chase.
     final bool live = value > 0 && tone != null;
+    // The dark theme's tone in both themes: the plate is dark in both.
     final Color colour = live
-        ? tone!.on(context)
-        : Theme.of(context).colorScheme.onSurfaceVariant;
+        ? tone!.resolve(Brightness.dark)
+        : ink.withValues(alpha: 0.75);
 
     return Expanded(
       child: Column(
@@ -205,16 +243,17 @@ class _Stat extends StatelessWidget {
             height: 26,
             width: 26,
             decoration: BoxDecoration(
-              color: colour.withValues(alpha: 0.12),
+              color: ink.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(icon, size: 14, color: colour),
           ),
           const SizedBox(height: 6),
-          AppCountUp.count(value, color: live ? colour : null),
+          AppCountUp.count(value, color: live ? colour : ink),
           const SizedBox(height: 3),
           AppText.caption(
             label,
+            color: ink,
             maxLines: 1,
             fontWeight: FontWeight.w600,
             textAlign: TextAlign.center,
@@ -226,13 +265,15 @@ class _Stat extends StatelessWidget {
 }
 
 class _Divider extends StatelessWidget {
-  const _Divider();
+  const _Divider({required this.ink});
+
+  final Color ink;
 
   @override
   Widget build(BuildContext context) => Container(
     width: 1,
     height: 44,
     margin: const EdgeInsets.only(top: 4),
-    color: Theme.of(context).dividerColor,
+    color: ink.withValues(alpha: 0.16),
   );
 }

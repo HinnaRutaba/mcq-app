@@ -190,6 +190,10 @@ void main() {
       _seedDashboard();
       return const MagistrateHomeScreen();
     },
+    'home_tablet': () {
+      _seedDashboard();
+      return const MagistrateHomeScreen();
+    },
     // Caught part-way in: the last queue tiles still arriving, and the
     // share bar still drawing itself across.
     'home_arriving': () {
@@ -814,6 +818,7 @@ void main() {
     'login_tablet': Size(820, 1180),
     'login_tablet_landscape': Size(1180, 820),
     'login_desktop': Size(1440, 900),
+    'home_tablet': Size(820, 2000),
   };
 
   const tall = <String, double>{
