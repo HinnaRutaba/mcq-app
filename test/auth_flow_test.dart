@@ -38,6 +38,12 @@ void main() {
   Future<void> pumpLogin(WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp.router(
+        // At 800x600 sign-in takes its tablet layout, whose brand panel loops
+        // and would never settle; reduced motion holds it still.
+        builder: (BuildContext context, Widget? child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
         routerConfig: GoRouter(
           initialLocation: AppRoutes.login,
           routes: <RouteBase>[

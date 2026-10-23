@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../config/theme/app_radius.dart';
 import '../text/app_text.dart';
 
 /// The single text input widget every screen should use.
@@ -30,6 +31,7 @@ class AppTextField extends StatefulWidget {
     this.autofillHints,
     this.dense = false,
     this.optional = false,
+    this.inlineLabel = false,
   });
 
   final String? label;
@@ -62,6 +64,10 @@ class AppTextField extends StatefulWidget {
   /// faster than one where every blank field looks like an unfinished one.
   final bool optional;
 
+  /// Puts [label] inside a filled, borderless field instead of above it — the
+  /// wide sign-in layout. The outline still shows on focus and on error.
+  final bool inlineLabel;
+
   @override
   State<AppTextField> createState() => _AppTextFieldState();
 }
@@ -69,12 +75,19 @@ class AppTextField extends StatefulWidget {
 class _AppTextFieldState extends State<AppTextField> {
   late bool _obscure = widget.obscureText;
 
+  /// The theme's border for a state, redrawn so the label stays inside.
+  InputBorder? _inline(InputBorder? border) => widget.inlineLabel
+      ? _InlineLabelBorder(borderSide: border?.borderSide ?? BorderSide.none)
+      : null;
+
   @override
   Widget build(BuildContext context) {
+    final themed = Theme.of(context).inputDecorationTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.label != null) ...[
+        if (widget.label != null && !widget.inlineLabel) ...[
           Row(
             children: [
               // Flexible, so a label longer than the field wraps rather than
@@ -109,6 +122,23 @@ class _AppTextFieldState extends State<AppTextField> {
           style: Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: widget.hint,
+            labelText: widget.inlineLabel ? widget.label : null,
+            floatingLabelBehavior: widget.inlineLabel
+                ? FloatingLabelBehavior.always
+                : null,
+            fillColor: widget.inlineLabel
+                ? Theme.of(context).colorScheme.surfaceContainer
+                : null,
+            border: widget.inlineLabel ? const _InlineLabelBorder() : null,
+            enabledBorder: widget.inlineLabel
+                ? const _InlineLabelBorder()
+                : null,
+            disabledBorder: widget.inlineLabel
+                ? const _InlineLabelBorder()
+                : null,
+            focusedBorder: _inline(themed.focusedBorder),
+            errorBorder: _inline(themed.errorBorder),
+            focusedErrorBorder: _inline(themed.focusedErrorBorder),
             // Null keeps `InputDecorationTheme`'s own padding, so an ordinary
             // form field is untouched by this.
             contentPadding: widget.dense
@@ -133,4 +163,37 @@ class _AppTextFieldState extends State<AppTextField> {
       ],
     );
   }
+}
+
+/// A rounded outline that reports itself as *not* an outline, so the
+/// decorator floats the label inside the fill rather than onto the edge.
+class _InlineLabelBorder extends OutlineInputBorder {
+  const _InlineLabelBorder({super.borderSide = BorderSide.none})
+    : super(
+        borderRadius: const BorderRadius.all(Radius.circular(AppRadius.md)),
+      );
+
+  @override
+  bool get isOutline => false;
+
+  @override
+  _InlineLabelBorder copyWith({
+    BorderSide? borderSide,
+    BorderRadius? borderRadius,
+    double? gapPadding,
+  }) => _InlineLabelBorder(borderSide: borderSide ?? this.borderSide);
+
+  @override
+  ShapeBorder? lerpFrom(ShapeBorder? a, double t) => a is OutlineInputBorder
+      ? _InlineLabelBorder(
+          borderSide: BorderSide.lerp(a.borderSide, borderSide, t),
+        )
+      : super.lerpFrom(a, t);
+
+  @override
+  ShapeBorder? lerpTo(ShapeBorder? b, double t) => b is OutlineInputBorder
+      ? _InlineLabelBorder(
+          borderSide: BorderSide.lerp(borderSide, b.borderSide, t),
+        )
+      : super.lerpTo(b, t);
 }

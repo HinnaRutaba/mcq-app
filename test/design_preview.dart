@@ -169,6 +169,19 @@ void main() {
           'These credentials do not match our records.';
       return const LoginScreen();
     },
+    'login_tablet': () {
+      Get.find<AuthController>().errorMessage.value = null;
+      return const LoginScreen();
+    },
+    'login_tablet_landscape': () {
+      Get.find<AuthController>().errorMessage.value = null;
+      return const LoginScreen();
+    },
+    'login_desktop': () {
+      Get.find<AuthController>().errorMessage.value =
+          'These credentials do not match our records.';
+      return const LoginScreen();
+    },
     'change_password': () {
       Get.find<AuthController>().errorMessage.value = null;
       return const ChangePasswordScreen();
@@ -796,6 +809,13 @@ void main() {
   // A dashboard is taller than a form. Rendering it at the default height
   // would crop the half worth reviewing — the activity figures — out of the
   // picture, which is how a layout problem goes unseen.
+  // Logical sizes for entries previewed wider than a phone.
+  const wide = <String, Size>{
+    'login_tablet': Size(820, 1180),
+    'login_tablet_landscape': Size(1180, 820),
+    'login_desktop': Size(1440, 900),
+  };
+
   const tall = <String, double>{
     'nav_bar': 400,
     'trade_licences': 2100,
@@ -908,7 +928,12 @@ void main() {
 
   /// Entries that never come to rest — a splash spins until it routes, so
   /// `pumpAndSettle` would wait on an animation that has no end.
-  const neverSettles = <String>{'splash'};
+  const neverSettles = <String>{
+    'splash',
+    'login_tablet',
+    'login_tablet_landscape',
+    'login_desktop',
+  };
 
   /// A nudge to give once the screen is up — a tab to open on a screen that
   /// registers its own controller, which a builder cannot reach before the
@@ -1083,9 +1108,12 @@ void main() {
   for (final entry in screens.entries) {
     for (final mode in <String>['light', 'dark']) {
       testWidgets('${entry.key} ($mode)', (WidgetTester tester) async {
+        final Size? logical = wide[entry.key];
         tester.view
-          ..physicalSize = Size(1080, tall[entry.key] ?? 2100)
-          ..devicePixelRatio = 3;
+          ..physicalSize = logical == null
+              ? Size(1080, tall[entry.key] ?? 2100)
+              : logical * 2
+          ..devicePixelRatio = logical == null ? 3 : 2;
         addTearDown(tester.view.reset);
 
         // Built before the theme, because an entry may choose a colour scheme
@@ -1116,7 +1144,9 @@ void main() {
 
         final catchAt = midFlight[entry.key];
         if (neverSettles.contains(entry.key)) {
-          for (var elapsed = 0; elapsed < 400; elapsed += 16) {
+          // Long enough for the wide sign-in's entrance to land.
+          final int runFor = entry.key == 'splash' ? 400 : 1200;
+          for (var elapsed = 0; elapsed < runFor; elapsed += 16) {
             await tester.pump(const Duration(milliseconds: 16));
           }
         } else if (catchAt == null) {
