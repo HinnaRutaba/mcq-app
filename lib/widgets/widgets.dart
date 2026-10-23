@@ -35,6 +35,7 @@ export 'common/app_pinned_bar.dart';
 export 'common/app_quick_action.dart';
 export 'common/app_search_hero.dart';
 export 'common/app_shrink.dart';
+export 'common/app_sign_out_dialog.dart';
 export 'common/app_sliver_hero_header.dart';
 export 'common/app_press.dart';
 export 'common/app_stat_tile.dart';

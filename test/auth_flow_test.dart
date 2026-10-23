@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
+import 'package:mcq_app/core/network/api_exception.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
+import 'package:mcq_app/models/auth_user.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 
@@ -23,7 +25,7 @@ void main() {
 
   setUp(() {
     Get.reset();
-    api = StubbedApi();
+    api = StubbedApi(onUnauthorized: () => controller.expireSession());
     controller = AuthController(
       authRepository: ApiAuthRepository(api: api.service, storage: api.storage),
     );
@@ -456,6 +458,42 @@ void main() {
 
       expect(await api.storage.readToken(), isNull);
       expect(controller.isSignedIn, isFalse);
+    });
+  });
+
+  group('a session the server ends', () {
+    setUp(() async {
+      await api.storage.saveSession(token: 'live-token');
+      controller.officer.value = AuthUser.fromJson(_user);
+    });
+
+    test('a 403 signs the officer out and says the session expired', () async {
+      api.stub.reply(<String, dynamic>{
+        'message': 'Forbidden.',
+      }, statusCode: 403);
+
+      await expectLater(
+        api.service.get('/authenticated'),
+        throwsA(isA<ApiException>()),
+      );
+
+      expect(controller.isSignedIn, isFalse);
+      expect(await api.storage.readToken(), isNull);
+      expect(
+        controller.errorMessage.value,
+        AuthController.sessionExpiredMessage,
+      );
+    });
+
+    test('a 403 on the logout call is not reported as expiry', () async {
+      api.stub.reply(<String, dynamic>{
+        'message': 'Forbidden.',
+      }, statusCode: 403);
+
+      await controller.signOut();
+
+      expect(controller.isSignedIn, isFalse);
+      expect(controller.errorMessage.value, isNull);
     });
   });
 

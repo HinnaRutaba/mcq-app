@@ -6,8 +6,8 @@ import '../storage/secure_storage_service.dart';
 /// Attaches the bearer token to every authenticated call, and reacts to the
 /// one answer that ends a session.
 ///
-/// A 401 means the stored token is dead. The keychain is cleared here, at the
-/// single place that sees it, so no caller can carry on holding a token the
+/// A 401 or 403 means the session is over. The keychain is cleared here, at
+/// the single place that sees it, so no caller can carry on holding a token the
 /// server has already rejected; [onUnauthorized] is the app's cue to show the
 /// sign-in screen.
 class AuthInterceptor extends Interceptor {
@@ -39,12 +39,16 @@ class AuthInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (_requiresAuth(err.requestOptions) && err.response?.statusCode == 401) {
+    if (_requiresAuth(err.requestOptions) &&
+        _endsSession(err.response?.statusCode)) {
       await _storage.clearSession();
       onUnauthorized?.call();
     }
     handler.next(err);
   }
+
+  static bool _endsSession(int? statusCode) =>
+      statusCode == 401 || statusCode == 403;
 
   bool _requiresAuth(RequestOptions options) =>
       options.extra[requiresAuthKey] != false;

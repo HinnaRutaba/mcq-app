@@ -11,8 +11,8 @@ enum ApiFailure {
   /// 401. The stored token is dead; the keychain has already been cleared.
   unauthorized,
 
-  /// 403. Signed in, but this officer may not do that — most often a unit
-  /// outside their posted bazaars.
+  /// 403. Treated as an expired session: the keychain has already been
+  /// cleared and the officer sent back to sign in.
   forbidden,
   notFound,
 
@@ -87,6 +87,10 @@ class ApiException implements Exception {
   }
 
   bool get isUnauthorized => failure == ApiFailure.unauthorized;
+
+  /// A 401 or 403: the token is gone and the officer must sign in again.
+  bool get endsSession =>
+      failure == ApiFailure.unauthorized || failure == ApiFailure.forbidden;
   bool get isValidation => failure == ApiFailure.validation;
 
   /// Whether retrying the same request could plausibly succeed. Field writes
@@ -130,7 +134,7 @@ class ApiException implements Exception {
     ApiFailure.network => 'No connection. The record is not saved yet.',
     ApiFailure.timeout => 'The server took too long to answer.',
     ApiFailure.unauthorized => 'Your session has ended. Please sign in again.',
-    ApiFailure.forbidden => 'You do not have access to this.',
+    ApiFailure.forbidden => 'Your session has expired. Please sign in again.',
     ApiFailure.notFound => 'That record no longer exists.',
     ApiFailure.validation => 'Please check the details and try again.',
     ApiFailure.conflict => 'That has already been recorded.',

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../config/routes/app_routes.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../../widgets/widgets.dart';
 import 'widgets/appearance_settings.dart';
@@ -55,7 +53,7 @@ class MagistrateProfileScreen extends StatelessWidget {
                   label: 'Log out',
                   icon: Icons.logout_rounded,
                   variant: AppButtonVariant.outline,
-                  onPressed: () => _signOut(context, auth),
+                  onPressed: () => AppSignOutDialog.confirmAndSignOut(context),
                 ),
                 const SizedBox(height: 10),
                 AppText.caption(
@@ -70,40 +68,5 @@ class MagistrateProfileScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// Confirmed, because it is not a small thing in the middle of a round: the
-  /// officer has to sign in again before they can record anything else.
-  Future<void> _signOut(BuildContext context, AuthController auth) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const AppText.titleMedium('Log out?'),
-        content: const AppText.body(
-          'You will need to sign in again before you can record a visit, a '
-          'fine or a seal.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const AppText.label('Stay signed in'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: AppText.label(
-              'Log out',
-              color: Theme.of(context).colorScheme.error,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    // Revokes this device's token server-side. The keychain is cleared even if
-    // that call fails, so this never leaves a live token behind.
-    await auth.signOut();
-    if (context.mounted) context.go(AppRoutes.login);
   }
 }

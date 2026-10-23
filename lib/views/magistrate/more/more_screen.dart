@@ -6,18 +6,6 @@ import '../../../widgets/widgets.dart';
 import '../shared/widgets/back_to_home_button.dart';
 import 'widgets/more_menu_tile.dart';
 
-/// The fifth tab: everything that is not a list of shops to walk to.
-///
-/// Home, Defaulters, Round and Find are the four things an officer does on a
-/// beat, and they earn a permanent place on the bar. Imposing a fine, the seal
-/// register and the officer's own account are all real work but none of them
-/// is a destination somebody taps twenty times a day, so they live one tap
-/// deeper rather than crowding the bar.
-///
-/// Imposing a fine sits at the top because it used to be the centre button.
-/// It is also reached from a unit's profile, which is where it is normally
-/// started — this is the entry for the case where the officer has the shop in
-/// front of them and not on the screen.
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
 
@@ -64,6 +52,16 @@ class MoreScreen extends StatelessWidget {
                   title: 'Profile and appearance',
                   subtitle: 'The account this handset uses, and how it looks.',
                   onTap: () => context.push(AppRoutes.magistrateProfile),
+                ),
+                const SizedBox(height: 24),
+                MoreMenuTile(
+                  icon: Icons.logout_rounded,
+                  title: 'Log out',
+                  subtitle:
+                      'Revokes this handset’s access. Other devices '
+                      'stay signed in.',
+                  tint: Theme.of(context).colorScheme.error,
+                  onTap: () => AppSignOutDialog.confirmAndSignOut(context),
                 ),
               ],
             ),

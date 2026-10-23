@@ -81,6 +81,10 @@ class AuthController extends GetxController {
   /// Cleared the moment the change lands, or the flow is abandoned.
   String? _pendingCurrentPassword;
 
+  /// Set while [signOut] runs, so a 401/403 on the logout call itself is not
+  /// reported as an expired session.
+  bool _signingOut = false;
+
   bool get isSignedIn => officer.value != null;
 
   /// Whether the officer is mid-way through a change they cannot skip. False
@@ -274,7 +278,7 @@ class AuthController extends GetxController {
     } on ApiException catch (error) {
       officer.value = null;
       // A dead token needs no explanation; a connection problem does.
-      errorMessage.value = error.isUnauthorized ? null : error.message;
+      errorMessage.value = error.endsSession ? null : error.message;
       return false;
     } finally {
       isLoading.value = false;
@@ -286,6 +290,7 @@ class AuthController extends GetxController {
   /// The keychain is cleared even if the call fails, so this never leaves a
   /// live token on a handset the officer has finished with.
   Future<void> signOut() async {
+    _signingOut = true;
     isLoading.value = true;
     try {
       await _authRepository.signOut();
@@ -295,8 +300,24 @@ class AuthController extends GetxController {
       officer.value = null;
       reset();
       isLoading.value = false;
+      _signingOut = false;
     }
   }
+
+  /// The server rejected the token (401/403); the keychain is already clear.
+  ///
+  /// Returns false when there was no live session to end — a launch-time
+  /// restore, a deliberate sign-out, or the second of several failing calls.
+  bool expireSession() {
+    if (_signingOut || officer.value == null) return false;
+    officer.value = null;
+    reset();
+    errorMessage.value = sessionExpiredMessage;
+    return true;
+  }
+
+  static const String sessionExpiredMessage =
+      'Your session has expired. Please sign in again.';
 
   void reset() {
     _pendingCurrentPassword = null;

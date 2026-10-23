@@ -34,8 +34,12 @@ class _Header extends StatelessWidget {
   final AuthUser? officer;
   final FieldScope? scope;
 
-  static const double _withScope = 166;
   static const double _nameOnly = 86;
+
+  /// Where [AppSliverHeroHeader] sets the title under a subtitle.
+  static const double _titleTop = 36;
+  static const double _stripSpacing = 14;
+  static const double _bottomMargin = 20;
 
   /// Room for two circles instead of one, or the title runs under the search
   /// action on a long name.
@@ -43,23 +47,39 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scope = this.scope;
+
     return AppSliverHeroHeader(
-      expandedHeight: scope == null ? _nameOnly : _withScope,
+      // A beat of one road and one of six differ by a line, so the strip is
+      // measured rather than budgeted, or the long one rides into the name.
+      expandedHeight: scope == null
+          ? _nameOnly
+          : _titleTop +
+                _textHeight(
+                  context,
+                  'Hg',
+                  Theme.of(context).textTheme.headlineLarge,
+                ) +
+                _stripSpacing +
+                _ScopeStrip.heightFor(context, scope) +
+                _bottomMargin,
       subtitle: officer?.designation ?? 'Signed in',
       title: officer?.name ?? 'Home',
       trailingInset: _twoActions,
-      trailing: const Row(
+      trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          HomeSearchButton(),
-          SizedBox(width: 10),
+          const HomeSearchButton(),
+          const SizedBox(width: 10),
           AppCircleIconButton(
-            icon: Icons.notifications_none_rounded,
-            badge: true,
+            icon: Icons.logout_rounded,
+            iconColor: AppColors.dangerOnDark,
+            onTap: () => AppSignOutDialog.confirmAndSignOut(context),
           ),
         ],
       ),
-      bottom: scope == null ? null : _ScopeStrip(scope: scope!),
+      bottomSpacing: scope == null ? null : _stripSpacing,
+      bottom: scope == null ? null : _ScopeStrip(scope: scope),
     );
   }
 }
@@ -70,16 +90,48 @@ class _ScopeStrip extends StatelessWidget {
 
   final FieldScope scope;
 
+  static const EdgeInsets _padding = EdgeInsets.symmetric(
+    horizontal: 14,
+    vertical: 12,
+  );
+  static const double _iconWidth = 18 + 10;
+
+  static String _areas(FieldScope scope) => scope.areaNames.isEmpty
+      ? 'No bazaars assigned'
+      : scope.areaNames.join(' · ');
+
+  /// The strip's laid-out height at this screen width and text scale.
+  static double heightFor(BuildContext context, FieldScope scope) {
+    final text = Theme.of(context).textTheme;
+    final width =
+        MediaQuery.sizeOf(context).width -
+        40 -
+        _padding.horizontal -
+        _iconWidth;
+
+    double measure(String value, TextStyle? style, int maxLines) =>
+        _textHeight(context, value, style, maxLines: maxLines, width: width);
+
+    final caption = measure('Your beat', text.labelSmall, 1);
+    return _padding.vertical +
+        caption +
+        3 +
+        measure(
+          _areas(scope),
+          text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          2,
+        ) +
+        (scope.zoneNames.isEmpty ? 0 : 2 + caption);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final areas = scope.areaNames.isEmpty
-        ? 'No bazaars assigned'
-        : scope.areaNames.join(' · ');
+    final areas = _areas(scope);
     final muted = Colors.white.withValues(alpha: 0.75);
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: _padding,
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -119,6 +171,25 @@ class _ScopeStrip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// How tall [value] lays out in [style] at the device's text scale.
+double _textHeight(
+  BuildContext context,
+  String value,
+  TextStyle? style, {
+  int maxLines = 1,
+  double width = double.infinity,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: value, style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: maxLines,
+  )..layout(maxWidth: width);
+  final height = painter.height;
+  painter.dispose();
+  return height;
 }
 
 Widget _page(DashboardController controller) {

@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../config/routes/app_router.dart';
+import '../config/routes/app_routes.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/cases_controller.dart';
 import '../controllers/challans_controller.dart';
@@ -42,10 +44,16 @@ void setupDependencies() {
   final storage = SecureStorageService();
   Get.put<SecureStorageService>(storage, permanent: true);
 
-  // A 401 has already cleared the keychain by the time `onUnauthorized` fires;
-  // wire it to the router when the app starts routing on session state, so a
-  // dead token lands the officer on the sign-in screen instead of an empty one.
-  final api = ApiService(storage: storage);
+  // A 401/403 has already cleared the keychain by the time this fires. Looked
+  // up lazily: the controller is registered further down.
+  final api = ApiService(
+    storage: storage,
+    onUnauthorized: () {
+      if (Get.find<AuthController>().expireSession()) {
+        appRouter.go(AppRoutes.login);
+      }
+    },
+  );
   Get.put<ApiService>(api, permanent: true);
 
   Get.put<PermissionService>(const PermissionService(), permanent: true);

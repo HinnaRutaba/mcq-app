@@ -236,6 +236,24 @@ void main() {
       expect(await storage.readToken(), isNull);
     });
 
+    test('a 403 on an authenticated call ends the session too', () async {
+      var ended = 0;
+      final stubbed = StubbedApi(onUnauthorized: () => ended++);
+      await stubbed.storage.saveSession(token: 'dead-token');
+      stubbed.stub.reply(<String, dynamic>{
+        'message': 'Forbidden.',
+      }, statusCode: 403);
+
+      await expectLater(
+        stubbed.service.get('/authenticated'),
+        throwsA(
+          isA<ApiException>().having((e) => e.endsSession, 'endsSession', true),
+        ),
+      );
+      expect(await stubbed.storage.readToken(), isNull);
+      expect(ended, 1);
+    });
+
     test(
       'a 401 from the sign-in call leaves an existing session alone',
       () async {

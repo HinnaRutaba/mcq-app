@@ -187,7 +187,8 @@ class StubNetworkProbe implements NetworkProbe {
 /// Everything here is real except the socket and the platform keychain, so a
 /// test exercises the actual interceptors, envelope handling and error mapping.
 class StubbedApi {
-  StubbedApi({StubNetworkProbe? probe}) : probe = probe ?? StubNetworkProbe() {
+  StubbedApi({StubNetworkProbe? probe, VoidCallback? onUnauthorized})
+    : probe = probe ?? StubNetworkProbe() {
     FlutterSecureStoragePlatform.instance = TestFlutterSecureStoragePlatform(
       keychain,
     );
@@ -199,6 +200,7 @@ class StubbedApi {
       // payloads here are long enough to bury the results.
       logLevel: ApiLogLevel.summary,
       networkProbe: this.probe,
+      onUnauthorized: onUnauthorized,
     );
   }
 
