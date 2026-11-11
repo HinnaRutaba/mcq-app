@@ -1,5 +1,3 @@
-import 'dart:io' show Platform;
-
 import 'package:permission_handler/permission_handler.dart';
 
 /// What the officer actually needs the OS to allow, named by the job rather
@@ -8,9 +6,6 @@ enum AppPermission {
   /// Photographing a shopfront as evidence for a fine, a seal or a visit —
   /// `photo_path`, `seal_photo_path`, `signature_path` all start here.
   camera,
-
-  /// Picking an already-taken photograph out of the library.
-  gallery,
 
   /// Being told about follow-ups falling due and cases assigned by the
   /// taxation branch. The officer's server-side `notification.view` permission
@@ -27,8 +22,8 @@ enum AppPermission {
 enum PermissionOutcome {
   granted,
 
-  /// iOS "limited" photo access, and provisional notifications. Enough to get
-  /// on with the job.
+  /// Limited or provisional access (e.g. provisional notifications). Enough to
+  /// get on with the job.
   partial,
 
   /// Refused this once; asking again later is allowed.
@@ -62,19 +57,8 @@ class PermissionService {
       _outcome(await _permissionFor(permission).status);
 
   /// Prompts if the OS still allows prompting, and reports where things stand.
-  Future<PermissionOutcome> request(AppPermission permission) async {
-    final outcome = _outcome(await _permissionFor(permission).request());
-
-    // Android below 13 has no READ_MEDIA_IMAGES, so `Permission.photos`
-    // resolves to nothing there; fall back to the legacy storage read.
-    if (permission == AppPermission.gallery &&
-        !outcome.isUsable &&
-        Platform.isAndroid) {
-      return _outcome(await Permission.storage.request());
-    }
-
-    return outcome;
-  }
+  Future<PermissionOutcome> request(AppPermission permission) async =>
+      _outcome(await _permissionFor(permission).request());
 
   /// Convenience for the common "carry on only if allowed" call site.
   Future<bool> ensure(AppPermission permission) async =>
@@ -103,7 +87,6 @@ class PermissionService {
 
   Permission _permissionFor(AppPermission permission) => switch (permission) {
     AppPermission.camera => Permission.camera,
-    AppPermission.gallery => Permission.photos,
     AppPermission.notifications => Permission.notification,
     // When-in-use only: the app records a fix while the officer is looking at
     // it, and never tracks them in the background.

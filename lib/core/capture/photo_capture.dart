@@ -54,20 +54,22 @@ class PhotoCapture {
 
   /// For the shop photographed a minute ago, before the officer opened the
   /// form — and for the handsets whose camera the OS will not hand over.
-  Future<PhotoCaptureResult> fromGallery() =>
-      _pick(ImageSource.gallery, AppPermission.gallery);
+  /// No permission: the system photo picker hands over only what is chosen.
+  Future<PhotoCaptureResult> fromGallery() => _pick(ImageSource.gallery);
 
   Future<PhotoCaptureResult> _pick(
-    ImageSource source,
-    AppPermission permission,
-  ) async {
-    final outcome = await _permissions.request(permission);
-    if (!outcome.isUsable) {
-      return PhotoCaptureResult(
-        outcome.needsSettings
-            ? PhotoOutcome.needsSettings
-            : PhotoOutcome.refused,
-      );
+    ImageSource source, [
+    AppPermission? permission,
+  ]) async {
+    if (permission != null) {
+      final outcome = await _permissions.request(permission);
+      if (!outcome.isUsable) {
+        return PhotoCaptureResult(
+          outcome.needsSettings
+              ? PhotoOutcome.needsSettings
+              : PhotoOutcome.refused,
+        );
+      }
     }
 
     final XFile? file = await _picker.pickImage(

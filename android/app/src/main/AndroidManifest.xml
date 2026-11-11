@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Every screen is server-backed. Flutter adds INTERNET only to the debug
          and profile manifests, so a release build needs it declared here. -->
     <uses-permission android:name="android.permission.INTERNET"/>
@@ -11,10 +12,13 @@
     <!-- Photographing a shopfront, a seal or a signature as evidence for a
          fine, a visit or a seal (POST /enforcement/evidence). -->
     <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-    <uses-permission
-        android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32"/>
+
+    <!-- The gallery goes through the system Photo Picker, which needs no
+         permission. Play rejects these broad media reads, so strip them even
+         if a plugin merges one in. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" tools:node="remove"/>
 
     <!-- Follow-ups falling due, and cases assigned by the taxation branch. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
