@@ -4,7 +4,7 @@
 class ApiConfig {
   ApiConfig._();
 
-  static const String baseUrl = 'https://stag.planmycrew.com';
+  static const String baseUrl = 'https://mrms.mcq.gob.pk';
 
   /// Version prefix every documented path shares. Used by [ApiPaths.resolve]
   /// when routing from an endpoint the server handed us.
