@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../widgets/widgets.dart';
-import '../../../../config/theme/app_radius.dart';
+import '../../config/theme/app_radius.dart';
+import '../text/app_text.dart';
+import 'app_card.dart';
 
-/// One row on the "More" hub: an icon, what the destination is, and a line
-/// saying what the officer will find there.
+/// One row on a "More" hub, in either workspace: an icon, what the
+/// destination is, and a line saying what the officer will find there.
 ///
 /// Built on [AppCard] so it carries the app's one card surface, radius and
 /// border rather than a second hand-rolled one.

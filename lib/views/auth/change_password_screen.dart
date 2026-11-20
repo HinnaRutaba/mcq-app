@@ -29,7 +29,7 @@ class ChangePasswordScreen extends StatelessWidget {
 
     switch (outcome) {
       case PasswordChangeOutcome.success:
-        context.go(AppRoutes.magistrateHome);
+        context.go(AppRoutes.homeFor(controller.access.value));
       case PasswordChangeOutcome.signInRequired:
         // The password did change; only the session did not survive it. The
         // controller has already put the explanation on the sign-in screen.

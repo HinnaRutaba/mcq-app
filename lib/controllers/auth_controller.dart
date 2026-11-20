@@ -5,6 +5,8 @@ import '../core/network/api_exception.dart';
 import '../core/utils/device_name.dart';
 import '../data/repositories/auth_repository.dart';
 import '../models/auth_user.dart';
+import '../models/device_session.dart';
+import '../models/mobile_access.dart';
 
 enum SignInOutcome {
   success,
@@ -70,6 +72,10 @@ class AuthController extends GetxController {
   final RxnString errorMessage = RxnString();
 
   final Rxn<AuthUser> officer = Rxn<AuthUser>();
+
+  /// Which workspaces this session may draw — the server's `mobile` block,
+  /// recomputed on every session read.
+  final Rxn<MobileAccess> access = Rxn<MobileAccess>();
 
   String? _usernameServerError;
   String? _passwordServerError;
@@ -161,7 +167,7 @@ class AuthController extends GetxController {
         deviceName: await _deviceName(),
       );
 
-      officer.value = session.user;
+      _adopt(session);
 
       if (session.mustChangePassword) {
         _pendingCurrentPassword = passwordController.text;
@@ -232,14 +238,14 @@ class AuthController extends GetxController {
         password: newPassword,
         deviceName: await _deviceName(),
       );
-      officer.value = session.user;
+      _adopt(session);
       _clearPasswordFields();
       return PasswordChangeOutcome.success;
     } catch (_) {
       // Do not report this as a failed change — it succeeded. The officer just
       // has to sign in with the password they have only just set.
       _clearPasswordFields();
-      officer.value = null;
+      _drop();
       errorMessage.value =
           'Your password was changed. Please sign in with your new password.';
       return PasswordChangeOutcome.signInRequired;
@@ -269,14 +275,14 @@ class AuthController extends GetxController {
     isLoading.value = true;
     try {
       final session = await _authRepository.currentSession();
-      officer.value = session.user;
+      _adopt(session);
       if (session.mustChangePassword) {
         errorMessage.value = _mustChangePasswordMessage;
         return false;
       }
       return true;
     } on ApiException catch (error) {
-      officer.value = null;
+      _drop();
       // A dead token needs no explanation; a connection problem does.
       errorMessage.value = error.endsSession ? null : error.message;
       return false;
@@ -297,7 +303,7 @@ class AuthController extends GetxController {
     } on ApiException catch (_) {
       // Already cleared locally by the repository — nothing to recover from.
     } finally {
-      officer.value = null;
+      _drop();
       reset();
       isLoading.value = false;
       _signingOut = false;
@@ -310,10 +316,31 @@ class AuthController extends GetxController {
   /// restore, a deliberate sign-out, or the second of several failing calls.
   bool expireSession() {
     if (_signingOut || officer.value == null) return false;
-    officer.value = null;
+    _drop();
     reset();
     errorMessage.value = sessionExpiredMessage;
     return true;
+  }
+
+  /// Re-reads the session on resume, so a role or permission changed since
+  /// sign-in redraws. Failures are left alone: a 401 has already routed to
+  /// sign-in, and no signal is not a reason to drop a workspace.
+  Future<void> refreshAccess() async {
+    if (officer.value == null) return;
+    try {
+      _adopt(await _authRepository.currentSession());
+    } on ApiException catch (_) {}
+  }
+
+  void _adopt(DeviceSession session) {
+    // Access first: anything watching the officer reads it when it fires.
+    access.value = session.access;
+    officer.value = session.user;
+  }
+
+  void _drop() {
+    officer.value = null;
+    access.value = null;
   }
 
   static const String sessionExpiredMessage =

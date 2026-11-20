@@ -4,7 +4,8 @@
 class ApiConfig {
   ApiConfig._();
 
-  static const String baseUrl = 'https://stag.planmycrew.com';
+  static const String baseUrl = 'https://mrms.mcq.gob.pk';
+  //static const String baseUrl = 'https://stag.planmycrew.com';
 
   /// Version prefix every documented path shares. Used by [ApiPaths.resolve]
   /// when routing from an endpoint the server handed us.
@@ -93,6 +94,16 @@ class ApiPaths {
       '${ApiConfig.apiPrefix}/trade/field/pending';
   static const String tradeApplications =
       '${ApiConfig.apiPrefix}/trade/applications/field';
+
+  // 11. The agreement workspace — CMO and Administrator
+  static const String intakes = '${ApiConfig.apiPrefix}/allotment/intakes';
+  static const String intakesDashboard =
+      '${ApiConfig.apiPrefix}/allotment/intakes/dashboard';
+  static String intake(String id) => '$intakes/$id';
+
+  /// A review act: `endorse`, `approve`, `reject`, `return`, `respond`,
+  /// `dispatch`. The case's `act_options` also carry the path itself.
+  static String intakeAct(String id, String act) => '$intakes/$id/$act';
 
   /// Turns an endpoint the server handed us — a home-screen queue's
   /// `endpoint`, e.g. `enforcement/field/seals?ready=1` — into a path and a

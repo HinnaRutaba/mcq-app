@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../../../config/theme/app_brand.dart';
-import '../../../../config/theme/app_radius.dart';
-import '../../../../config/theme/app_shadows.dart';
-import '../../../../widgets/widgets.dart';
+import '../../config/theme/app_brand.dart';
+import '../../config/theme/app_radius.dart';
+import '../../config/theme/app_shadows.dart';
+import '../common/app_sweep_clipper.dart';
 
-/// The home page's dark blocks: the brand gradient, a curved wash clipped
+/// The dashboards' dark blocks: the brand gradient, a curved wash clipped
 /// across it and a warm glow out of the corner.
 ///
 /// Dark mode does not use the header gradient — it is near-black, and a
 /// near-black card on a near-black page is not a card. There the plate is the
 /// raised surface with the brand mixed into it.
-class BrandPlate extends StatelessWidget {
-  const BrandPlate({
+class AppBrandPlate extends StatelessWidget {
+  const AppBrandPlate({
     super.key,
     required this.child,
     this.padding = const EdgeInsets.fromLTRB(16, 13, 16, 14),

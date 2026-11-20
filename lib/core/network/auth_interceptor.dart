@@ -17,6 +17,10 @@ class AuthInterceptor extends Interceptor {
   /// token to send and whose 401 means "wrong password", not "session over".
   static const String requiresAuthKey = 'mcq.requires_auth';
 
+  /// Set to `false` where a 403 means "not yours to act on" rather than a dead
+  /// session — the agreement workspace. A 401 still ends the session.
+  static const String forbiddenEndsSessionKey = 'mcq.forbidden_ends_session';
+
   final SecureStorageService _storage;
   final VoidCallback? onUnauthorized;
 
@@ -40,15 +44,16 @@ class AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     if (_requiresAuth(err.requestOptions) &&
-        _endsSession(err.response?.statusCode)) {
+        _endsSession(err.requestOptions, err.response?.statusCode)) {
       await _storage.clearSession();
       onUnauthorized?.call();
     }
     handler.next(err);
   }
 
-  static bool _endsSession(int? statusCode) =>
-      statusCode == 401 || statusCode == 403;
+  static bool _endsSession(RequestOptions options, int? statusCode) =>
+      statusCode == 401 ||
+      (statusCode == 403 && options.extra[forbiddenEndsSessionKey] != false);
 
   bool _requiresAuth(RequestOptions options) =>
       options.extra[requiresAuthKey] != false;

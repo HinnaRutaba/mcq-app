@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.1+3
+version: 1.0.2+4
 
 environment:
   sdk: ^3.12.2
@@ -48,6 +48,10 @@ dependencies:
 
   # --- Field capture, for the evidence a fine has to carry ---------------
   image_picker: ^1.2.3 # the photograph; compressed on the way out
+  # Named directly only to switch Android to the system Photo Picker, the
+  # one gallery that honours a selection limit (see PhotoCapture).
+  image_picker_android: ^0.8.13+21
+  image_picker_platform_interface: ^2.11.1
   geolocator: ^14.0.2 # the GPS fix, with the accuracy the OS reports
   signature: ^6.4.0 # the witness signature, drawn on the handset
 
@@ -55,6 +59,7 @@ dependencies:
   # `reporting/map`. Needs a Google Maps key per platform — see
   # `android/local.properties` and `ios/Flutter/Maps.xcconfig`.
   google_maps_flutter: ^2.18.1
+  pdfrx: ^3.0.0
 
 dev_dependencies:
   flutter_test:

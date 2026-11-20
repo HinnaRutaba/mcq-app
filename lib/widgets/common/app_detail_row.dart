@@ -20,7 +20,9 @@ class AppDetailRow extends StatelessWidget {
 
   final IconData icon;
   final String value;
-  final int maxLines;
+
+  /// Null lets the value wrap to as many lines as it needs.
+  final int? maxLines;
 
   /// An action the fact carries — a call button beside a number.
   final Widget? trailing;
@@ -31,11 +33,20 @@ class AppDetailRow extends StatelessWidget {
       context,
     ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
 
+    // An unlimited value keeps its glyph beside the first line; a row with
+    // a button stays centred on it.
+    final bool wraps = maxLines == null && trailing == null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: wraps
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: <Widget>[
-          Icon(icon, size: 16, color: muted),
+          Padding(
+            padding: EdgeInsets.only(top: wraps ? 2 : 0),
+            child: Icon(icon, size: 16, color: muted),
+          ),
           const SizedBox(width: 10),
           Expanded(child: AppText.body(value, maxLines: maxLines)),
           if (trailing != null) ...<Widget>[

@@ -328,12 +328,9 @@ class _WitnessSection extends StatelessWidget {
     final PhotoOutcome outcome = await controller.attachPhoto();
     if (!context.mounted) return;
     if (outcome == PhotoOutcome.needsSettings) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: AppText.body(
-            'Allow the camera in Settings to photograph the seal.',
-          ),
-        ),
+      AppSnackBar.show(
+        context,
+        'Allow the camera in Settings to photograph the seal.',
       );
     }
   }

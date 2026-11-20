@@ -1,3 +1,5 @@
+import '../../models/mobile_access.dart';
+
 /// Route path constants used with [GoRouter].
 ///
 /// Screens and controllers should always navigate through these constants
@@ -7,6 +9,51 @@ class AppRoutes {
 
   static const String splash = '/';
   static const String login = '/login';
+
+  /// Where a signed-in officer lands, from the session's `mobile` block. Two
+  /// workspaces — or none — go to the switcher, which says which.
+  static String homeFor(MobileAccess? access) {
+    if (access == null) return magistrateHome;
+    final MobileWorkspace? only = access.only;
+    return only == null ? workspaces : homeOf(only);
+  }
+
+  static String homeOf(MobileWorkspace workspace) => switch (workspace) {
+    MobileWorkspace.field => magistrateHome,
+    MobileWorkspace.agreements => agreementsHome,
+  };
+
+  /// The workspace switcher, for an officer holding more than one role.
+  static const String workspaces = '/workspaces';
+
+  // --- Agreement shell branches (CMO, Administrator) --------------------
+  static const String agreementsHome = '/agreements/home';
+  static const String agreementsCases = '/agreements/cases';
+  static const String agreementsMore = '/agreements/more';
+  static const String agreementsProfile = '/agreements/more/profile';
+  static const String agreementsProfileSegment = 'profile';
+
+  /// One case, pushed over the shell. The row tapped rides as `extra` so the
+  /// header draws before the detail lands.
+  static const String agreementCase = '/agreements/case/:id';
+
+  static String agreementCasePath(String id) =>
+      '/agreements/case/${Uri.encodeComponent(id)}';
+
+  /// Taking one act on a case: `?act=endorse` etc. The displayed case rides
+  /// as `extra`, because its `lock_version` is what the act is checked against.
+  static const String agreementDecision = '/agreements/case/:id/decide';
+
+  /// The case drawn on stamp paper. Drawn from the case riding as `extra`.
+  static const String agreementStampPaper = '/agreements/case/:id/stamp-paper';
+
+  static String agreementStampPaperPath(String id) =>
+      '${agreementCasePath(id)}/stamp-paper';
+
+  static String agreementDecisionPath(String id, String act) => Uri(
+    path: '${agreementCasePath(id)}/decide',
+    queryParameters: <String, String>{'act': act},
+  ).toString();
 
   /// The password change an officer cannot skip, when the server says
   /// `must_change_password`. Reached from sign-in, and only from there — it

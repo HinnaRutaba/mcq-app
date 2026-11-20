@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../controllers/agreement_cases_controller.dart';
+import '../controllers/agreement_dashboard_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/cases_controller.dart';
 import '../controllers/challans_controller.dart';
@@ -47,4 +49,6 @@ void _dropSessionControllers() {
   Get.delete<CasesController>();
   Get.delete<FollowUpsController>();
   Get.delete<RoundController>();
+  Get.delete<AgreementDashboardController>();
+  Get.delete<AgreementCasesController>();
 }

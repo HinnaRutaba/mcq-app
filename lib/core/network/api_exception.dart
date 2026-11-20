@@ -34,6 +34,7 @@ class ApiException implements Exception {
     this.code,
     this.statusCode,
     this.errors = const <String, List<String>>{},
+    this.reference,
   });
 
   final String message;
@@ -46,6 +47,9 @@ class ApiException implements Exception {
   /// Field name -> messages, straight from `errors`. Feed these back onto the
   /// form fields they name rather than showing [message] alone.
   final Map<String, List<String>> errors;
+
+  /// The log reference a `500 database_error` carries, for MCQ IT.
+  final String? reference;
 
   factory ApiException.fromDio(DioException error) {
     final statusCode = error.response?.statusCode;
@@ -60,6 +64,7 @@ class ApiException implements Exception {
 
     String? message;
     String? code;
+    String? reference;
     final errors = <String, List<String>>{};
 
     final body = error.response?.data;
@@ -67,6 +72,7 @@ class ApiException implements Exception {
       final json = Map<String, dynamic>.from(body);
       message = Json.string(json['message']);
       code = Json.string(json['code']);
+      reference = Json.string(json['reference']);
       final raw = json['errors'];
       if (raw is Map) {
         raw.forEach((Object? field, Object? messages) {
@@ -83,6 +89,7 @@ class ApiException implements Exception {
       code: code,
       statusCode: statusCode,
       errors: errors,
+      reference: reference,
     );
   }
 

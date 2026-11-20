@@ -533,9 +533,7 @@ class _ConsumerNumber extends StatelessWidget {
         IconButton(
           onPressed: () {
             Clipboard.setData(ClipboardData(text: consumerNumber));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: AppText.body('Consumer number copied')),
-            );
+            AppSnackBar.show(context, 'Consumer number copied');
           },
           icon: const Icon(Icons.copy_rounded, size: 18),
           tooltip: 'Copy',

@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 
 import '../core/network/api_exception.dart';
 import '../data/repositories/trade_repository.dart';
+import '../models/app_role.dart';
 import '../models/auth_user.dart';
 import '../models/field_beat.dart';
 import '../models/trade_beat.dart';
@@ -90,12 +91,20 @@ class TradeBeatController extends GetxController {
   void _onSessionChanged(AuthUser? officer) {
     // A session that cannot be used is not a session to fetch on: the server
     // refuses everything else while `must_change_password` stands.
-    if (officer == null || officer.mustChangePassword) {
+    if (officer == null ||
+        officer.mustChangePassword ||
+        !_isMagistrate(officer)) {
       if (isReady || errorMessage.value != null) clear();
       return;
     }
     load();
   }
+
+  /// The beat is the magistrate's posting; a CMO or Administrator has none.
+  /// A pre-`mobile` server sends no roles, and its sessions are all field.
+  bool _isMagistrate(AuthUser officer) =>
+      officer.hasRole(AppRole.magistrate) ||
+      _auth.access.value?.fromServer == false;
 
   /// Throws the bazaars away. Called on sign-out: the next officer on this
   /// handset is posted to their own, not the last one's.
