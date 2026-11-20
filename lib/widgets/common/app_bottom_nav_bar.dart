@@ -154,72 +154,111 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     final double? gap = centerGap;
-    final Color surface = Theme.of(context).colorScheme.surface;
+    final bool dark = theme.brightness == Brightness.dark;
 
     final Widget row = SafeArea(
       top: false,
-      child: Row(
-        children: [
-          for (var i = 0; i < entries.length; i++) ...[
-            if (gap != null && i == entries.length ~/ 2) SizedBox(width: gap),
-            Expanded(
-              child: AppBottomNavItem(
-                entry: entries[i],
-                selected: i == currentIndex,
-                onTap: () => onTap(i),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(6, 4, 6, 0),
+        child: Row(
+          children: [
+            for (var i = 0; i < entries.length; i++) ...[
+              if (gap != null && i == entries.length ~/ 2) SizedBox(width: gap),
+              Expanded(
+                child: AppBottomNavItem(
+                  entry: entries[i],
+                  selected: i == currentIndex,
+                  onTap: () => onTap(i),
+                ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
 
-    if (gap == null) {
-      return Container(
-        decoration: BoxDecoration(
-          color: surface,
-          border: Border(
-            top: BorderSide(color: Theme.of(context).dividerColor),
-          ),
-        ),
-        child: row,
-      );
-    }
-
-    return PhysicalShape(
-      clipper: _NotchClipper(width: gap, radius: centerGapRadius),
-      color: surface,
-      elevation: 4,
-      shadowColor: Colors.black.withValues(alpha: 0.18),
-      child: row,
+    return CustomPaint(
+      painter: _BarPainter(
+        notchWidth: gap,
+        notchRadius: centerGapRadius,
+        color: theme.colorScheme.surface,
+        borderColor: theme.dividerColor,
+        shadowColor: Colors.black.withValues(alpha: dark ? 0.45 : 0.08),
+      ),
+      // Transparent Material so the item ripples draw above the painted fill.
+      child: Material(type: MaterialType.transparency, child: row),
     );
   }
 }
 
-class _NotchClipper extends CustomClipper<Path> {
-  const _NotchClipper({required this.width, this.radius});
+/// Fills the bar, lifts it with a soft shadow and traces its edge — rounded
+/// top corners, plus the notch when there is a center gap.
+class _BarPainter extends CustomPainter {
+  const _BarPainter({
+    required this.notchWidth,
+    required this.notchRadius,
+    required this.color,
+    required this.borderColor,
+    required this.shadowColor,
+  });
 
-  final double width;
-  final double? radius;
+  final double? notchWidth;
+  final double? notchRadius;
+  final Color color;
+  final Color borderColor;
+  final Color shadowColor;
+
+  static const ShapeBorder _host = RoundedRectangleBorder(
+    borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+  );
+
+  Path _outline(Size size) {
+    // Pushed just past the sides and bottom so the stroke only shows on top.
+    final Rect host = Rect.fromLTRB(-1, 0, size.width + 1, size.height + 1);
+    final double? width = notchWidth;
+    if (width == null) return _host.getOuterPath(host);
+    return AutomaticNotchedShape(
+      _host,
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(notchRadius ?? width / 2),
+      ),
+    ).getOuterPath(
+      host,
+      Rect.fromCenter(
+        center: Offset(size.width / 2, 0),
+        width: width,
+        height: width,
+      ),
+    );
+  }
 
   @override
-  Path getClip(Size size) =>
-      AutomaticNotchedShape(
-        const RoundedRectangleBorder(),
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radius ?? width / 2),
-        ),
-      ).getOuterPath(
-        Offset.zero & size,
-        Rect.fromCenter(
-          center: Offset(size.width / 2, 0),
-          width: width,
-          height: width,
-        ),
+  void paint(Canvas canvas, Size size) {
+    final Path path = _outline(size);
+    canvas
+      ..drawPath(
+        path.shift(const Offset(0, -2)),
+        Paint()
+          ..color = shadowColor
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+      )
+      ..drawPath(path, Paint()..color = color)
+      ..drawPath(
+        path,
+        Paint()
+          ..color = borderColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1,
       );
+  }
 
   @override
-  bool shouldReclip(_NotchClipper oldClipper) =>
-      oldClipper.width != width || oldClipper.radius != radius;
+  bool shouldRepaint(_BarPainter old) =>
+      old.notchWidth != notchWidth ||
+      old.notchRadius != notchRadius ||
+      old.color != color ||
+      old.borderColor != borderColor ||
+      old.shadowColor != shadowColor;
 }

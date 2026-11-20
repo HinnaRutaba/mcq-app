@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/routes/app_routes.dart';
+import '../../../controllers/auth_controller.dart';
 import '../../../widgets/widgets.dart';
 import '../shared/widgets/back_to_home_button.dart';
-import 'widgets/more_menu_tile.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -53,6 +54,23 @@ class MoreScreen extends StatelessWidget {
                   subtitle: 'The account this handset uses, and how it looks.',
                   onTap: () => context.push(AppRoutes.magistrateProfile),
                 ),
+                // Only for an officer the server gave more than one workspace.
+                if (Get.isRegistered<AuthController>())
+                  Obx(() {
+                    final auth = Get.find<AuthController>();
+                    if (!(auth.access.value?.hasMany ?? false)) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: MoreMenuTile(
+                        icon: Icons.swap_horiz_rounded,
+                        title: 'Switch workspace',
+                        subtitle: 'Your account also reviews agreements.',
+                        onTap: () => context.go(AppRoutes.workspaces),
+                      ),
+                    );
+                  }),
                 const SizedBox(height: 24),
                 MoreMenuTile(
                   icon: Icons.logout_rounded,

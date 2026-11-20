@@ -1,4 +1,5 @@
 import '../core/utils/json_parse.dart';
+import 'app_role.dart';
 
 /// The signed-in officer, as returned by sign-in and by the session check.
 ///
@@ -23,7 +24,8 @@ class AuthUser {
     this.lastLoginAt,
     this.passwordChangedAt,
     this.permissions = const <String>[],
-    this.roles = const <String>[],
+    this.roles = const <AppRole>[],
+    this.otherRoles = const <String>[],
     this.createdAt,
   });
 
@@ -55,8 +57,12 @@ class AuthUser {
   /// Dotted permission strings, e.g. `enforcement.fine.impose`.
   final List<String> permissions;
 
-  /// e.g. `MAGISTRATE`.
-  final List<String> roles;
+  /// The roles this build knows, in the order the server sent them.
+  final List<AppRole> roles;
+
+  /// Role codes the server sent that [AppRole] does not name yet — kept so
+  /// they still show, not silently dropped.
+  final List<String> otherRoles;
   final DateTime? createdAt;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
@@ -76,11 +82,16 @@ class AuthUser {
     lastLoginAt: Json.dateTime(json['last_login_at']),
     passwordChangedAt: Json.dateTime(json['password_changed_at']),
     permissions: Json.stringList(json['permissions']),
-    roles: Json.stringList(json['roles']),
+    roles: Json.stringList(
+      json['roles'],
+    ).map(AppRole.fromCode).whereType<AppRole>().toList(),
+    otherRoles: Json.stringList(
+      json['roles'],
+    ).where((String code) => AppRole.fromCode(code) == null).toList(),
     createdAt: Json.dateTime(json['created_at']),
   );
 
   bool can(String permission) => permissions.contains(permission);
 
-  bool hasRole(String role) => roles.contains(role);
+  bool hasRole(AppRole role) => roles.contains(role);
 }

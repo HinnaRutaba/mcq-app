@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../models/app_role.dart';
 import '../../../../models/auth_user.dart';
 import '../../../../widgets/widgets.dart';
 
@@ -46,7 +47,12 @@ class OfficerCard extends StatelessWidget {
                       spacing: 6,
                       runSpacing: 6,
                       children: <Widget>[
-                        for (final String role in officer.roles)
+                        for (final AppRole role in officer.roles)
+                          AppStatusBadge(
+                            label: role.code,
+                            tone: AppTone.primary,
+                          ),
+                        for (final String role in officer.otherRoles)
                           AppStatusBadge(label: role, tone: AppTone.primary),
                         if (officer.isLocked)
                           const AppStatusBadge(

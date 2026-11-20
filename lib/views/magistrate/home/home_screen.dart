@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mcq_app/views/magistrate/home/widgets/defaulter_breakdown.dart';
 
-import '../../../config/theme/app_brand.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../../config/theme/app_radius.dart';
 import '../../../controllers/dashboard_controller.dart';
@@ -15,7 +14,6 @@ import '../../../widgets/widgets.dart';
 import 'queue_destination.dart';
 import 'widgets/action_breakdown.dart';
 import 'widgets/beat_queue_tile.dart';
-import 'widgets/brand_plate.dart';
 import 'widgets/home_search_button.dart';
 
 class MagistrateHomeScreen extends StatelessWidget {
@@ -389,35 +387,9 @@ class _Section extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppEntrance(index: titleIndex, child: _SectionTitle(title)),
+        AppEntrance(index: titleIndex, child: AppSectionTitle(title)),
         const SizedBox(height: 10),
         child,
-      ],
-    );
-  }
-}
-
-/// A heading with the brand's rule stood on end beside it — enough to break a
-/// long scroll into blocks without another card doing it.
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Container(
-          width: 4,
-          height: 17,
-          decoration: BoxDecoration(
-            color: context.brand.primary,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-          ),
-        ),
-        const SizedBox(width: 9),
-        Flexible(child: AppText.titleMedium(title, maxLines: 1)),
       ],
     );
   }
@@ -508,7 +480,7 @@ class _ActivitySection extends StatelessWidget {
           ],
         if (activity.byActionType.isNotEmpty) ...[
           const SizedBox(height: 20),
-          const _SectionTitle('How far things went'),
+          const AppSectionTitle('How far things went'),
           const SizedBox(height: 10),
           ActionBreakdown(byActionType: activity.byActionType),
         ],
@@ -539,10 +511,10 @@ class _MoneyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color ink = BrandPlate.inkOf(context);
+    final Color ink = AppBrandPlate.inkOf(context);
     final Color muted = ink.withValues(alpha: 0.72);
 
-    return BrandPlate(
+    return AppBrandPlate(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

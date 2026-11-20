@@ -1,5 +1,6 @@
 import '../core/utils/json_parse.dart';
 import 'auth_user.dart';
+import 'mobile_access.dart';
 
 /// The result of signing in, and of the launch-time session check.
 ///
@@ -7,9 +8,17 @@ import 'auth_user.dart';
 /// officer, because the handset already holds the token — so [token] is null
 /// there and [hasToken] is how you tell the two apart.
 class DeviceSession {
-  const DeviceSession({required this.user, this.token, this.tokenExpiresAt});
+  const DeviceSession({
+    required this.user,
+    this.token,
+    this.tokenExpiresAt,
+    this.access = MobileAccess.legacy,
+  });
 
   final AuthUser user;
+
+  /// Which workspaces to draw. Route from this, not from [AuthUser.roles].
+  final MobileAccess access;
 
   /// The bearer token. Belongs in the keychain and nowhere else — the auth
   /// repository writes it there on sign-in.
@@ -34,10 +43,12 @@ class DeviceSession {
     tokenExpiresAt: Json.dateTime(
       Json.pick(json, <String>['token_expires_at', 'expires_at']),
     ),
+    access: MobileAccess.fromJson(json['mobile']),
   );
 
   bool get hasToken => token != null && token!.isNotEmpty;
 
   /// The officer has to change their password before the app is usable.
-  bool get mustChangePassword => user.mustChangePassword;
+  bool get mustChangePassword =>
+      user.mustChangePassword || access.passwordChangeRequired;
 }

@@ -173,9 +173,14 @@ void main() {
   });
 
   test('the real router declares those branches, in that order', () {
+    // The magistrate's shell; the agreement workspace has a shell of its own.
     final StatefulShellRoute shell = appRouter.configuration.routes
         .whereType<StatefulShellRoute>()
-        .single;
+        .singleWhere(
+          (StatefulShellRoute s) =>
+              (s.branches.first.routes.single as GoRoute).path ==
+              AppRoutes.magistrateHome,
+        );
 
     expect(
       shell.branches.map(

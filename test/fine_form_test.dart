@@ -782,4 +782,9 @@ class FakePhotoCapture implements PhotoCapture {
 
   @override
   Future<PhotoCaptureResult> fromGallery() => fromCamera();
+
+  @override
+  Future<List<String>> fromGalleryMany({required int limit}) async => <String>[
+    '/handset/shopfront.jpg',
+  ];
 }

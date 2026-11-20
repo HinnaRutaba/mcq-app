@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_brand.dart';
 import 'app_status_colors.dart';
 
 class AppColors {
@@ -116,12 +117,35 @@ class AppColors {
   static const Color infoOnDark = Color(0xFF3AA6DB);
   static const Color accentOnDark = Color(0xFFE8BC4A);
   static const Color primaryOnDark = Color(0xFF56B98C);
+
+  // ---------------------------------------------------------------------
+  // Stamp paper — a printed sheet, so the same in either theme
+  // ---------------------------------------------------------------------
+  /// The header image's own off-white, so the sheet runs on from it.
+  static const Color paper = Color(0xFFFEFEFB);
+  static const Color paperInk = Color(0xFF1E2430);
+  static const Color paperInkMuted = Color(0xFF5E6573);
+
+  /// The navy of the header's border.
+  static const Color paperNavy = Color(0xFF2C3F66);
+  static const Color paperRule = Color(0xFFC4C8D0);
 }
 
 /// What a colour is *saying* — assigned from state, never from taste, and
 /// never the only signal. Every widget that takes a tone also takes an icon
 /// and a label.
-enum AppTone { neutral, primary, info, success, warning, danger }
+enum AppTone {
+  neutral,
+  primary,
+  info,
+  success,
+  warning,
+  danger,
+
+  /// The brand's secondary (gold on the default scheme): a note to read
+  /// before acting, set apart from the blue of an info message.
+  accent,
+}
 
 /// Resolves an [AppTone] against the theme.
 ///
@@ -146,6 +170,8 @@ extension AppToneColors on AppTone {
         return status.brand;
       case AppTone.neutral:
         return status.neutral;
+      case AppTone.accent:
+        return _accentInk(context);
     }
   }
 
@@ -165,6 +191,8 @@ extension AppToneColors on AppTone {
         return Theme.of(context).colorScheme.onPrimary;
       case AppTone.neutral:
         return Theme.of(context).colorScheme.surface;
+      case AppTone.accent:
+        return context.brand.onAccent;
     }
   }
 
@@ -186,7 +214,18 @@ extension AppToneColors on AppTone {
         return Theme.of(context).colorScheme.primaryContainer;
       case AppTone.neutral:
         return Theme.of(context).colorScheme.surfaceContainerHighest;
+      case AppTone.accent:
+        return Theme.of(context).colorScheme.secondaryContainer;
     }
+  }
+
+  /// Gold as text on its own pale tint is too faint in light mode, so it is
+  /// deepened there; on dark it reads as it is.
+  static Color _accentInk(BuildContext context) {
+    final Color accent = context.brand.accent;
+    return Theme.of(context).brightness == Brightness.dark
+        ? accent
+        : Color.lerp(accent, Colors.black, 0.45)!;
   }
 
   /// The tinted plate this tone sits on at [brightness], rather than at the
@@ -210,6 +249,7 @@ extension AppToneColors on AppTone {
         return status.infoContainer;
       case AppTone.primary:
       case AppTone.neutral:
+      case AppTone.accent:
         return Color.lerp(
           resolve(brightness),
           brightness == Brightness.dark ? Colors.black : Colors.white,
@@ -235,6 +275,8 @@ extension AppToneColors on AppTone {
         return dark
             ? AppColors.darkTextSecondary
             : AppColors.lightTextSecondary;
+      case AppTone.accent:
+        return dark ? AppColors.accent : AppColors.accentDark;
     }
   }
 

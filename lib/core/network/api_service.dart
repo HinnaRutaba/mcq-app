@@ -69,12 +69,14 @@ class ApiService {
     String path, {
     Map<String, dynamic>? query,
     bool requiresAuth = true,
+    bool forbiddenEndsSession = true,
     CancelToken? cancelToken,
   }) => _send(
     'GET',
     path,
     query: query,
     requiresAuth: requiresAuth,
+    forbiddenEndsSession: forbiddenEndsSession,
     cancelToken: cancelToken,
   );
 
@@ -85,6 +87,7 @@ class ApiService {
     Map<String, dynamic>? query,
     List<ApiFile> files = const <ApiFile>[],
     bool requiresAuth = true,
+    bool forbiddenEndsSession = true,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) => _send(
@@ -94,6 +97,7 @@ class ApiService {
     query: query,
     files: files,
     requiresAuth: requiresAuth,
+    forbiddenEndsSession: forbiddenEndsSession,
     cancelToken: cancelToken,
     onSendProgress: onSendProgress,
   );
@@ -158,6 +162,7 @@ class ApiService {
     Map<String, dynamic>? query,
     List<ApiFile> files = const <ApiFile>[],
     bool requiresAuth = true,
+    bool forbiddenEndsSession = true,
     CancelToken? cancelToken,
     ProgressCallback? onSendProgress,
   }) async {
@@ -180,12 +185,43 @@ class ApiService {
               : Headers.multipartFormDataContentType,
           extra: <String, dynamic>{
             AuthInterceptor.requiresAuthKey: requiresAuth,
+            AuthInterceptor.forbiddenEndsSessionKey: forbiddenEndsSession,
           },
         ),
       );
       return ApiResponse.fromBody(
         response.data,
         statusCode: response.statusCode,
+      );
+    } on DioException catch (error) {
+      throw ApiException.fromDio(error);
+    }
+  }
+
+  /// A file streamed through the API with the bearer token — the agreement
+  /// workspace's documents, which have no public URL. Held in memory only.
+  Future<ApiDownload> download(
+    String path, {
+    bool forbiddenEndsSession = true,
+    CancelToken? cancelToken,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    try {
+      final response = await dio.request<List<int>>(
+        path,
+        cancelToken: cancelToken,
+        onReceiveProgress: onReceiveProgress,
+        options: Options(
+          method: 'GET',
+          responseType: ResponseType.bytes,
+          extra: <String, dynamic>{
+            AuthInterceptor.forbiddenEndsSessionKey: forbiddenEndsSession,
+          },
+        ),
+      );
+      return ApiDownload(
+        bytes: Uint8List.fromList(response.data ?? const <int>[]),
+        contentType: response.headers.value(Headers.contentTypeHeader),
       );
     } on DioException catch (error) {
       throw ApiException.fromDio(error);
@@ -269,4 +305,15 @@ class ApiService {
     if (value is bool) return value ? '1' : '0';
     return '$value';
   }
+}
+
+/// A downloaded file's bytes and the type the server named.
+class ApiDownload {
+  const ApiDownload({required this.bytes, this.contentType});
+
+  final Uint8List bytes;
+  final String? contentType;
+
+  bool get isPdf => contentType?.contains('pdf') ?? false;
+  bool get isImage => contentType?.startsWith('image/') ?? false;
 }

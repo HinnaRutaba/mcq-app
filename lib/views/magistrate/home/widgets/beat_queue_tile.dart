@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../../../config/theme/app_brand.dart';
 import '../../../../config/theme/app_colors.dart';
 import '../../../../config/theme/app_radius.dart';
-import '../../../../config/theme/app_shadows.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../models/field_beat.dart';
 import '../../../../widgets/widgets.dart';
 
 /// One queue on Home's grid: how much work of one kind is waiting.
 ///
-/// Built as a plate rather than as a bordered box — a tinted gradient, a
-/// curved wash clipped across the foot of it, and a shadow. The tone still
-/// comes from the server and still means what it always meant; what changed is
-/// that the tile now has a surface for the tone to sit on.
+/// Drawn on an [AppTonePlate] in the tone the server sent.
 class BeatQueueTile extends StatelessWidget {
   const BeatQueueTile({super.key, required this.queue, this.onTap});
 
@@ -32,70 +27,16 @@ class BeatQueueTile extends StatelessWidget {
     final ink = shown.on(context);
     final toned = shown != AppTone.neutral;
 
-    // A neutral queue sits on the card surface, not on the scheme's highest
-    // container — that step is the page's own colour, and six tiles the colour
-    // of the page behind them is what a shadow alone cannot rescue.
-    final plate = toned
-        ? shown.container(context)
-        : Theme.of(context).colorScheme.surface;
-    // The wash the sweep is clipped out of. The tone's own ink where there is
-    // a tone; the brand on a neutral tile, because neutral ink is a mid-grey
-    // and a grey band across a white plate reads as a smudge rather than as
-    // light falling on it.
-    final wash = toned
-        ? ink.withValues(alpha: 0.08)
-        : context.brand.primary.withValues(alpha: 0.055);
-    final corner = BorderRadius.circular(AppRadius.lg);
-
     return AppPress(
       onTap: onTap,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: corner,
-          boxShadow: AppShadows.soft(context),
-        ),
-        child: ClipRRect(
-          borderRadius: corner,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: <Color>[
-                  Color.lerp(plate, Colors.white, 0.10)!,
-                  Color.lerp(plate, ink, 0.09)!,
-                ],
-              ),
-              border: Border.all(color: ink.withValues(alpha: 0.16)),
-              borderRadius: corner,
-            ),
-            child: Stack(
-              fit: StackFit.expand,
-              children: <Widget>[
-                // The light falling across the foot of the tile. Clipped on a
-                // curve, so six of these in a grid read as six surfaces rather
-                // than six rectangles.
-                ClipPath(
-                  clipper: const AppSweepClipper(
-                    begin: 0.74,
-                    end: 0.40,
-                    bow: 0.16,
-                  ),
-                  child: ColoredBox(color: wash),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
-                  child: _body(
-                    context,
-                    ink: ink,
-                    toned: toned,
-                    shown: shown,
-                    amount: amount,
-                  ),
-                ),
-              ],
-            ),
-          ),
+      child: AppTonePlate(
+        tone: shown,
+        child: _body(
+          context,
+          ink: ink,
+          toned: toned,
+          shown: shown,
+          amount: amount,
         ),
       ),
     );

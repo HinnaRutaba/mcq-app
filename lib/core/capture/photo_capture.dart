@@ -1,4 +1,6 @@
 import 'package:image_picker/image_picker.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 
 import '../permissions/permission_service.dart';
 
@@ -49,6 +51,14 @@ class PhotoCapture {
   static const double _maxEdge = 1600;
   static const int _quality = 70;
 
+  /// Android's default gallery is the old file chooser, which ignores a
+  /// selection limit; the system Photo Picker honours it and needs no storage
+  /// permission. Called once at startup.
+  static void useSystemPhotoPicker() {
+    final ImagePickerPlatform platform = ImagePickerPlatform.instance;
+    if (platform is ImagePickerAndroid) platform.useAndroidPhotoPicker = true;
+  }
+
   Future<PhotoCaptureResult> fromCamera() =>
       _pick(ImageSource.camera, AppPermission.camera);
 
@@ -56,6 +66,20 @@ class PhotoCapture {
   /// form — and for the handsets whose camera the OS will not hand over.
   /// No permission: the system photo picker hands over only what is chosen.
   Future<PhotoCaptureResult> fromGallery() => _pick(ImageSource.gallery);
+
+  /// Several pictures from the gallery in one go. The picker is told [limit],
+  /// but an old chooser can ignore it, so the list comes back untrimmed for
+  /// the caller to cap and say so. Empty when the officer backs out.
+  Future<List<String>> fromGalleryMany({required int limit}) async {
+    if (limit < 1) return const <String>[];
+    final List<XFile> files = await _picker.pickMultiImage(
+      maxWidth: _maxEdge,
+      maxHeight: _maxEdge,
+      imageQuality: _quality,
+      limit: limit,
+    );
+    return <String>[for (final XFile f in files) f.path];
+  }
 
   Future<PhotoCaptureResult> _pick(
     ImageSource source, [

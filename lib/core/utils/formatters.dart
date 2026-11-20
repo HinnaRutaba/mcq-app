@@ -11,6 +11,12 @@ class Formatters {
     decimalDigits: 0,
   );
 
+  static final NumberFormat _paise = NumberFormat.currency(
+    locale: 'en_PK',
+    symbol: 'Rs ',
+    decimalDigits: 2,
+  );
+
   static final DateFormat _date = DateFormat('d MMM yyyy');
   static final DateFormat _dateTime = DateFormat('d MMM yyyy, h:mm a');
   static final DateFormat _month = DateFormat('MMM');
@@ -27,6 +33,14 @@ class Formatters {
     if (trimmed.isEmpty) return null;
     final value = num.tryParse(trimmed);
     return value == null ? trimmed : currency(value);
+  }
+
+  /// As [money], but paise are kept when there are any: "Rs 10,248.70".
+  static String? moneyExact(String? amount) {
+    final String? whole = money(amount);
+    final num? value = num.tryParse(amount?.trim() ?? '');
+    if (value == null || value == value.truncate()) return whole;
+    return _paise.format(value);
   }
 
   static String date(DateTime date) => _date.format(date);

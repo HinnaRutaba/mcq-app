@@ -7,6 +7,7 @@ import 'package:mcq_app/controllers/trade_beat_controller.dart';
 import 'package:mcq_app/controllers/trade_capture_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
 import 'package:mcq_app/data/repositories/auth_repository.dart';
+import 'package:mcq_app/models/models.dart';
 import 'package:mcq_app/views/magistrate/trade/trade_licences_screen.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
@@ -64,6 +65,36 @@ void main() {
       'Jinnah Road',
       'Prince Road',
     ]);
+  });
+
+  for (final AppRole role in <AppRole>[AppRole.cmo, AppRole.mcqAdministrator]) {
+    test('a ${role.label} has no beat, so nothing goes out', () async {
+      register();
+      auth.access.value = const MobileAccess(
+        workspaces: <MobileWorkspace>[MobileWorkspace.agreements],
+      );
+      auth.officer.value = AuthUser(
+        username: 'reviewer',
+        name: 'Reviewer',
+        roles: <AppRole>[role],
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      expect(trade.beatCalls, 0);
+      expect(beat.isReady, isFalse);
+    });
+  }
+
+  test('a magistrate who is also a CMO still gets the beat', () async {
+    register();
+    auth.officer.value = const AuthUser(
+      username: 'both',
+      name: 'Both',
+      roles: <AppRole>[AppRole.cmo, AppRole.magistrate],
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(trade.beatCalls, 1);
   });
 
   test('a licences screen opened afterwards starts warm and costs nothing', () {

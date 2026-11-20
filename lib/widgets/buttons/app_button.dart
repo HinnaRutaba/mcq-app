@@ -4,7 +4,16 @@ import '../text/app_text.dart';
 import '../../config/theme/app_radius.dart';
 
 /// Visual styles [AppButton] supports.
-enum AppButtonVariant { primary, secondary, outline, ghost, danger }
+enum AppButtonVariant {
+  primary,
+  secondary,
+  outline,
+  ghost,
+  danger,
+
+  /// Red ink and border on no fill: a destructive act offered beside others.
+  dangerOutline,
+}
 
 /// The single button widget every screen should use.
 ///
@@ -68,6 +77,11 @@ class AppButton extends StatelessWidget {
         foreground = scheme.onError;
         border = BorderSide.none;
         break;
+      case AppButtonVariant.dangerOutline:
+        background = Colors.transparent;
+        foreground = scheme.error;
+        border = BorderSide(color: scheme.error, width: 1.5);
+        break;
     }
 
     final child = isLoading
@@ -79,20 +93,24 @@ class AppButton extends StatelessWidget {
               color: foreground,
             ),
           )
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 18, color: foreground),
-                const SizedBox(width: 8),
+        // Shrinks a label too long for a narrow button rather than overflow.
+        : FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: foreground),
+                  const SizedBox(width: 8),
+                ],
+                AppText(
+                  label,
+                  variant: AppTextVariant.labelLarge,
+                  color: foreground,
+                ),
               ],
-              AppText(
-                label,
-                variant: AppTextVariant.labelLarge,
-                color: foreground,
-              ),
-            ],
+            ),
           );
 
     return SizedBox(

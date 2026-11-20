@@ -25,11 +25,14 @@ class _SplashScreenState extends State<SplashScreen> {
       const Duration(milliseconds: 1200),
     );
 
-    final signedIn = await Get.find<AuthController>().restoreSession();
+    final AuthController auth = Get.find<AuthController>();
+    final signedIn = await auth.restoreSession();
     await minimumDisplay;
 
     if (!mounted) return;
-    context.go(signedIn ? AppRoutes.magistrateHome : AppRoutes.login);
+    context.go(
+      signedIn ? AppRoutes.homeFor(auth.access.value) : AppRoutes.login,
+    );
   }
 
   @override

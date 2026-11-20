@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:pdfrx/pdfrx.dart' show Pdfrx;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,10 @@ import 'package:mcq_app/app/dependency_injection.dart';
 import 'package:mcq_app/config/routes/app_routes.dart';
 import 'package:mcq_app/config/theme/app_radius.dart';
 import 'package:mcq_app/config/theme/app_theme.dart';
+import 'package:mcq_app/controllers/agreement_case_controller.dart';
+import 'package:mcq_app/controllers/agreement_cases_controller.dart';
+import 'package:mcq_app/controllers/agreement_dashboard_controller.dart';
+import 'package:mcq_app/controllers/agreement_decision_controller.dart';
 import 'package:mcq_app/controllers/auth_controller.dart';
 import 'package:mcq_app/controllers/case_controller.dart';
 import 'package:mcq_app/controllers/cases_controller.dart';
@@ -30,6 +35,8 @@ import 'package:mcq_app/controllers/trade_capture_controller.dart';
 import 'package:mcq_app/controllers/trade_licences_controller.dart';
 import 'package:mcq_app/controllers/unit_search_controller.dart';
 import 'package:mcq_app/core/network/api_exception.dart';
+import 'package:mcq_app/core/network/api_service.dart';
+import 'package:mcq_app/data/repositories/agreement_repository.dart';
 import 'package:mcq_app/data/repositories/challan_repository.dart';
 import 'package:mcq_app/data/repositories/dashboard_repository.dart';
 import 'package:mcq_app/data/repositories/defaulters_repository.dart';
@@ -40,7 +47,21 @@ import 'package:mcq_app/data/repositories/field_seal_repository.dart';
 import 'package:mcq_app/data/repositories/reporting_repository.dart';
 import 'package:mcq_app/data/repositories/trade_repository.dart';
 import 'package:mcq_app/data/repositories/units_repository.dart';
+import 'package:mcq_app/models/agreement_case.dart';
+import 'package:mcq_app/models/auth_user.dart';
+import 'package:mcq_app/models/mobile_access.dart';
+import 'package:mcq_app/views/agreements/case/agreement_case_screen.dart';
+import 'package:mcq_app/views/agreements/case/agreement_decision_screen.dart';
+import 'package:mcq_app/views/agreements/case/pdf_reader_screen.dart';
+import 'package:mcq_app/views/agreements/case/stamp_paper_screen.dart';
+import 'package:mcq_app/views/agreements/case/widgets/intake_documents.dart';
+import 'package:mcq_app/views/agreements/case/widgets/stamp_paper.dart';
+import 'package:mcq_app/views/agreements/agreements_shell.dart';
+import 'package:mcq_app/views/agreements/cases/agreement_cases_screen.dart';
+import 'package:mcq_app/views/agreements/home/agreements_home_screen.dart';
+import 'package:mcq_app/views/agreements/more/agreements_more_screen.dart';
 import 'package:mcq_app/views/auth/change_password_screen.dart';
+import 'package:mcq_app/views/auth/workspace_screen.dart';
 import 'package:mcq_app/views/auth/login_screen.dart';
 import 'package:mcq_app/models/case_type_option.dart';
 import 'package:mcq_app/models/challan.dart';
@@ -81,6 +102,7 @@ import 'package:mcq_app/views/magistrate/shared/widgets/create_fine_button.dart'
 import 'package:mcq_app/views/splash/splash_screen.dart';
 import 'package:mcq_app/widgets/widgets.dart';
 
+import 'support/agreement_fixtures.dart';
 import 'support/api_stub.dart';
 import 'support/challan_fixtures.dart';
 import 'support/dashboard_fixtures.dart';
@@ -130,6 +152,10 @@ final DefaulterCard _tappedRow = DefaulterCard(
 
 void main() {
   setUpAll(() async {
+    // pdfrx asks path_provider for a cache folder, and a test has no plugin.
+    Pdfrx.cacheDirectoryPath = Directory.systemTemp
+        .createTempSync('pdfrx')
+        .path;
     Get.reset();
     installInMemoryKeychain();
     // The map screen is a platform view, which a golden draws as an empty
@@ -263,6 +289,15 @@ void main() {
         onTap: (_) {},
         centerGap: CreateFineButton.notchGap,
         centerGapRadius: CreateFineButton.notchRadius,
+      ),
+    ),
+    // The agreements bar: no create button, so no notch.
+    'nav_bar_plain': () => Scaffold(
+      body: const SizedBox.shrink(),
+      bottomNavigationBar: AppBottomNavBar(
+        entries: AgreementsShell.entries,
+        currentIndex: 0,
+        onTap: (_) {},
       ),
     ),
     'defaulters': () {
@@ -458,6 +493,143 @@ void main() {
     'cases_empty': () {
       _seedCases(pages: const <List<Map<String, dynamic>>>[]);
       return const CasesScreen();
+    },
+    // --- The agreement workspace (CMO, Administrator) ---------------------
+    'agreement_workspaces': () {
+      _seedAgreements(workspaces: <String>['field', 'agreements']);
+      return const WorkspaceScreen();
+    },
+    'agreement_workspaces_none': () {
+      _seedAgreements(workspaces: <String>[]);
+      return const WorkspaceScreen();
+    },
+    'agreement_home': () {
+      _seedAgreements();
+      return const AgreementsHomeScreen();
+    },
+    'agreement_home_empty': () {
+      _seedAgreements(empty: true);
+      return const AgreementsHomeScreen();
+    },
+    'agreement_cases': () {
+      _seedAgreements();
+      return const AgreementCasesScreen();
+    },
+    'agreement_cases_empty': () {
+      _seedAgreements(empty: true);
+      return const AgreementCasesScreen();
+    },
+    'agreement_case': () {
+      _seedAgreements();
+      return const AgreementCaseScreen(caseId: '41');
+    },
+    // Back on the case after an act went through.
+    'agreement_case_toast': () {
+      _seedAgreements();
+      return const _Toasting(
+        message: 'Endorsed. Now with the administrator.',
+        child: AgreementCaseScreen(caseId: '41'),
+      );
+    },
+    // Three acts: the first takes the full width, two share the row below.
+    'agreement_case_admin': () {
+      _seedAgreements();
+      return const AgreementCaseScreen(caseId: '43');
+    },
+    'agreement_case_query': () {
+      _seedAgreements();
+      return const AgreementCaseScreen(caseId: '42');
+    },
+    'agreement_case_money': () {
+      _seedAgreements();
+      return const AgreementCaseScreen(caseId: '41');
+    },
+    'agreement_case_workflow': () {
+      _seedAgreements();
+      return const AgreementCaseScreen(caseId: '41');
+    },
+    'agreement_case_preview': () {
+      _seedAgreements();
+      return const AgreementCaseScreen(caseId: '41');
+    },
+    'agreement_case_attachments': () {
+      _seedAgreements();
+      return const AgreementCaseScreen(caseId: '41');
+    },
+    'agreement_decide_endorse': () {
+      _seedAgreements();
+      return AgreementDecisionScreen(
+        act: 'endorse',
+        caseFile: AgreementCase.fromJson(caseData()),
+      );
+    },
+    // Four pictures picked: the tiles, their crosses and the 4/5 badge.
+    'agreement_decide_photos': () {
+      _seedAgreements();
+      return AgreementDecisionScreen(
+        act: 'endorse',
+        caseFile: AgreementCase.fromJson(caseData()),
+      );
+    },
+    'agreement_decide_return': () {
+      _seedAgreements();
+      return AgreementDecisionScreen(
+        act: 'return',
+        caseFile: AgreementCase.fromJson(caseData()),
+      );
+    },
+    // The destination menu open under its field.
+    'agreement_decide_return_menu': () {
+      _seedAgreements();
+      return AgreementDecisionScreen(
+        act: 'return',
+        caseFile: AgreementCase.fromJson(caseData()),
+      );
+    },
+    'agreement_pdf_reader': () => PdfReaderScreen(
+      bytes: File('test/assets/agreement_draft.pdf').readAsBytesSync(),
+      sourceName: 'preview-agreement',
+      title: 'Stamp paper (draft)',
+    ),
+    // The attachment sheet hugs what it holds: a small photo, a wide scan,
+    // and a tall one that stops at 85% of the screen.
+    'agreement_document_small': () => _documentSheet(
+      'Shop photo',
+      'test/assets/small_photo.jpg',
+      const Size(220, 220),
+    ),
+    'agreement_document_wide': () => _documentSheet(
+      'Stamp paper header',
+      'assets/stamp-paper-header.png',
+      const Size(656, 356),
+    ),
+    'agreement_document_tall': () => _documentSheet(
+      'CNIC (back)',
+      'test/preview/agreement_case_light.png',
+      const Size(1080, 3300),
+    ),
+    'agreement_stamp_paper': () {
+      _seedAgreements();
+      return StampPaperScreen(file: AgreementCase.fromJson(caseData()));
+    },
+    // A long address and two witnesses, to see a section break mid-way.
+    'agreement_stamp_paper_long': () {
+      _seedAgreements();
+      final Map<String, dynamic> data = caseData();
+      (data['applicant'] as Map<String, dynamic>)['address'] =
+          'House 112, Street 7, Block C, near Jinnah Town Masjid, Satellite '
+          'Town, Quetta, Balochistan';
+      (data['witnesses'] as List<Map<String, dynamic>>).add(<String, dynamic>{
+        'position': 2,
+        'name': 'Zahid Hussain',
+        'father_name': 'Ahmed Hussain',
+        'cnic': '54400-3344556-7',
+      });
+      return StampPaperScreen(file: AgreementCase.fromJson(data));
+    },
+    'agreement_more': () {
+      _seedAgreements(workspaces: <String>['field', 'agreements']);
+      return const AgreementsMoreScreen();
     },
     'profile': () {
       Get.find<AuthController>().officer.value = officerFixture;
@@ -819,10 +991,13 @@ void main() {
     'login_tablet_landscape': Size(1180, 820),
     'login_desktop': Size(1440, 900),
     'home_tablet': Size(820, 2000),
+    'agreement_home_tablet': Size(820, 1500),
+    'agreement_cases_tablet': Size(820, 1300),
   };
 
   const tall = <String, double>{
     'nav_bar': 400,
+    'nav_bar_plain': 400,
     'trade_licences': 2100,
     'trade_licences_lapsed': 1800,
     'trade_licences_captures': 1900,
@@ -897,6 +1072,16 @@ void main() {
     'defaulters_collapsed': 1400,
     'profile': 3900,
     'profile_indigo': 3900,
+    'agreement_home': 3500,
+    'agreement_case': 3300,
+    'agreement_case_query': 2400,
+    'agreement_case_workflow': 2400,
+    'agreement_case_preview': 3200,
+    'agreement_stamp_paper': 4800,
+    'agreement_stamp_paper_long': 4800,
+    'agreement_decide_endorse': 2700,
+    'agreement_decide_photos': 3000,
+    'agreement_decide_return': 2400,
   };
 
   /// Entries to drag before capturing, and by how much.
@@ -919,6 +1104,11 @@ void main() {
     'round_scrolled': 330,
   };
 
+  /// A control each entry presses once it is up.
+  final tapAfter = <String, Finder>{
+    'agreement_decide_return_menu': find.byType(AppOptionDropdown<String>),
+  };
+
   /// Entries caught part-way through their entrance instead of at rest. A
   /// still of a settled page proves nothing about how it arrives.
   const midFlight = <String, int>{
@@ -933,6 +1123,21 @@ void main() {
 
   /// Entries that never come to rest — a splash spins until it routes, so
   /// `pumpAndSettle` would wait on an animation that has no end.
+  /// Drawn from a real PDF or real image files, decoded off the fake clock,
+  /// so captured after real time rather than settling.
+  const pdfBacked = <String>{
+    'agreement_case_preview',
+    'agreement_decide_photos',
+  };
+
+  /// Open on a PDF from the first frame, so they never settle at all.
+  const pdfReaders = <String>{
+    'agreement_pdf_reader',
+    'agreement_document_small',
+    'agreement_document_wide',
+    'agreement_document_tall',
+  };
+
   const neverSettles = <String>{
     'splash',
     'login_tablet',
@@ -944,6 +1149,21 @@ void main() {
   /// registers its own controller, which a builder cannot reach before the
   /// widget it belongs to exists.
   final nudge = <String, void Function()>{
+    'agreement_case_money': () =>
+        Get.find<AgreementCaseController>().showTab(AgreementCaseTab.money),
+    'agreement_case_workflow': () =>
+        Get.find<AgreementCaseController>().showTab(AgreementCaseTab.workflow),
+    'agreement_decide_photos': () =>
+        Get.find<AgreementDecisionController>().attachments.addAll(<String>[
+          'assets/app-icon.jpg',
+          'test/preview/agreement_case_preview_light.png',
+          'assets/stamp-paper-header.png',
+          'test/preview/agreement_pdf_reader_dark.png',
+        ]),
+    'agreement_case_preview': () =>
+        Get.find<AgreementCaseController>().showTab(AgreementCaseTab.preview),
+    'agreement_case_attachments': () =>
+        Get.find<AgreementCaseController>().showAttachments(true),
     'property_profile_owed': () =>
         Get.find<PropertyProfileController>().showTab(ProfileTab.owed),
     'property_profile_cases': () =>
@@ -1111,6 +1331,10 @@ void main() {
   };
 
   // The list screens again at tablet width, two cards to a row.
+  for (final String name in <String>['agreement_home', 'agreement_cases']) {
+    screens['${name}_tablet'] = screens[name]!;
+  }
+
   for (final String name in <String>[
     'defaulters',
     'round',
@@ -1160,13 +1384,27 @@ void main() {
           for (final String asset in <String>[
             AppLogo.asset,
             AppGovernmentMark.asset,
+            StampPaperSheet.headerAsset,
           ]) {
             await precacheImage(AssetImage(asset), element);
           }
         });
 
+        // PDFium opens and draws on native threads, which the fake clock
+        // never waits for; real time does.
+        Future<void> realTime() async {
+          for (var pass = 0; pass < 12; pass++) {
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 150)),
+            );
+            await tester.pump(const Duration(milliseconds: 50));
+          }
+        }
+
         final catchAt = midFlight[entry.key];
-        if (neverSettles.contains(entry.key)) {
+        if (pdfReaders.contains(entry.key)) {
+          await realTime();
+        } else if (neverSettles.contains(entry.key)) {
           // Long enough for the wide sign-in's entrance to land.
           final int runFor = entry.key == 'splash' ? 400 : 1200;
           for (var elapsed = 0; elapsed < runFor; elapsed += 16) {
@@ -1189,13 +1427,24 @@ void main() {
         final nudged = nudge[entry.key];
         if (nudged != null) {
           nudged();
-          await tester.pumpAndSettle();
-          await tester.pump(const Duration(milliseconds: 500));
-          await tester.pumpAndSettle();
+          if (pdfBacked.contains(entry.key)) {
+            await realTime();
+          } else {
+            await tester.pumpAndSettle();
+            await tester.pump(const Duration(milliseconds: 500));
+            await tester.pumpAndSettle();
+          }
         }
 
         // A screen that wants to be seen mid-scroll says so, and the preview
         // drags it there — a collapsing header is a state, not a still.
+        // A control to press once the page is up: a menu is a state too.
+        final Finder? pressed = tapAfter[entry.key];
+        if (pressed != null) {
+          await tester.tap(pressed);
+          await tester.pumpAndSettle();
+        }
+
         final scrollBy = scrolled[entry.key];
         if (scrollBy != null) {
           // Whichever scrollable the screen happens to use.
@@ -1259,6 +1508,29 @@ void _seedDashboard({Object? failure}) {
     permanent: true,
   );
   Get.delete<DashboardController>(force: true);
+}
+
+/// A CMO signed in, and the agreement workspace answering from fixtures.
+void _seedAgreements({
+  bool empty = false,
+  List<String> workspaces = const <String>['agreements'],
+}) {
+  final Map<String, dynamic> session =
+      sessionWith(workspaces: workspaces)['data'] as Map<String, dynamic>;
+  final AuthController auth = Get.find<AuthController>();
+  auth.access.value = MobileAccess.fromJson(session['mobile']);
+  auth.officer.value = AuthUser.fromJson(
+    session['user'] as Map<String, dynamic>,
+  );
+  Get.find<ThemeController>().setColorScheme(AppColorScheme.balochistanGreen);
+  Get.delete<AgreementRepository>(force: true);
+  Get.put<AgreementRepository>(
+    FakeAgreementRepository(empty: empty),
+    permanent: true,
+  );
+  Get.delete<AgreementDashboardController>(force: true);
+  Get.delete<AgreementCasesController>(force: true);
+  Get.delete<AgreementCaseController>(force: true);
 }
 
 /// Puts the unit register over the fixture, so the search page answers from
@@ -1395,6 +1667,17 @@ List<EnforcementCase> _propertyCases() => casesPageOneJson
 
 /// A sheet as `showModalBottomSheet` draws it — the surface, the lip and the
 /// bottom edge — so a still of one is a still of what the officer sees.
+Widget _documentSheet(String title, String path, Size size) => _sheet(
+  IntakeDocumentSheet(
+    title: title,
+    download: ApiDownload(
+      bytes: File(path).readAsBytesSync(),
+      contentType: 'image/*',
+    ),
+    imageSize: size,
+  ),
+);
+
 Widget _sheet(Widget child) => Builder(
   builder: (BuildContext context) => Scaffold(
     backgroundColor: Colors.black54,
@@ -1594,4 +1877,28 @@ Future<void> _loadRealFonts() async {
     }
     await loader.load();
   }
+}
+
+/// Raises a toast once the screen under it is up.
+class _Toasting extends StatefulWidget {
+  const _Toasting({required this.message, required this.child});
+
+  final String message;
+  final Widget child;
+
+  @override
+  State<_Toasting> createState() => _ToastingState();
+}
+
+class _ToastingState extends State<_Toasting> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) AppToast.show(context, widget.message);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

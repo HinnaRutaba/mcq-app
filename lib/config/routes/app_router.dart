@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/agreement_case.dart';
 import '../../models/defaulter_card.dart';
 import '../../models/enforcement_case.dart';
 import '../../views/auth/change_password_screen.dart';
+import '../../views/agreements/agreements_shell.dart';
+import '../../views/agreements/case/agreement_case_screen.dart';
+import '../../views/agreements/case/agreement_decision_screen.dart';
+import '../../views/agreements/case/stamp_paper_screen.dart';
+import '../../views/agreements/cases/agreement_cases_screen.dart';
+import '../../views/agreements/home/agreements_home_screen.dart';
+import '../../views/agreements/more/agreements_more_screen.dart';
 import '../../views/auth/login_screen.dart';
+import '../../views/auth/workspace_screen.dart';
 import '../../views/magistrate/defaulters/defaulters_screen.dart';
 import '../../views/magistrate/home/home_screen.dart';
 import '../../views/magistrate/magistrate_shell.dart';
@@ -50,6 +59,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.changePassword,
       builder: (context, state) => const ChangePasswordScreen(),
+    ),
+
+    GoRoute(
+      path: AppRoutes.workspaces,
+      builder: (context, state) => const WorkspaceScreen(),
     ),
 
     // --- Magistrate shell --------------------------------------------------
@@ -130,6 +144,75 @@ final GoRouter appRouter = GoRouter(
           ],
         ),
       ],
+    ),
+
+    // --- Agreement shell (CMO, Administrator) ------------------------------
+    // Home, Cases, More — the branch index is the tab index, as above.
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          AgreementsShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.agreementsHome,
+              builder: (context, state) => const AgreementsHomeScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.agreementsCases,
+              builder: (context, state) => const AgreementCasesScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.agreementsMore,
+              builder: (context, state) => const AgreementsMoreScreen(),
+              routes: [
+                GoRoute(
+                  path: AppRoutes.agreementsProfileSegment,
+                  builder: (context, state) => const MagistrateProfileScreen(),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+    // One case, and one act on it, above the shell.
+    GoRoute(
+      path: AppRoutes.agreementCase,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => AgreementCaseScreen(
+        caseId: state.pathParameters['id']!,
+        row: state.extra is AgreementCase
+            ? state.extra! as AgreementCase
+            : null,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.agreementDecision,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => AgreementDecisionScreen(
+        act: state.uri.queryParameters['act'] ?? '',
+        caseFile: state.extra is AgreementCase
+            ? state.extra! as AgreementCase
+            : null,
+      ),
+    ),
+    GoRoute(
+      path: AppRoutes.agreementStampPaper,
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => StampPaperScreen(
+        file: state.extra is AgreementCase
+            ? state.extra! as AgreementCase
+            : null,
+      ),
     ),
 
     // --- Pushed full-screen routes (above the shell) ----------------------

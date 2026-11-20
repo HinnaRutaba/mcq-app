@@ -19,7 +19,8 @@ class LoginScreen extends StatelessWidget {
 
     switch (outcome) {
       case SignInOutcome.success:
-        context.go(AppRoutes.magistrateHome);
+        // The session's `mobile` block names the workspace, not the role.
+        context.go(AppRoutes.homeFor(controller.access.value));
       case SignInOutcome.mustChangePassword:
         context.go(AppRoutes.changePassword);
       case SignInOutcome.invalidForm:

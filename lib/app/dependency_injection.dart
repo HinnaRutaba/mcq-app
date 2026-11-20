@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 
 import '../config/routes/app_router.dart';
 import '../config/routes/app_routes.dart';
+import '../controllers/agreement_cases_controller.dart';
+import '../controllers/agreement_dashboard_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/cases_controller.dart';
 import '../controllers/challans_controller.dart';
@@ -17,6 +19,7 @@ import '../controllers/trade_licences_controller.dart';
 import '../core/network/api_service.dart';
 import '../core/permissions/permission_service.dart';
 import '../core/storage/secure_storage_service.dart';
+import '../data/repositories/agreement_repository.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/challan_repository.dart';
 import '../data/repositories/dashboard_repository.dart';
@@ -104,6 +107,12 @@ void setupDependencies() {
   // not landlord to. Same bazaar, second job.
   Get.put<TradeRepository>(ApiTradeRepository(api: api), permanent: true);
 
+  // The agreement workspace, for the CMO and the Administrator.
+  Get.put<AgreementRepository>(
+    ApiAgreementRepository(api: api),
+    permanent: true,
+  );
+
   // The session owner. Permanent because three places read it: the splash
   // screen restoring a stored token, the sign-in form, and the profile
   // screen's sign-out.
@@ -140,8 +149,16 @@ void setupDependencies() {
   Get.lazyPut<CasesController>(CasesController.new, fenix: true);
   Get.lazyPut<FollowUpsController>(FollowUpsController.new, fenix: true);
   Get.lazyPut<RoundController>(RoundController.new, fenix: true);
+  Get.lazyPut<AgreementDashboardController>(
+    AgreementDashboardController.new,
+    fenix: true,
+  );
+  Get.lazyPut<AgreementCasesController>(
+    AgreementCasesController.new,
+    fenix: true,
+  );
 
-  // Last, because it drops the eight above when the session changes hands: a
+  // Last, because it drops the ten above when the session changes hands: a
   // `fenix` controller that is deleted is rebuilt — and refetched — the next
   // time its tab asks for it.
   watchSessionScope();

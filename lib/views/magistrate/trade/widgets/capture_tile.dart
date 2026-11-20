@@ -142,9 +142,7 @@ class CaptureTile extends StatelessWidget {
 
   static void _copy(BuildContext context, String consumerNo) {
     Clipboard.setData(ClipboardData(text: consumerNo));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: AppText.body('Consumer number copied')),
-    );
+    AppSnackBar.show(context, 'Consumer number copied');
   }
 
   /// `pending` -> `Pending`. The server sends a bare string here rather than a

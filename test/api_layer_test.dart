@@ -344,7 +344,7 @@ void main() {
         );
         expect(session.user.can('enforcement.fine.impose'), isTrue);
         expect(session.user.can('billing.payment.record'), isFalse);
-        expect(session.user.hasRole('MAGISTRATE'), isTrue);
+        expect(session.user.hasRole(AppRole.magistrate), isTrue);
         expect(session.mustChangePassword, isFalse);
 
         expect(await storage.readToken(), 'secret-token');

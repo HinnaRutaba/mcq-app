@@ -7,13 +7,20 @@
 /// with separate payment links.
 library;
 
+export 'agreement_case.dart';
+export 'agreement_dashboard.dart';
+export 'agreement_requests.dart';
+export 'intake_attachments.dart';
+export 'intake_legacy.dart';
 export 'api_refs.dart';
+export 'app_role.dart';
 export 'api_response.dart';
 export 'auth_user.dart';
 export 'case_type_option.dart';
 export 'challan.dart';
 export 'defaulter_card.dart';
 export 'device_session.dart';
+export 'mobile_access.dart';
 export 'enforcement_action.dart';
 export 'enforcement_action_request.dart';
 export 'enforcement_case.dart';

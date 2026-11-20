@@ -651,9 +651,7 @@ class _EvidenceSection extends StatelessWidget {
   }
 
   static void _say(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: AppText.body(message)));
+    AppSnackBar.show(context, message);
   }
 
   @override
