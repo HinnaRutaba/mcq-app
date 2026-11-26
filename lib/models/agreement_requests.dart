@@ -23,6 +23,10 @@ class IntakeListQuery {
   final DateTime? from;
   final DateTime? to;
 
+  static const IntakeListQuery all = IntakeListQuery(
+    scope: IntakeScope.all,
+    label: 'All',
+  );
   static const IntakeListQuery awaitingMe = IntakeListQuery(
     scope: IntakeScope.awaitingMe,
     label: 'Waiting',
@@ -54,6 +58,7 @@ class IntakeListQuery {
 
   /// The tabs the list always offers.
   static const List<IntakeListQuery> standard = <IntakeListQuery>[
+    all,
     awaitingMe,
     review,
     queries,

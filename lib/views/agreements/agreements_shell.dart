@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../config/routes/app_routes.dart';
+import '../../controllers/agreement_cases_controller.dart';
 import '../../controllers/agreement_dashboard_controller.dart';
 import '../../controllers/auth_controller.dart';
 import '../../models/mobile_access.dart';
@@ -76,6 +77,9 @@ class _AgreementsShellState extends State<AgreementsShell> {
   }
 
   void _goBranch(int index) {
+    if (index == AgreementsShell.casesBranch) {
+      unawaited(AgreementCasesController.showAllIfOpened());
+    }
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,

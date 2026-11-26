@@ -22,9 +22,7 @@ class AgreementCasesController extends GetxController {
 
   static IntakeListQuery? _wanted;
 
-  final Rx<IntakeListQuery> query = Rx<IntakeListQuery>(
-    IntakeListQuery.awaitingMe,
-  );
+  final Rx<IntakeListQuery> query = Rx<IntakeListQuery>(IntakeListQuery.all);
 
   final TextEditingController searchController = TextEditingController();
   final RxString search = RxString('');
@@ -86,6 +84,15 @@ class AgreementCasesController extends GetxController {
     if (_wanted == null) return;
     _wanted = null;
     await controller.showQuery(which);
+  }
+
+  /// Back to All when Cases is picked from the nav bar, if the list is built.
+  static Future<void> showAllIfOpened() async {
+    if (!Get.isRegistered<AgreementCasesController>() ||
+        Get.isPrepared<AgreementCasesController>()) {
+      return;
+    }
+    await Get.find<AgreementCasesController>().showQuery(IntakeListQuery.all);
   }
 
   /// Re-reads after an act, if the list has been built at all. A lazy factory

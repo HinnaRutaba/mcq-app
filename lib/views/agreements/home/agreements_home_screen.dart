@@ -11,6 +11,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/utils/screen_type.dart';
 import '../../../models/agreement_dashboard.dart';
 import '../../../widgets/widgets.dart';
+import 'widgets/done_row.dart';
 import 'widgets/intake_series.dart';
 import 'widgets/intake_tile_card.dart';
 
@@ -108,6 +109,19 @@ List<Widget> _body(
     ?data.returnedByMe,
   ];
   final IntakeRegister? register = data.register;
+  final List<(String, AppTone, List<IntakeTile>)> doneGroups =
+      <(String, AppTone, List<IntakeTile>)>[
+        for (final (String name, AppTone tone, List<String> keys)
+            in IntakeTileCard.doneGroups)
+          (
+            name,
+            tone,
+            <IntakeTile>[
+              for (final String k in keys)
+                ?data.myActions.where((IntakeTile t) => t.key == k).firstOrNull,
+            ],
+          ),
+      ].where((g) => g.$3.isNotEmpty).toList();
 
   final List<Widget> sections = <Widget>[];
   int step = 0;
@@ -175,7 +189,7 @@ List<Widget> _body(
             compact: true,
           ),
           const SizedBox(height: 12),
-          if (data.myActions.isEmpty)
+          if (doneGroups.isEmpty)
             const AppEmptyState(
               icon: Icons.history_rounded,
               title: 'Nothing in this period',
@@ -191,11 +205,39 @@ List<Widget> _body(
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                   child: Column(
                     children: <Widget>[
-                      for (final IntakeTile a in data.myActions) ...<Widget>[
-                        _actionTile(context, a, open),
-                        const Divider(height: 1, indent: 70),
+                      for (final (
+                            String name,
+                            AppTone tone,
+                            List<IntakeTile> rows,
+                          )
+                          in doneGroups) ...<Widget>[
+                        DoneRow.main(
+                          title: name,
+                          count: rows.fold<int>(
+                            0,
+                            (int sum, IntakeTile t) => sum + t.count,
+                          ),
+                          icon: IntakeTileCard.iconFor(name.toLowerCase()),
+                          tone: tone,
+                        ),
+                        for (final IntakeTile a in rows)
+                          DoneRow.item(
+                            title: IntakeTileCard.labelFor(a),
+                            count: a.count,
+                            onTap: () => open(a, IntakeTileCard.labelFor(a)),
+                          ),
+                        const SizedBox(height: 8),
+                        const Divider(height: 1),
                       ],
-                      _actionTile(context, data.cancelled, open),
+                      DoneRow.main(
+                        title: IntakeTileCard.labelFor(data.cancelled),
+                        count: data.cancelled.count,
+                        icon: IntakeTileCard.iconFor('cancelled'),
+                        onTap: () => open(
+                          data.cancelled,
+                          IntakeTileCard.labelFor(data.cancelled),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -295,43 +337,6 @@ List<Widget> _body(
       ),
     ),
   ];
-}
-
-Widget _actionTile(
-  BuildContext context,
-  IntakeTile a,
-  void Function(IntakeTile, String) open,
-) {
-  final String label = IntakeTileCard.labelFor(a);
-  final int? acts = a.acts;
-  // A case endorsed, returned and endorsed again is 1 case, 2 acts.
-  final String note = acts != null && acts != a.count
-      ? '${IntakeTileCard.noteFor(a.key)} · $acts acts'
-      : IntakeTileCard.noteFor(a.key);
-  final Color muted =
-      Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5) ??
-      Colors.grey;
-  final String? tag = IntakeTileCard.tagFor(a.key);
-  return MoreMenuTile(
-    icon: IntakeTileCard.iconFor(a.key),
-    title: label,
-    subtitle: note,
-    badge: tag == null
-        ? null
-        : AppStatusBadge(
-            label: tag,
-            tone: tag == 'Pending' ? AppTone.warning : AppTone.info,
-            minHeight: 22,
-          ),
-    tint: a.isEmpty ? muted : null,
-    bare: true,
-    trailing: AppText.titleLarge(
-      '${a.count}',
-      color: a.isEmpty ? muted : null,
-      fontWeight: FontWeight.w700,
-    ),
-    onTap: () => open(a, label),
-  );
 }
 
 class _Section extends StatelessWidget {

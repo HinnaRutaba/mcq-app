@@ -72,26 +72,13 @@ class IntakeTileCard extends StatelessWidget {
     };
   }
 
-  /// One line on what an act means — Endorsed is not Approved.
-  static String noteFor(String key) => switch (key) {
-    'endorsed' => 'Recommended to the Administrator',
-    'approved' => 'Your decision to approve',
-    'rejected' => 'Your decision to reject',
-    'returned' => 'Sent back for changes or an answer',
-    'responded' => 'Your answers to a query',
-    'dispatched' => 'Approved cases sent on',
-    'cancelled' => 'Cases that were cancelled',
-    'taxation_forwarded' ||
-    'execution_forwarded' => 'Passed to the next branch',
-    _ => 'Cases you acted on',
-  };
-
-  /// Where the cases an act sent now stand.
-  static String? tagFor(String key) => switch (key) {
-    'endorsed' || 'dispatched' => 'Pending',
-    'responded' => 'Forwarded',
-    _ => null,
-  };
+  /// "What you did", grouped by where those cases now stand. Acts not listed
+  /// here are not shown; Cancelled follows on its own.
+  static const List<(String, AppTone, List<String>)> doneGroups =
+      <(String, AppTone, List<String>)>[
+        ('Pending', AppTone.warning, <String>['endorsed', 'responded']),
+        ('Forwarded', AppTone.info, <String>['dispatched', 'returned']),
+      ];
 
   /// What a non-zero figure means. Zero is never toned.
   static AppTone? toneFor(String key) => switch (key) {
@@ -119,6 +106,8 @@ class IntakeTileCard extends StatelessWidget {
     'dispatched' => Icons.send_outlined,
     'activated' => Icons.task_alt_rounded,
     'cancelled' => Icons.cancel_outlined,
+    'pending' => Icons.hourglass_top_rounded,
+    'forwarded' => Icons.fast_forward_rounded,
     _ => Icons.folder_open_outlined,
   };
 }
