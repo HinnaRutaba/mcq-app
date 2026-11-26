@@ -20,6 +20,7 @@ class Formatters {
   static final DateFormat _date = DateFormat('d MMM yyyy');
   static final DateFormat _dateTime = DateFormat('d MMM yyyy, h:mm a');
   static final DateFormat _month = DateFormat('MMM');
+  static final DateFormat _monthYear = DateFormat('MMM yyyy');
 
   static String currency(num amount) => _currency.format(amount);
 
@@ -48,6 +49,20 @@ class Formatters {
   static String dateTime(DateTime date) => _dateTime.format(date);
 
   static String month(DateTime date) => _month.format(date);
+
+  /// "Nov 2026" — a billing period.
+  static String monthYear(DateTime date) => _monthYear.format(date);
+
+  /// The two largest units of a span: "3d 4h", "1h 20m", "45m", "33s".
+  static String span(Duration d) {
+    final List<String> parts = <String>[
+      if (d.inDays > 0) '${d.inDays}d',
+      if (d.inHours % 24 > 0) '${d.inHours % 24}h',
+      if (d.inMinutes % 60 > 0) '${d.inMinutes % 60}m',
+      if (d.inMinutes == 0) '${d.inSeconds}s',
+    ];
+    return parts.take(2).join(' ');
+  }
 
   /// Human "days left/overdue" phrasing for a due date, e.g. "Due in 3
   /// days" / "3 days overdue" / "Due today".

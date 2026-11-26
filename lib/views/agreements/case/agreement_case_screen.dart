@@ -226,7 +226,10 @@ class _AgreementCaseScreenState extends State<AgreementCaseScreen> {
       showLegacyMatches: controller.legacyMatchesOpen.value,
       onShowLegacyMatches: controller.showLegacyMatches,
     ),
-    AgreementCaseTab.money => IntakeMoney(amounts: file.amounts),
+    AgreementCaseTab.money => IntakeMoney(
+      amounts: file.amounts,
+      instalments: file.instalments,
+    ),
     AgreementCaseTab.workflow => IntakeTimeline(
       actions: file.actions,
       onOpen: _open,

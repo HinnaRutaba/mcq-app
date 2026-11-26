@@ -24,6 +24,7 @@ class AgreementCase {
     this.legacy,
     this.witnesses = const <IntakeWitness>[],
     this.amounts = const <String, String>{},
+    this.instalments,
     this.actions = const <IntakeAction>[],
     this.lastReturn,
     this.query,
@@ -62,6 +63,9 @@ class AgreementCase {
   /// parsed or totalled here — every figure is the server's.
   final Map<String, String> amounts;
 
+  /// The instalment offer — `amounts.instalments`. Kept out of [amounts].
+  final IntakeInstalments? instalments;
+
   /// The workflow, in the order the server sent it.
   final List<IntakeAction> actions;
   final IntakeNote? lastReturn;
@@ -83,6 +87,7 @@ class AgreementCase {
 
   factory AgreementCase.fromJson(Map<String, dynamic> json) {
     final Map<String, dynamic> stage = Json.map(json['stage']);
+    final Map<String, dynamic> amounts = Json.map(json['amounts']);
     final String id = Json.stringOr(json['id']);
     return AgreementCase(
       id: id,
@@ -104,7 +109,12 @@ class AgreementCase {
       witnesses: Json.list(
         json['witnesses'],
       ).map(IntakeWitness.fromJson).toList(),
-      amounts: flattenScalars(Json.map(json['amounts'])),
+      amounts: flattenScalars(
+        Map<String, dynamic>.of(amounts)..remove('instalments'),
+      ),
+      instalments: IntakeInstalments.maybe(
+        amounts['instalments'] ?? json['instalments'],
+      ),
       actions: Json.list(json['actions']).map(IntakeAction.fromJson).toList(),
       lastReturn: IntakeNote.maybe(json['last_return']),
       query: IntakeNote.maybe(stage['query']),
@@ -411,9 +421,19 @@ class IntakeAction {
 
 /// A return or a query: who, when, and what they wrote.
 class IntakeNote {
-  const IntakeNote({this.by, this.fromStage, this.remarks, this.at});
+  const IntakeNote({
+    this.by,
+    this.byRole,
+    this.fromStage,
+    this.remarks,
+    this.at,
+  });
 
   final String? by;
+
+  /// The sender's role, when the server names it; the view falls back to the
+  /// stage.
+  final String? byRole;
   final String? fromStage;
   final String? remarks;
   final DateTime? at;
@@ -421,9 +441,17 @@ class IntakeNote {
   static IntakeNote? maybe(Object? source) {
     if (source is! Map) return null;
     final Map<String, dynamic> json = Json.map(source);
+    final Object? by = Json.pick(json, <String>[
+      'by',
+      'asked_by',
+      'actor',
+      'returned_by',
+    ]);
     return IntakeNote(
-      by: intakeText(
-        Json.pick(json, <String>['by', 'asked_by', 'actor', 'returned_by']),
+      by: intakeText(by),
+      byRole: intakeText(
+        Json.pick(json, <String>['by_role', 'actor_role', 'role']) ??
+            (by is Map ? by['role'] : null),
       ),
       fromStage: intakeText(
         Json.pick(json, <String>['from_stage', 'stage', 'branch']),
@@ -605,6 +633,65 @@ class IntakeAgreementPdf {
   bool get canView => available && (pdfUrl ?? downloadUrl) != null;
 
   String? get viewUrl => pdfUrl ?? downloadUrl;
+}
+
+/// The instalment offer on a case. Money stays the server's strings; only the
+/// first month is parsed, to name the months the plan runs.
+class IntakeInstalments {
+  const IntakeInstalments({
+    required this.offered,
+    this.months,
+    this.total,
+    this.each,
+    this.last,
+    this.uneven = false,
+    this.firstPeriod,
+  });
+
+  final bool offered;
+  final int? months;
+  final String? total;
+  final String? each;
+
+  /// Differs from [each] only when [uneven].
+  final String? last;
+  final bool uneven;
+
+  /// `breakdown.first_period`, "yyyy-MM", as the first of that month.
+  final DateTime? firstPeriod;
+
+  /// The month of the final instalment.
+  DateTime? get lastPeriod {
+    final DateTime? first = firstPeriod;
+    final int? count = months;
+    if (first == null || count == null || count < 1) return null;
+    return DateTime(first.year, first.month + count - 1);
+  }
+
+  static IntakeInstalments? maybe(Object? source) {
+    if (source is! Map) return null;
+    final Map<String, dynamic> json = Json.map(source);
+    final Map<String, dynamic> breakdown = Json.map(json['breakdown']);
+    return IntakeInstalments(
+      offered: Json.booleanOr(json['offered']),
+      months: Json.integer(breakdown['months']) ?? Json.integer(json['months']),
+      total: Json.string(breakdown['total']),
+      each: Json.string(breakdown['each']),
+      last: Json.string(breakdown['last']),
+      uneven: Json.booleanOr(breakdown['uneven']),
+      firstPeriod: _period(Json.string(breakdown['first_period'])),
+    );
+  }
+
+  static DateTime? _period(String? value) {
+    final RegExpMatch? m = RegExp(
+      r'^(\d{4})-(\d{1,2})',
+    ).firstMatch(value ?? '');
+    if (m == null) return null;
+    final int month = int.parse(m[2]!);
+    if (month < 1 || month > 12) return null;
+    return DateTime(int.parse(m[1]!), month);
+  }
 }
 
 /// The signed original and the signing video, under `execution`.

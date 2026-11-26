@@ -30,8 +30,15 @@ class IntakeTimeline extends StatelessWidget {
         message: 'Each act on the case is recorded here.',
       );
     }
-    // The server sends them oldest first.
-    final List<IntakeAction> steps = actions.reversed.toList();
+    // Newest first by time; undated steps go last.
+    final List<IntakeAction> steps = actions.reversed.toList()
+      ..sort((IntakeAction a, IntakeAction b) {
+        if (a.at == null || b.at == null) {
+          return (a.at == null ? 1 : 0) - (b.at == null ? 1 : 0);
+        }
+        return b.at!.compareTo(a.at!);
+      });
+    final DateTime now = DateTime.now();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -41,6 +48,12 @@ class IntakeTimeline extends StatelessWidget {
             child: _Step(
               action: steps[i],
               last: i == steps.length - 1,
+              // How long the case sat after this step: until the next, or now.
+              held: steps[i].at == null
+                  ? null
+                  : (i == 0 ? now : steps[i - 1].at ?? now).difference(
+                      steps[i].at!,
+                    ),
               onOpen: onOpen,
               openingUrl: openingUrl,
             ),
@@ -55,10 +68,12 @@ class _Step extends StatelessWidget {
     required this.action,
     required this.last,
     required this.onOpen,
+    this.held,
     this.openingUrl,
   });
 
   final IntakeAction action;
+  final Duration? held;
 
   /// The bottom step, the oldest: the rail stops at its node.
   final bool last;
@@ -68,38 +83,8 @@ class _Step extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppTone tone = _tone(action.action?.value);
-    final Color? muted = Theme.of(
-      context,
-    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
     final String? label = action.action?.label;
-    final String who = <String>[
-      ?action.actor,
-      if (action.actorRole != null) IntakeLabels.humanise(action.actorRole!),
-      if (action.branch != null) IntakeLabels.branch(action.branch!),
-    ].join(' · ');
-    final String? move = action.fromStatus == null || action.toStatus == null
-        ? null
-        : '${IntakeLabels.status(action.fromStatus!)} → '
-              '${IntakeLabels.status(action.toStatus!)}';
-
     final Color rail = Theme.of(context).dividerColor;
-    final Widget node = Container(
-      height: _node,
-      width: _node,
-      decoration: BoxDecoration(
-        color: tone.container(context),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: tone.on(context).withValues(alpha: 0.35),
-          width: 1.5,
-        ),
-      ),
-      child: Icon(
-        _glyph(action.action?.value),
-        size: 16,
-        color: tone.on(context),
-      ),
-    );
 
     // The rail runs the step's full height, so it meets the next node.
     return IntrinsicHeight(
@@ -110,12 +95,21 @@ class _Step extends StatelessWidget {
             width: _node,
             child: Column(
               children: <Widget>[
-                node,
+                const SizedBox(height: 16),
+                Container(
+                  height: _node,
+                  width: _node,
+                  decoration: BoxDecoration(
+                    color: tone.container(context),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: tone.on(context), width: 2),
+                  ),
+                ),
                 if (!last)
                   Expanded(
                     child: Container(
                       width: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      margin: const EdgeInsets.only(top: 4),
                       decoration: BoxDecoration(
                         color: rail,
                         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -125,11 +119,11 @@ class _Step extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: last ? 0 : 14),
-              child: _card(context, label, who, move, muted),
+              padding: EdgeInsets.only(bottom: last ? 0 : 12),
+              child: _card(context, tone, label),
             ),
           ),
         ],
@@ -137,49 +131,62 @@ class _Step extends StatelessWidget {
     );
   }
 
-  Widget _card(
-    BuildContext context,
-    String? label,
-    String who,
-    String? move,
-    Color? muted,
-  ) {
+  Widget _card(BuildContext context, AppTone tone, String? label) {
+    final String? role = action.actorRole == null
+        ? null
+        : IntakeLabels.humanise(action.actorRole!);
+    final String? branch = action.branch == null
+        ? null
+        : IntakeLabels.branch(action.branch!);
+    final String? to = action.destination != null
+        ? IntakeLabels.branch(action.destination!)
+        : action.toStatus == null
+        ? null
+        : IntakeLabels.status(action.toStatus!);
+
     return AppCard(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppText.body(
-            label == null || label == action.action?.value
+          AppStatusBadge(
+            label: label == null || label == action.action?.value
                 ? IntakeLabels.humanise(action.action?.value ?? 'Step')
                 : label,
-            fontWeight: FontWeight.w700,
+            tone: tone,
+            icon: _glyph(action.action?.value),
           ),
-          if (action.at != null)
-            AppText.caption(
-              Formatters.dateTime(action.at!.toLocal()),
-              color: muted,
+          const SizedBox(height: 10),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(
+                  child: _Party(
+                    tag: 'FROM',
+                    name: action.actor ?? branch ?? '—',
+                    detail: <String>{
+                      ?role,
+                      ?branch,
+                    }.where((String d) => d != action.actor).join(' · '),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: tone.on(context),
+                  ),
+                ),
+                Expanded(
+                  child: _Party(tag: 'TO', name: to ?? '—'),
+                ),
+              ],
             ),
-          const SizedBox(height: 8),
-          if (who.isNotEmpty)
-            AppDetailRow(
-              icon: Icons.person_outline_rounded,
-              value: who,
-              maxLines: null,
-            ),
-          if (move != null)
-            AppDetailRow(
-              icon: Icons.swap_horiz_rounded,
-              value: move,
-              maxLines: null,
-            ),
-          if (action.destination != null)
-            AppDetailRow(
-              icon: Icons.call_split_rounded,
-              value: 'Sent to ${IntakeLabels.branch(action.destination!)}',
-              maxLines: null,
-            ),
-          if (action.changeCount > 0)
+          ),
+          if (action.changeCount > 0) ...<Widget>[
+            const SizedBox(height: 8),
             AppDetailRow(
               icon: Icons.edit_note_rounded,
               value:
@@ -187,8 +194,9 @@ class _Step extends StatelessWidget {
                   '${action.changeCount == 1 ? 'change' : 'changes'}',
               maxLines: null,
             ),
+          ],
           if (action.remarks != null) ...<Widget>[
-            const SizedBox(height: 2),
+            const SizedBox(height: 8),
             AppText.body('“${action.remarks}”'),
           ],
           for (final IntakeDocument file in action.attachments)
@@ -219,12 +227,31 @@ class _Step extends StatelessWidget {
                       ),
               ),
             ),
+          if (action.at != null || held != null) ...<Widget>[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: <Widget>[
+                if (action.at != null)
+                  AppStatusBadge(
+                    label: Formatters.dateTime(action.at!.toLocal()),
+                    icon: Icons.schedule_rounded,
+                  ),
+                if (held != null)
+                  AppStatusBadge(
+                    label: Formatters.span(held!),
+                    icon: Icons.hourglass_empty_rounded,
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
-  static const double _node = 34;
+  static const double _node = 14;
 
   static AppTone _tone(String? action) => switch (action) {
     'endorsed' || 'approved' || 'dispatched' => AppTone.success,
@@ -246,4 +273,37 @@ class _Step extends StatelessWidget {
     final String a when a.contains('forward') => Icons.forward_outlined,
     _ => Icons.circle_outlined,
   };
+}
+
+/// One side of a step: who sent it, or where it went.
+class _Party extends StatelessWidget {
+  const _Party({required this.tag, required this.name, this.detail = ''});
+
+  final String tag;
+  final String name;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color? muted = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppText.caption(tag, color: muted, fontWeight: FontWeight.w700),
+          const SizedBox(height: 2),
+          AppText.body(name, fontWeight: FontWeight.w700, maxLines: 2),
+          if (detail.isNotEmpty)
+            AppText.caption(detail, color: muted, maxLines: 2),
+        ],
+      ),
+    );
+  }
 }

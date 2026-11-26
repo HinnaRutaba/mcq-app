@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:go_router/go_router.dart';
@@ -229,6 +230,33 @@ void main() {
         reason: 'back on ${barLabels[i]} should land on Home',
       );
     }
+  });
+
+  // Android 16 predictive back only hands Flutter the press if it said it wants it.
+  testWidgets('Android is told the app takes the back press off Home', (
+    WidgetTester tester,
+  ) async {
+    final List<bool> handlesBack = <bool>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (MethodCall call) async {
+        if (call.method == 'SystemNavigator.setFrameworkHandlesBack') {
+          handlesBack.add(call.arguments as bool);
+        }
+        return null;
+      },
+    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await pumpShell(tester);
+
+    for (int i = 1; i < barLabels.length; i++) {
+      await tester.tap(find.text(barLabels[i]));
+      await tester.pumpAndSettle();
+      expect(handlesBack.last, isTrue, reason: 'on ${barLabels[i]}');
+    }
+    await tester.tap(find.text(barLabels.first));
+    await tester.pumpAndSettle();
+    expect(handlesBack.last, isFalse, reason: 'Home lets the press out');
   });
 
   testWidgets('the back button still leaves the app from Home', (

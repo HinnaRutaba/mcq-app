@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../config/theme/app_colors.dart';
-import '../../../../config/theme/app_radius.dart';
 import '../../../../models/intake_legacy.dart';
 import '../../../../widgets/widgets.dart';
 import 'intake_info_card.dart';
@@ -46,7 +45,7 @@ class IntakeLegacyCard extends StatelessWidget {
           ].join(' · ');
 
     return IntakeInfoCard(
-      title: 'Legacy register',
+      title: 'Case vs legacy register',
       icon: Icons.history_edu_outlined,
       trailing: entry == null
           ? const AppStatusBadge(label: 'No entry')
@@ -78,20 +77,14 @@ class IntakeLegacyCard extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: AppText.caption(source, color: muted, maxLines: 1),
             ),
-          if (rows.isNotEmpty) ...<Widget>[
-            const _Row(
-              label: '',
-              now: 'Now · this case',
-              old: 'Old · register',
+          if (rows.isNotEmpty) const _Row.head(),
+          for (final LegacyCheck check in rows)
+            _Row(
+              label: check.label,
+              now: check.caseValue,
+              old: check.legacyValue,
+              match: check.match,
             ),
-            for (final LegacyCheck check in rows)
-              _Row(
-                label: check.label,
-                now: check.caseValue,
-                old: check.legacyValue,
-                match: check.match,
-              ),
-          ],
           if (same.isNotEmpty)
             _MatchesLine(
               same: same,
@@ -109,105 +102,60 @@ class IntakeLegacyCard extends StatelessWidget {
       Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6);
 }
 
-/// The label and verdict glyph over the value now and the old one. With no
-/// [match] it is the column heading.
+/// One table row: the field, then its value in this case and in the register.
+/// With [head] it is the column headings. Amber register value when they differ.
 class _Row extends StatelessWidget {
   const _Row({required this.label, this.now, this.old, this.match});
+
+  const _Row.head() : this(label: '', now: 'This case', old: 'Register');
 
   final String label;
   final String? now;
   final String? old;
+
+  /// Null on the heading row.
   final LegacyMatch? match;
 
   @override
   Widget build(BuildContext context) {
     final Color? muted = IntakeLegacyCard._muted(context);
-    final bool header = match == null;
+    final bool head = match == null;
     final bool differs = match == LegacyMatch.differs;
-    final Color warn = AppTone.warning.on(context);
 
-    // Headings in the colour of their side: brand for now, amber for the
-    // register, as its values turn amber when they differ.
-    Widget value(
-      String? text, {
-      Color? color,
-      AppTone tone = AppTone.primary,
-    }) => header
-        ? AppText.label(
-            text ?? '',
-            color: tone.on(context),
-            fontWeight: FontWeight.w800,
-          )
+    Widget value(String? text, {Color? color}) => head
+        ? AppText.caption(text ?? '', color: muted)
         : AppText.body(
-            text ?? '—',
+            text ?? 'Not recorded',
             color: text == null ? muted : color,
-            fontWeight: FontWeight.w600,
+            fontWeight: text == null ? null : FontWeight.w600,
             maxLines: 3,
           );
 
-    // Values get the full width under their label: a CNIC needs it.
-    final Widget values = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Expanded(child: value(now)),
-        const SizedBox(width: 12),
-        Expanded(
-          child: value(
-            old,
-            color: differs ? warn : null,
-            tone: AppTone.warning,
-          ),
-        ),
-      ],
-    );
-
-    final Widget? glyph = switch (match) {
-      LegacyMatch.same => Icon(
-        Icons.check_circle_rounded,
-        size: 16,
-        color: AppTone.success.on(context),
-      ),
-      LegacyMatch.differs => Icon(Icons.error_rounded, size: 16, color: warn),
-      LegacyMatch.unchecked => Icon(
-        Icons.remove_rounded,
-        size: 16,
-        color: muted,
-      ),
-      null => null,
-    };
-
     return Container(
-      margin: EdgeInsets.only(bottom: header ? 0 : 4),
-      padding: EdgeInsets.fromLTRB(8, header ? 0 : 6, 8, header ? 6 : 7),
-      decoration: differs
-          ? BoxDecoration(
-              color: AppTone.warning.container(context),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-            )
-          : null,
-      child: header
-          ? values
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: AppText.caption(
-                        match == LegacyMatch.unchecked
-                            ? '$label · not on both'
-                            : label,
-                        color: differs ? warn : muted,
-                        fontWeight: differs ? FontWeight.w700 : null,
-                      ),
-                    ),
-                    ?glyph,
-                  ],
-                ),
-                const SizedBox(height: 1),
-                values,
-              ],
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Expanded(
+            flex: 9,
+            child: AppText.caption(label, fontWeight: FontWeight.w700),
+          ),
+          Expanded(flex: 11, child: value(now)),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 11,
+            child: value(
+              old,
+              color: differs ? AppTone.warning.on(context) : null,
             ),
+          ),
+        ],
+      ),
     );
   }
 }

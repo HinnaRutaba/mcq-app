@@ -409,7 +409,15 @@ void main() {
       expect(c.lockVersion, 3);
       expect(c.shop.market, 'Liaquat Bazaar');
       expect(c.amounts['verified_monthly_rent'], '12500.00');
-      expect(c.amounts['instalment_offer.monthly'], '7500.00');
+      expect(
+        c.amounts.keys.where((String k) => k.startsWith('instal')),
+        isEmpty,
+      );
+      expect(c.instalments!.offered, isTrue);
+      expect(c.instalments!.each, '152627.50');
+      expect(c.instalments!.total, '1831530.00');
+      expect(c.instalments!.firstPeriod, DateTime(2026, 11));
+      expect(c.instalments!.lastPeriod, DateTime(2027, 10));
       expect(c.allowedActs.map((IntakeActOption o) => o.act), <String>[
         'endorse',
         'return',

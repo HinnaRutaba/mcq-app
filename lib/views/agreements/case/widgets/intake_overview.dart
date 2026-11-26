@@ -8,6 +8,7 @@ import '../../../../widgets/widgets.dart';
 import '../../shared/intake_labels.dart';
 import 'intake_case_hero.dart';
 import 'intake_info_card.dart';
+import 'intake_instalments_card.dart';
 import 'intake_legacy_card.dart';
 import 'intake_note_alert.dart';
 
@@ -34,7 +35,7 @@ class IntakeNotices extends StatelessWidget {
         ),
       if (query != null)
         IntakeNoteAlert(
-          lead: 'Query open',
+          lead: 'Query',
           note: query,
           tone: AppTone.warning,
           icon: Icons.help_outline_rounded,
@@ -65,7 +66,7 @@ class IntakeNotices extends StatelessWidget {
   }
 }
 
-/// Identity, shop, applicant and witnesses.
+/// The case and its applicant, the legacy register, and the shop.
 class IntakeOverview extends StatelessWidget {
   const IntakeOverview({
     super.key,
@@ -85,7 +86,6 @@ class IntakeOverview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final IntakeShop shop = file.shop;
-    final IntakeApplicant? applicant = file.applicant;
     final IntakeLegacy? legacy = file.legacy;
 
     final List<Widget> cards = <Widget>[
@@ -116,42 +116,6 @@ class IntakeOverview extends StatelessWidget {
           'At review': shop.reviewedLocation,
         }),
       ),
-      if (applicant != null)
-        IntakeInfoCard(
-          title: 'Applicant',
-          icon: Icons.person_outline_rounded,
-          trailing: applicant.recordMatches == null
-              ? null
-              : AppStatusBadge(
-                  label: applicant.recordMatches!
-                      ? 'Matches register'
-                      : 'Differs from register',
-                  tone: applicant.recordMatches!
-                      ? AppTone.success
-                      : AppTone.warning,
-                ),
-          children: IntakeFact.of(<String, String?>{
-            'Name': applicant.name,
-            'Father': applicant.fatherName,
-            'CNIC': applicant.cnic,
-            'Mobile': applicant.mobile,
-            'Business': applicant.business,
-            'NTN': applicant.ntn,
-            'Address': applicant.address,
-            'Register record': applicant.recordLabel,
-          }),
-        ),
-      for (final IntakeWitness witness in file.witnesses)
-        IntakeInfoCard(
-          title: 'Witness ${witness.position ?? ''}'.trim(),
-          icon: Icons.badge_outlined,
-          children: IntakeFact.of(<String, String?>{
-            'Name': witness.name,
-            'Father': witness.fatherName,
-            'CNIC': witness.cnic,
-            'Mobile': witness.mobile,
-          }),
-        ),
     ];
 
     return Column(
@@ -168,9 +132,10 @@ class IntakeOverview extends StatelessWidget {
 
 /// `amounts.*`, as the server computed them. Nothing is added up here.
 class IntakeMoney extends StatelessWidget {
-  const IntakeMoney({super.key, required this.amounts});
+  const IntakeMoney({super.key, required this.amounts, this.instalments});
 
   final Map<String, String> amounts;
+  final IntakeInstalments? instalments;
 
   /// "12500.00" is money; "6" (months) and "2026-01-01" are not.
   static final RegExp _money = RegExp(r'^-?\d+\.\d{2}$');
@@ -186,7 +151,8 @@ class IntakeMoney extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (amounts.isEmpty) {
+    final IntakeInstalments? plan = instalments;
+    if (amounts.isEmpty && plan == null) {
       return const AppEmptyState(
         icon: Icons.payments_outlined,
         title: 'No figures yet',
@@ -196,17 +162,22 @@ class IntakeMoney extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        IntakeInfoCard(
-          title: 'Amounts',
-          icon: Icons.payments_outlined,
-          children: <Widget>[
-            for (final MapEntry<String, String> line in amounts.entries)
-              IntakeFact(
-                label: IntakeLabels.humanise(line.key),
-                value: show(line.value),
-              ),
-          ],
-        ),
+        if (amounts.isNotEmpty)
+          IntakeInfoCard(
+            title: 'Amounts',
+            icon: Icons.payments_outlined,
+            children: <Widget>[
+              for (final MapEntry<String, String> line in amounts.entries)
+                IntakeFact(
+                  label: IntakeLabels.humanise(line.key),
+                  value: show(line.value),
+                ),
+            ],
+          ),
+        if (plan != null) ...<Widget>[
+          if (amounts.isNotEmpty) const SizedBox(height: 12),
+          IntakeInstalmentsCard(plan: plan),
+        ],
         const SizedBox(height: 10),
         const AppText.caption(
           'Every figure is computed by the server.',

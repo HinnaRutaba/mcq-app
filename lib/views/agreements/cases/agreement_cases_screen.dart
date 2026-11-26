@@ -163,7 +163,11 @@ List<Widget> _slivers(
 String _emptyLine(IntakeListQuery query) => switch (query.scope) {
   'awaiting_me' => 'Nothing is waiting for you.',
   'returned_by_me' => 'Nothing you returned or queried is still away.',
-  'decided_by_me' => 'You have not decided a case yet.',
+  'review' => 'No case is waiting for your review.',
+  'queries' => 'No query is waiting for your answer.',
+  'decision' => 'No case is waiting for your decision.',
+  'acted:approved' => 'You have not approved a case yet.',
+  'acted:endorsed' => 'You have not sent a case to the Administrator yet.',
   _ => 'No case in this list.',
 };
 

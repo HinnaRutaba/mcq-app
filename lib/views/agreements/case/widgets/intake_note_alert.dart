@@ -7,8 +7,8 @@ import '../../../../models/agreement_case.dart';
 import '../../../../widgets/widgets.dart';
 import '../../shared/intake_labels.dart';
 
-/// A return or an open query: who sent it and from where in bold, then their
-/// words set off in a highlighted block that folds past two lines.
+/// A return or an open query: "Returned from Name (Role)", then their words
+/// set off in a highlighted block that folds past two lines.
 class IntakeNoteAlert extends StatelessWidget {
   const IntakeNoteAlert({
     super.key,
@@ -31,13 +31,15 @@ class IntakeNoteAlert extends StatelessWidget {
       context,
     ).textTheme.bodyMedium!.copyWith(color: ink);
     final TextStyle bold = base.copyWith(fontWeight: FontWeight.w800);
-    final String? by = note.by;
-    // "by Administrator, from the Administrator" says one thing twice.
-    final String? from =
-        note.fromStage == null ||
-            (by ?? '').toLowerCase().contains(note.fromStage!.toLowerCase())
+    final String? role =
+        note.byRole ??
+        (note.fromStage == null ? null : IntakeLabels.role(note.fromStage!));
+    final String? name = note.by ?? role;
+    // "Administrator (Administrator)" says one thing twice.
+    final String? suffix =
+        role == null || role.toLowerCase() == name?.toLowerCase()
         ? null
-        : IntakeLabels.branch(note.fromStage!);
+        : ' ($role)';
     final String? remarks = note.remarks;
 
     return Container(
@@ -61,13 +63,10 @@ class IntakeNoteAlert extends StatelessWidget {
                     style: base,
                     children: <InlineSpan>[
                       TextSpan(text: lead, style: bold),
-                      if (by != null) ...<InlineSpan>[
-                        const TextSpan(text: ' by '),
-                        TextSpan(text: by, style: bold),
-                      ],
-                      if (from != null) ...<InlineSpan>[
+                      if (name != null) ...<InlineSpan>[
                         const TextSpan(text: ' from '),
-                        TextSpan(text: from, style: bold),
+                        TextSpan(text: name, style: bold),
+                        if (suffix != null) TextSpan(text: suffix),
                       ],
                     ],
                   ),

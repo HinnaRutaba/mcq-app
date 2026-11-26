@@ -27,25 +27,40 @@ class IntakeListQuery {
     scope: IntakeScope.awaitingMe,
     label: 'Waiting',
   );
+  static const IntakeListQuery review = IntakeListQuery(
+    scope: 'review',
+    label: 'To review',
+  );
+  static const IntakeListQuery queries = IntakeListQuery(
+    scope: 'queries',
+    label: 'Queries',
+  );
+  static const IntakeListQuery decision = IntakeListQuery(
+    scope: 'decision',
+    label: 'To decide',
+  );
   static const IntakeListQuery returnedByMe = IntakeListQuery(
     scope: IntakeScope.returnedByMe,
     label: 'Returned',
   );
-  static const IntakeListQuery decidedByMe = IntakeListQuery(
-    scope: IntakeScope.decidedByMe,
-    label: 'Decided',
+  static const IntakeListQuery approved = IntakeListQuery(
+    scope: 'acted:approved',
+    label: 'Approved',
   );
-  static const IntakeListQuery all = IntakeListQuery(
-    scope: IntakeScope.all,
-    label: 'All',
+  static const IntakeListQuery endorsed = IntakeListQuery(
+    scope: 'acted:endorsed',
+    label: 'Sent to Admin',
   );
 
   /// The tabs the list always offers.
   static const List<IntakeListQuery> standard = <IntakeListQuery>[
     awaitingMe,
+    review,
+    queries,
+    decision,
     returnedByMe,
-    decidedByMe,
-    all,
+    approved,
+    endorsed,
   ];
 
   bool get isStandard => standard.contains(this);

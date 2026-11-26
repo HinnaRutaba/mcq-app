@@ -188,7 +188,18 @@ Map<String, dynamic> caseData({
     'charges_rent': true,
     'security_deposit': '37500.00',
     'first_rent_month': '2026-12',
-    'instalment_offer': <String, dynamic>{'months': 6, 'monthly': '7500.00'},
+    'instalments': <String, dynamic>{
+      'offered': true,
+      'months': 12,
+      'breakdown': <String, dynamic>{
+        'total': '1831530.00',
+        'months': 12,
+        'each': '152627.50',
+        'last': '152627.50',
+        'uneven': false,
+        'first_period': '2026-11',
+      },
+    },
   },
   'actions': <Map<String, dynamic>>[
     <String, dynamic>{

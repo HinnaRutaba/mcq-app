@@ -74,6 +74,19 @@ class AgreementDashboard {
     );
   }
 
+  /// The register's cancelled cases — a reviewer cannot cancel, so this is
+  /// not one of [myActions]. Zero, opening that list, when not sent.
+  IntakeTile get cancelled =>
+      register?.byStatus
+          .where((IntakeTile t) => t.status == 'cancelled')
+          .firstOrNull ??
+      IntakeTile(
+        key: 'cancelled',
+        count: 0,
+        scope: register?.scope ?? IntakeScope.all,
+        status: 'cancelled',
+      );
+
   /// "Nothing is waiting for you" — every figure that is about now is nought.
   bool get nothingWaiting =>
       waitingTotal == 0 && (returnedByMe?.count ?? 0) == 0;

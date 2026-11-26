@@ -108,9 +108,6 @@ List<Widget> _body(
     ?data.returnedByMe,
   ];
   final IntakeRegister? register = data.register;
-  final bool endorsedShown = data.myActions.any(
-    (IntakeTile t) => t.key == 'endorsed',
-  );
 
   final List<Widget> sections = <Widget>[];
   int step = 0;
@@ -188,33 +185,22 @@ List<Widget> _body(
             AppEntrance(
               index: step,
               child: _ChartCard(
-                child: AppColumnChart(
-                  data: <ColumnDatum>[
-                    for (final IntakeTile a in data.myActions)
-                      ColumnDatum(
-                        label: IntakeTileCard.labelFor(a),
-                        value: a.count,
-                        // A case endorsed, returned and endorsed again is 1 case, 2 acts.
-                        caption: a.acts != null && a.acts != a.count
-                            ? '${a.acts} acts'
-                            : null,
-                        color: IntakeSeries.action(context, a.key),
-                        onTap: () => open(a, IntakeTileCard.labelFor(a)),
-                      ),
-                  ],
+                padding: EdgeInsets.zero,
+                // Keeps the end rows' ripples inside the rounded corners.
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  child: Column(
+                    children: <Widget>[
+                      for (final IntakeTile a in data.myActions) ...<Widget>[
+                        _actionTile(context, a, open),
+                        const Divider(height: 1, indent: 70),
+                      ],
+                      _actionTile(context, data.cancelled, open),
+                    ],
+                  ),
                 ),
               ),
             ),
-          if (data.myActions.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
-            AppText.caption(
-              endorsedShown
-                  ? 'Cases you acted on. Tap a column to open them. Endorsed is '
-                        'the CMO’s recommendation; only Approved is the '
-                        'Administrator’s decision.'
-                  : 'Cases you acted on. Tap a column to open them.',
-            ),
-          ],
         ],
       ),
     ),
@@ -311,6 +297,43 @@ List<Widget> _body(
   ];
 }
 
+Widget _actionTile(
+  BuildContext context,
+  IntakeTile a,
+  void Function(IntakeTile, String) open,
+) {
+  final String label = IntakeTileCard.labelFor(a);
+  final int? acts = a.acts;
+  // A case endorsed, returned and endorsed again is 1 case, 2 acts.
+  final String note = acts != null && acts != a.count
+      ? '${IntakeTileCard.noteFor(a.key)} · $acts acts'
+      : IntakeTileCard.noteFor(a.key);
+  final Color muted =
+      Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5) ??
+      Colors.grey;
+  final String? tag = IntakeTileCard.tagFor(a.key);
+  return MoreMenuTile(
+    icon: IntakeTileCard.iconFor(a.key),
+    title: label,
+    subtitle: note,
+    badge: tag == null
+        ? null
+        : AppStatusBadge(
+            label: tag,
+            tone: tag == 'Pending' ? AppTone.warning : AppTone.info,
+            minHeight: 22,
+          ),
+    tint: a.isEmpty ? muted : null,
+    bare: true,
+    trailing: AppText.titleLarge(
+      '${a.count}',
+      color: a.isEmpty ? muted : null,
+      fontWeight: FontWeight.w700,
+    ),
+    onTap: () => open(a, label),
+  );
+}
+
 class _Section extends StatelessWidget {
   const _Section({
     super.key,
@@ -343,15 +366,20 @@ class _Section extends StatelessWidget {
 
 /// The plate a chart sits on — the stat tiles' own lift and corner.
 class _ChartCard extends StatelessWidget {
-  const _ChartCard({required this.child});
+  const _ChartCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
 
   final Widget child;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
     return AppCard(
       lift: AppLift.soft,
       radius: AppRadius.lg,
+      padding: padding,
       borderColor: Theme.of(context).colorScheme.outline.withValues(alpha: 0.6),
       child: child,
     );

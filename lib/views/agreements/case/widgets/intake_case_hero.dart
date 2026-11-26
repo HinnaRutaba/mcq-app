@@ -4,11 +4,10 @@ import '../../../../config/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../models/agreement_case.dart';
 import '../../../../widgets/widgets.dart';
-import '../../shared/intake_labels.dart';
 import 'intake_info_card.dart';
 
 /// The case at a glance on a light brand plate: number, type and when it was
-/// submitted on top; where the shop is and where the case stands below.
+/// submitted on top; where the shop is and who the applicant is below.
 class IntakeCaseHero extends StatelessWidget {
   const IntakeCaseHero({super.key, required this.file});
 
@@ -29,12 +28,20 @@ class IntakeCaseHero extends StatelessWidget {
     final DateTime? submitted = file.submittedAt?.toLocal();
 
     final String? revised = _revised(file.contentRevision);
-    final Map<String, String?> facts = <String, String?>{
-      'With': file.withBranch == null
-          ? null
-          : IntakeLabels.branch(file.withBranch!),
-      'Next': file.nextAction,
-    }..removeWhere((String _, String? v) => v == null);
+    final IntakeApplicant? applicant = file.applicant;
+    final List<MapEntry<String, String>> facts =
+        <String, String?>{
+              'Applicant': applicant?.name,
+              'Father': applicant?.fatherName,
+              'CNIC': applicant?.cnic,
+              'Mobile': applicant?.mobile,
+              'Business': applicant?.business,
+              'NTN': applicant?.ntn,
+              'Register record': applicant?.recordLabel,
+            }.entries
+            .where((e) => e.value != null)
+            .map((e) => MapEntry(e.key, e.value!))
+            .toList();
 
     return AppTonePlate(
       tone: AppTone.primary,
@@ -115,13 +122,30 @@ class IntakeCaseHero extends StatelessWidget {
                 ),
               ],
             ),
-            if (facts.isNotEmpty) const SizedBox(height: 10),
+            if (applicant != null) const SizedBox(height: 12),
           ],
-          if (facts.isNotEmpty)
+          if (applicant?.recordMatches != null) ...<Widget>[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: AppStatusBadge(
+                label: applicant!.recordMatches!
+                    ? 'Matches register'
+                    : 'Differs from register',
+                tone: applicant.recordMatches!
+                    ? AppTone.success
+                    : AppTone.warning,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          // Two to a row, so the applicant fits the plate the steps left.
+          for (int i = 0; i < facts.length; i += 2) ...<Widget>[
+            if (i > 0) const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                for (final MapEntry<String, String?> fact in facts.entries)
+                for (final MapEntry<String, String> fact
+                    in facts.skip(i).take(2))
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,15 +153,27 @@ class IntakeCaseHero extends StatelessWidget {
                         AppText.caption(fact.key, color: muted),
                         const SizedBox(height: 2),
                         AppText.body(
-                          fact.value!,
+                          fact.value,
                           fontWeight: FontWeight.w600,
                           maxLines: 2,
                         ),
                       ],
                     ),
                   ),
+                if (i + 1 == facts.length) const Spacer(),
               ],
             ),
+          ],
+          if (applicant?.address != null) ...<Widget>[
+            const SizedBox(height: 10),
+            AppText.caption('Applicant address', color: muted),
+            const SizedBox(height: 2),
+            AppText.body(
+              applicant!.address!,
+              fontWeight: FontWeight.w600,
+              maxLines: 2,
+            ),
+          ],
         ],
       ),
     );

@@ -44,6 +44,15 @@ class IntakeTileCard extends StatelessWidget {
   /// The queue keys and acts the server publishes; anything newer is
   /// humanised rather than hidden.
   static String labelFor(IntakeTile tile) {
+    // Our own names for these acts win over the server's label.
+    switch (tile.key) {
+      case 'endorsed':
+        return 'Sent to Admin';
+      case 'dispatched':
+        return 'Sent from Admin';
+      case 'responded':
+        return 'Queries Answered';
+    }
     if (tile.label != null) return tile.label!;
     if (tile.status != null) return IntakeLabels.status(tile.status!);
     return switch (tile.key) {
@@ -54,17 +63,35 @@ class IntakeTileCard extends StatelessWidget {
       'dispatch' => 'To dispatch',
       'decision' => 'To decide',
       'execution_handoff' => 'Hand to Estate',
-      'endorsed' => 'Endorsed',
       'approved' => 'Approved',
       'rejected' => 'Rejected',
       'returned' => 'Returned or queried',
-      'responded' => 'Queries answered',
-      'dispatched' => 'Dispatched',
       'taxation_forwarded' => 'Forwarded by Taxation',
       'execution_forwarded' => 'Handed to Estate',
       _ => IntakeLabels.humanise(tile.key),
     };
   }
+
+  /// One line on what an act means — Endorsed is not Approved.
+  static String noteFor(String key) => switch (key) {
+    'endorsed' => 'Recommended to the Administrator',
+    'approved' => 'Your decision to approve',
+    'rejected' => 'Your decision to reject',
+    'returned' => 'Sent back for changes or an answer',
+    'responded' => 'Your answers to a query',
+    'dispatched' => 'Approved cases sent on',
+    'cancelled' => 'Cases that were cancelled',
+    'taxation_forwarded' ||
+    'execution_forwarded' => 'Passed to the next branch',
+    _ => 'Cases you acted on',
+  };
+
+  /// Where the cases an act sent now stand.
+  static String? tagFor(String key) => switch (key) {
+    'endorsed' || 'dispatched' => 'Pending',
+    'responded' => 'Forwarded',
+    _ => null,
+  };
 
   /// What a non-zero figure means. Zero is never toned.
   static AppTone? toneFor(String key) => switch (key) {
@@ -91,6 +118,7 @@ class IntakeTileCard extends StatelessWidget {
     'responded' => Icons.question_answer_outlined,
     'dispatched' => Icons.send_outlined,
     'activated' => Icons.task_alt_rounded,
+    'cancelled' => Icons.cancel_outlined,
     _ => Icons.folder_open_outlined,
   };
 }

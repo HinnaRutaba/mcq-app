@@ -26,6 +26,15 @@ class IntakeLabels {
     _ => humanise(value),
   };
 
+  /// The officer a stage belongs to, for "from Name (Role)".
+  static String role(String value) => switch (value) {
+    'estate' => 'Estate',
+    'taxation' => 'Taxation',
+    'cmo' => 'CMO',
+    'administrator' || 'administration' || 'admin' => 'Administrator',
+    _ => humanise(value),
+  };
+
   /// An act, as its button says it.
   static String act(String value) => switch (value) {
     'endorse' => 'Endorse',
